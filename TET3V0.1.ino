@@ -19,7 +19,7 @@ typedef struct {
 } actuator;
 
 // typedef struct actuator Actuator;
-const int NUM_ACTUATORS = 3;
+const int NUM_ACTUATORS = 10;
 
 // Chosen to deal with duty cycle
 const int CRUISE_SPEED = 255;
@@ -42,6 +42,7 @@ void setup()
     ; // wait for serial port to connect. Needed for native USB
   }
   Serial.println("Serial port ready!");
+    Serial.println(A9);
 
   bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
   bluetooth.print("$");  // Print three times individually
@@ -52,33 +53,22 @@ void setup()
   // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
   bluetooth.begin(9600);
   
-  act[0].forwardPin = 53;
-  act[0].reversePin = 52;
-  act[0].speedPin = 2;
-  act[0].potPin = A0;
-  act[0].nm = 'u';
-  act[0].minV = 0;
-  act[0].maxV = 1023;
-
-  act[1].forwardPin = 51;
-  act[1].reversePin = 50;
-  act[1].speedPin = 3;
-  act[1].potPin = A1;
-  act[1].nm = 'v';
-  act[1].minV = 0;
-  act[1].maxV = 1023;
   
-  act[2].forwardPin = 49;
-  act[2].reversePin = 48;
-  act[2].speedPin = 4;
-  act[2].potPin = A2;
-  act[2].nm = 'w';
-  act[2].minV = 0;
-  act[2].maxV = 1023;
+  for(int i = 0; i < 10; i++) {
+     act[i].forwardPin = 53 - (2*i);
+     act[i].reversePin = act[i].forwardPin - 1;
+     // In the Arduino Mega, the Anaglog pins A0, A1, etc, are numbered 54,55, etc.
+     act[i].speedPin = 2+i;
+     act[i].potPin = 54+i;
+     act[i].nm = 'a' + i;
+     act[i].minV = 0;
+     act[i].maxV = 1023;
+  }
   
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+      pinMode(54+i,INPUT);
+  }
   
   for(int i = 0; i < 4 * 5; i++) {
       pinMode(34+i,OUTPUT);
