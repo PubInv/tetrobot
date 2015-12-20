@@ -18,58 +18,39 @@ typedef struct {
   int maxV = -99;
 } actuator;
 
-// If using a a Mega, you must use a pin that supports a change interrupt (10-15, and others.)
-// int bluetoothTx = 2;  // TX-O pin of bluetooth mate, Arduino D2
-// int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
-
 // typedef struct actuator Actuator;
-const int NUM_ACTUATORS = 2;
+const int NUM_ACTUATORS = 3;
 
 // Chosen to deal with duty cycle
 const int CRUISE_SPEED = 255;
 
 actuator act[NUM_ACTUATORS];
 
-// SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
+// This is the only set of pints that seems to work!
+// I am very confused by this.  Perhaps it is worth noting to a larger audience this problem ... why
+// don't 14 and 15 work just as well?
+const byte bluetoothTx = 12;
+const byte bluetoothRx = 13;
+
+SoftwareSerial bluetooth(bluetoothRx, bluetoothTx);
 
 
 void setup()
 {
-    Serial.begin(9600);  // Begin the serial monitor at 9600bps
+  Serial.begin(9600);  // Begin the serial monitor at 9600bps
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB
   }
   Serial.println("Serial port ready!");
- 
-/* 
-  Serial.begin(9600);  // Begin the serial monitor at 9600bps
 
   bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
   bluetooth.print("$");  // Print three times individually
   bluetooth.print("$");
   bluetooth.print("$");  // Enter command mode
   delay(100);  // Short delay, wait for the Mate to send back CMD
-  bluetooth.println("V");  // Temporarily Change the baudrate to 9600, no parity
   bluetooth.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
   // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
-  bluetooth.begin(9600);  // Start bluetooth serial at 9600
-  
-  */
-  
-  /*
-  Note: This code is specific to the Arduino Mega.  We are using Serial1, which is 
-  pins 18 and 19.  This seems to be more reliable for me to 
-  
-  */
-  
-  Serial1.begin(115200);  // The Bluetooth Mate defaults to 115200bps
-  Serial1.print("$");  // Print three times individually
-  Serial1.print("$");
-  Serial1.print("$");  // Enter command mode
-  delay(100);  // Short delay, wait for the Mate to send back CMD
-  Serial1.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
-  // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
-  Serial1.begin(9600);
+  bluetooth.begin(9600);
   
   act[0].forwardPin = 53;
   act[0].reversePin = 52;
@@ -87,14 +68,23 @@ void setup()
   act[1].minV = 0;
   act[1].maxV = 1023;
   
+  act[2].forwardPin = 49;
+  act[2].reversePin = 48;
+  act[2].speedPin = 4;
+  act[2].potPin = A2;
+  act[2].nm = 'w';
+  act[2].minV = 0;
+  act[2].maxV = 1023;
+  
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
   
   for(int i = 0; i < 4 * 5; i++) {
       pinMode(34+i,OUTPUT);
   }
   
- 
+  delay(1000);
 }
 
 // 1 means extend, -1 means restract
@@ -106,8 +96,7 @@ void activate_actuators(int actuator,int direction,int strength)
       digitalWrite(act[actuator].forwardPin,HIGH);     
     } else if (direction == -1) {
       digitalWrite(act[actuator].reversePin,HIGH);
-      digitalWrite(act[actuator].forwardPin,LOW);   
-   
+      digitalWrite(act[actuator].forwardPin,LOW);     
   }
 }
 
@@ -156,9 +145,9 @@ float dist(int n, int a[],int b[]) {
     float bi = b[i];
     sum += ((ai - bi)*(ai - bi));
   }
-  Serial.println("SPUD");
-  Serial.println(dist3(a,b));
-  Serial.println(sqrt(sum));
+ // Serial.println("SPUD");
+ // Serial.println(dist3(a,b));
+ // Serial.println(sqrt(sum));
   return sqrt(sum);
 }
 
@@ -231,82 +220,49 @@ void move_vector(int n,int *vec) {
   Serial.println("Move done!");
 }
 
-void relax() {
+void send_all_to(Stream* debug,int val) {
   int vec[NUM_ACTUATORS];
   // First, lift
   for(int i = 0; i < NUM_ACTUATORS; i++) {
-    vec[i] = 500;
+    vec[i] = val;
   }
   move_vector(NUM_ACTUATORS,vec);
 }
+
+void relax(Stream* debug) {
+  send_all_to(debug,500);
+}
+
+void contract(Stream* debug) {
+  send_all_to(debug,0);
+}
+
+void expand(Stream* debug) {
+  send_all_to(debug,1023); 
+}
+
+void experiment(Stream* debug) {
+  activate_actuators(2,-1,255);
+}
 // This would be far more elegant with streams...one in stream, one out stream --- don't know how to do this!
-void main_controller() {
-  if (Serial1.available()) {
-    Serial1.println("YES!");
-    bool terminator_not_found = true;
-    char inChar = Serial1.read();
-    Serial1.println(inChar);
-    // This stuff is for the MotorShield
-    if (inChar == 'u' || inChar == 'v' || inChar == 'w' || inChar == 'x') {
-      int n = Serial1.parseInt();
-      int coil = findByName(inChar);
-      Serial1.println("coil =");
-      Serial1.println(coil);
-      if (n == 1) {
-        deactivate_actuator(coil);
-      } else {
-      int dir = (n == 0) ? -1 : 1;
-      Serial.println("Direction:");
-      if (dir == 1) Serial.println("extend");
-      if (dir == -1) Serial.println("retract");
-      activate_actuators(coil,dir,255);
-      }
-    }
-    
-    if (inChar == 'r') {
-      int n = Serial1.parseInt();
-      if (n < 0 || n > 3) {
-        Serial.println("bad actuator");
-      } 
-      int val = sensePosition(act[n].potPin);
-      Serial.print("value of ");
-      Serial.print(act[n].potPin);
-      Serial.print(" = ");
-      Serial.println(val);
-      Serial.println("XXX");
-    }
-    
-  
-    
-    if (inChar == 'a') {
-      char comma = Serial1.read();
-      int vec[NUM_ACTUATORS];
-      for(int i = 0; i < NUM_ACTUATORS; i++) {
-             vec[i] = Serial1.parseInt();
-             if (i < (NUM_ACTUATORS - 1)) {
-               comma = Serial1.read();
-             }
-      }
-      OutputVector(NUM_ACTUATORS,vec);
-      move_vector(NUM_ACTUATORS,vec);
-    }
-   
-    if (inChar == 'j') {
-      relax();
-    }
-    
-    
-    if (inChar == '\n') {
-      terminator_not_found = false;
-    }
-    if (terminator_not_found) {
-    while (!Serial1.available()) ;
-    char terminator = Serial1.read();
-    if (terminator != '\n') {
-      Serial.print(terminator);
-      Serial.println(" : Didn't read terminator successfully.");
-    }
-    }
+void main_controller(String str,Stream* debug) {
+  switch(str[0]) {
+    case 'j':
+      relax(debug);
+      debug->println("done with Relax.");
+      break;
+    case 'k':
+      expand(debug);
+      debug->println("done with Expand.");
+      break;
+    case 'l':
+      contract(debug);
+      debug->println("done with Contract.");
+      break;
+    case 'x':
+      experiment(debug);
+      debug->println("done with Experiment.");
+      break;
   }
 }
 
@@ -320,16 +276,19 @@ void OutputVector(int n,int v[]) {
 
 void loop()
 {
-   if(Serial1.available()>0)  // If the bluetooth sent any characters
+   if(bluetooth.available()>0)  // If the bluetooth sent any characters
   {
+    int x = bluetooth.available();
+    String str = bluetooth.readStringUntil('\n');
+    bluetooth.println(str);
+    
     // Send any characters the bluetooth prints to the serial monitor
-    main_controller();
+   main_controller(str,&bluetooth);
   }
   if(Serial.available()>0)  // If stuff was typed in the serial monitor
   {
     // Send any characters the Serial monitor prints to the bluetooth
-    char c = (char)Serial.read();
-    Serial.println(c);
-    Serial1.println(c);
+    String s =  Serial.readStringUntil('\n');
+    bluetooth.println(s);
   }
 }
