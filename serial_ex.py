@@ -32,10 +32,10 @@ while 1 :
     # let's try to see which stream (stdin or bluetooth) we have input on
     while ser.inWaiting() > 0:
         cin = ser.read(1)
-        outbuff += cin
-    if len(outbuff) > 0:
-        print outbuff + "\n"
-        outbuff = ""
+        outbuff += cin[0]
+        if cin == "\n":
+            print outbuff.rstrip()
+            outbuff = ""
 
     while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
         line = sys.stdin.readline()
