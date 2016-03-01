@@ -30,50 +30,62 @@
   (mapcar (lambda (p) (try-building k p)) ports)
   )
 
-(defun close-procs ()
-    (delete-process TETA)
-    (delete-process TETB)
-)
 
-;; This needs to be error-protected, in addition to reading from buffers as output.
-(defun send-both (command)
-  (progn
-    (process-send-string TETA command)
-    (process-send-string TETB command)))
-
-(defun send-both (command)
+(defun protected-mapcar (f lst)
   (mapcar
    (lambda (p)
            (condition-case err
-	       (process-send-string TETB command)
+	       (funcall f p)
 	     (error                        ; Condition.
-	 ;; Display the usual message for this error.
+	      ;; Display the usual message for this error.
 	      (print err)
 	      (message "%s" (error-message-string err))
 	      )))
+   lst))
+
+;; rewrite this to use protected-mapcar
+(defun close-procs ()
+  (protected-mapcar
+   (lambda (p)
+	(delete-process p))
+   CONTROLLER-PORTS))
+
+
+
+(defun send-all (command)
+  (protected-mapcar
+   (lambda (p)
+	(process-send-string p command))
    CONTROLLER-PORTS))
 
 
 (defun test-one ()
   (progn
     (build-procs 3 CONTROLLER-PORTS)
-    (send-both "x")))
+    (send-all "x")))
+
+;; look back in the current buffer to find the most recent
+;; status report
+;; This could be accomplished with filter-function,
+;; dynamically updating things.
+;; I also need to consider the possibility that filter functions
+;; could sound output from multiple controllers to the same buffer.
+;; However, for now, I'm just playing around with reading.
+(defun process-status (p)
+  (bufferp (process-buffer (get-process p)))
+  )
 
 
 
 
 
+;; Driving commands
 
+(defun big () (send-all "k"))
+(defun small () (send-all "l"))
+(defun relax () (send-all "j"))
+(defun status () (send-all "s"))
 
-
-					; Driving commands
-
-(defun big () (send-both "k"))
-(defun small () (send-both "l"))
-(defun relax () (send-both "j"))
-(defun status () (send-both "s"))
-
-;; send-both needs to be change to send-all
 (defun test-major-moves ()
   (progn
     (build-procs 3 CONTROLLER-PORTS)
@@ -82,3 +94,38 @@
     (relax)
     ))
 	
+(defun ordinary-insertion-filter (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((moving (= (point) (process-mark proc))))
+        (save-excursion
+          ;; Insert the text, advancing the process marker.
+          (goto-char (process-mark proc))
+          (insert string)
+          (set-marker (process-mark proc) (point)))
+        (if moving (goto-char (process-mark proc)))))))
+
+;; Here I attempt to write a function that
+;; listens for end-of-line, can treats each line as lisp-expression as it is encountered.
+;; Other than that appends the process name to each line (hopefully valubable for processing
+;; multiple buffers asyncrhonously.  
+(defun treat-as-elisp-and-annotate-filter (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((currentpoint (point))
+	    (moving (= (point) (process-mark proc))))
+        (save-excursion
+          ;; Insert the text, advancing the process marker.
+          (goto-char (process-mark proc))
+          (insert string)
+	  (if (string-match "\n" string)
+	      ;; Now we want to process from the current mark to the "Point", treating
+	      ;; as potentially multiple s-sexpressions
+	      (progn
+		(print (list "|"
+		 (buffer-substring (currentpoint) (point-max))
+		 "|"))
+		)
+	    )
+          (set-marker (process-mark proc) (point)))
+        (if moving (goto-char (process-mark proc)))))))

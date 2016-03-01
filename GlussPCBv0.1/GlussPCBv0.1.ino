@@ -354,7 +354,6 @@ void OutputVector(Stream* stream,int n,int v[]) {
     stream->print(v[i]);
     stream->print(" ");
   }
-  stream->println();
 }
 
 void OutputVectorSerial(int n,int v[]) {
@@ -426,7 +425,11 @@ void main_controller(Stream* debug,String str) {
     log_comment(debug,"About to get status");
     int cval[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS,cval);
+    // Do a lisp-style status output
+    debug->print("(status ");
     OutputVector(debug,NUM_ACTUATORS,cval);
+    debug->print(")");
+    debug->println();
     log_comment(debug,"Done with status.");
     break;
   }
