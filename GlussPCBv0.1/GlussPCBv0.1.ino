@@ -1,0 +1,543 @@
+#include "Arduino.h"
+#include <EEPROM.h>
+#include <stdlib.h>
+#include <SoftwareSerial.h>
+#include <math.h>
+#include <assert.h>
+#include "FirgAct.h"
+
+
+int sign(int a) {
+  return (a < 0) ? -1 : ((a == 0) ? 0 : 1); 
+}
+
+// Overall maximum speed: This can be used to limit amperage
+const float MAX_AMPS = 3.6;
+const float STALL_CURRENT_AMPS = 0.6;
+
+// typedef struct actuator Actuator;
+const int NUM_ACTUATORS = 6;
+
+const int MAX_SPEED = (MAX_AMPS/(STALL_CURRENT_AMPS*NUM_ACTUATORS)) * 255;
+
+// Chosen to deal with duty cycle
+const int CRUISE_SPEED = MAX_SPEED;
+
+actuator act[NUM_ACTUATORS];
+
+// This is the only set of pints that seems to work!
+// I am very confused by this.
+const byte bluetoothTx = 12;
+const byte bluetoothRx = 13;
+
+SoftwareSerial bluetooth(bluetoothRx, bluetoothTx);
+
+int num_responsive = 0;
+
+int responsive[NUM_ACTUATORS];
+
+
+// NOTE: It is important to have sufficient battery power. The actuators don't move
+// if you don't have sufficient battery power. It is impossible to tell if things
+// are actuators are responsive if you do not have enough battery power.
+
+
+
+
+// 1 means extend, -1 means restract
+void activate_actuators(int actuator,int direction,int strength)
+{
+  //  Serial.println("Activating!");
+  //  Serial.println("Forward PIN");
+  //  Serial.println(act[actuator].forwardPin);
+  //  Serial.println("Reverse PIN");
+  //  Serial.println(act[actuator].reversePin);
+  //  
+  //  Serial.println("Speed PIN");
+  //  Serial.println(act[actuator].speedPin);
+  //    Serial.println("strength");
+  //      Serial.println(strength);
+  
+  analogWrite(act[actuator].speedPin,strength);
+  if (direction == 1) {
+    digitalWrite(act[actuator].reversePin,LOW);
+    digitalWrite(act[actuator].forwardPin,HIGH);  
+    //      Serial.println("actuator"); 
+    //      Serial.println(actuator);  
+    //      Serial.println("reversePIN LOW"); 
+    //     Serial.println(act[actuator].reversePin);
+    //           Serial.println("forwardPIN HIGH"); 
+    //     Serial.println(act[actuator].forwardPin);
+  } else if (direction == -1) {
+    digitalWrite(act[actuator].reversePin,HIGH);
+    digitalWrite(act[actuator].forwardPin,LOW);  
+    //         Serial.println("actuator"); 
+    //      Serial.println(actuator);  
+    //      Serial.println("reversePIN HIGH"); 
+    //     Serial.println(act[actuator].reversePin);
+    //           Serial.println("forwardPIN LOW"); 
+    //     Serial.println(act[actuator].forwardPin);   
+  }
+}
+
+int findByName(char c) {
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    if (act[i].nm == c) {
+      return i;
+    }
+  }
+  Serial.println("NAME NOT FOUND");
+  return -1;
+}
+
+
+void deactivate_actuator(int actuator) {
+  digitalWrite(act[actuator].speedPin,LOW);
+  digitalWrite(act[actuator].reversePin,LOW);
+  digitalWrite(act[actuator].forwardPin,LOW);  
+}
+
+int sensePosition(int pin) {
+  int val = analogRead(pin);
+  return val;
+}
+
+
+void sensePositionVector(int n,int v[]) {
+  for(int i = 0; i < n; i++) {
+    v[i] = sensePosition(act[i].potPin);
+  }
+}
+
+// This is probably obsolete
+float dist3(int a[],int b[]) {
+  float x = a[0];
+  float y = a[1];
+  float z = a[2];
+  float q = b[0];
+  float r = b[1];
+  float s = b[2];
+  return sqrt((x-q)*(x-q) + (y-r)*(y-r) + (z-s)*(z-s));
+}
+
+float dist(int n, int a[],int b[]) {
+  float sum = 0.0;
+  for(int i = 0; i < n; i++) {
+    float ai = a[i];
+    float bi = b[i];
+    sum += ((ai - bi)*(ai - bi));
+  }
+  // Serial.println("SPUD");
+  // Serial.println(dist3(a,b));
+  // Serial.println(sqrt(sum));
+  return sqrt(sum);
+}
+
+void relax(Stream *);
+
+const int RESPONSE_THRESHOLD = 30;
+const int RESPONSE_DELAY_TIME = 300;
+void compute_responsiveness(Stream* debug) {
+
+  int cval[NUM_ACTUATORS];
+  int rval[NUM_ACTUATORS];  // retract val
+  int eval[NUM_ACTUATORS];  // extent val
+   
+  relax(debug);
+  sensePositionVector(NUM_ACTUATORS,cval);
+  // Let's try to retract, and see if it moves. If it moves, either in retraction or contraction,
+  // the we will mark it responsive. 
+  for(int i = 0; i < NUM_ACTUATORS; i++) { 
+    act[i].responsive = 0;                    // mark unresponsive
+    activate_actuators(i,-1,CRUISE_SPEED);
+  }
+  delay(RESPONSE_DELAY_TIME);
+  
+  sensePositionVector(NUM_ACTUATORS,eval);
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    if (act[i].responsive == 0) {   
+      // We demand a positive motion 
+      act[i].responsive = (((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
+      Serial.println("SPUDX");
+      Serial.println(i);
+      Serial.println(eval[i] - cval[i]);
+      Serial.println(((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
+    }
+  }  
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) {    
+    activate_actuators(i,1,CRUISE_SPEED);
+  }
+  delay(RESPONSE_DELAY_TIME);
+  sensePositionVector(NUM_ACTUATORS,rval);
+ 
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    deactivate_actuator(i);
+  }
+
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) {   
+    if (act[i].responsive == 0) {    
+      act[i].responsive = (((eval[i] - rval[i]) >= RESPONSE_THRESHOLD) ? 1 : 0);
+      Serial.println("SPUDY");
+      Serial.println(i);
+      Serial.println(abs(eval[i] - rval[i]));
+    }  
+  }
+  
+}
+
+// This is desirable because we want to make
+// sure that any debug statements are prefixed
+// with comment characters.
+void log_comment(Stream* debug,String str) {
+  debug->print(";; ");
+  debug->println(str);  
+}
+void log_comment(Stream* debug,int i) {
+   debug->print(";; ");
+  debug->println(i);  
+}
+
+void find_responsive(Stream* debug) {
+  for(int i = 0; i < NUM_ACTUATORS; i++) { 
+    act[i].responsive = 0;
+  }
+  compute_responsiveness(debug);
+  int num_responsive = 0;
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    log_comment(debug,i);
+    //    debug->println(i);
+    log_comment(debug,act[i].responsive);
+  }
+  log_comment(debug,"spud xxx");
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) { 
+    log_comment(debug,i);
+    log_comment(debug,act[i].responsive);
+    if (act[i].responsive == 1) {
+      responsive[num_responsive++] = i;
+    } else {
+      log_comment(debug,"ACTUATOR_UNRESPONSIVE:");
+      log_comment(debug,(char) act[i].nm);
+      //   log_comment(debug,act[i].responsive);
+    }
+  }
+  //  if (num_responsive != NUM_ACTUATORS) {
+  //     log_comment(debug,"WE'VE GOT UNRESPONSIVE ACTUATORS");
+  //     log_comment(debug,NUM_ACTUATORS - num_responsive);
+  //  }
+}
+
+
+void move_vector(Stream* debug,int n,int *vec) {
+  const int tolerance = 50; // the maximum number of clicks in the "digital voltage space" of 0 - 1023 that we accept
+  const float STUCK_DISTANCE = 1.0; // 3-Dimensional distance in the "digital voltage space" that we must move to not be "stuck"
+  const int DELAY_TIME = 30; // Time to wait before making a move again
+  const int MAX_STUCK = 4; // number of iterations to apply force before we give up as "stuck".
+  const int MAX_TIME_MS = 8000;
+  const int MAX_TURNS = MAX_TIME_MS / DELAY_TIME;
+  
+  int cval[n];
+  int v[n];
+  int dir[n];
+  
+  bool in_position = false;
+  int stuck_cnt = 0;
+  int total_turns = 0;
+     
+  while ((!in_position) && (stuck_cnt < MAX_STUCK) && (total_turns < MAX_TURNS)) {  
+    total_turns++;
+    log_comment(debug,total_turns);
+    // Figure out which directions to move....
+    sensePositionVector(n,cval);
+    int max_diff = -1;
+    int d[n];
+    for(int i = 0; i < n; i++) {
+      if (act[i].responsive) { // here we don't try to look for those that are unresponsive!
+	d[i] = vec[i] - cval[i];
+	dir[i] = sign(d[i]);
+	if (abs(d[i]) > max_diff)
+	  max_diff = abs(d[i]);
+      }
+    }
+
+    log_comment(debug,"aaa");
+    for(int i = 0; i < n; i++) {  
+      // This should probably adjust speed for those that 
+      // need to move less  
+      float speed_ratio = (float) abs(d[i]) / (float) max_diff;
+      log_comment(debug,"activating");
+      if (act[i].responsive) { // don't move the unresponsive ones!
+	log_comment(debug,"x");
+	activate_actuators(i,dir[i], (int) (speed_ratio * CRUISE_SPEED));
+	log_comment(debug,"y");
+      } else {
+	log_comment(debug,"unresponsive:");
+	log_comment(debug,i);
+      }
+    }
+
+    log_comment(debug,"bbb");
+    // Wait a little bit for they physical move....
+    delay(DELAY_TIME); 
+     
+    for(int i = 0; i < n; i++) {
+      v[i] = cval[i];     
+    }
+    sensePositionVector(n,cval);
+     
+    log_comment(debug,"sense done");
+     
+    // if we didn't move at all, increase stuck_cnt, so we don't
+    // permanently spin our motors with no progress
+    if (dist(n,v,cval) < STUCK_DISTANCE) {
+      stuck_cnt++;
+      log_comment(debug,"stuck!");
+    } else {
+      //     stuck_cnt = 0;
+    } 
+     
+    in_position = true;
+    for(int i = 0; i < n; i++) {
+      if (abs(cval[i] - vec[i]) < tolerance) {
+	deactivate_actuator(i);   
+      } else {
+	in_position = false;
+      }
+    }
+    log_comment(debug,"end loop");
+  } 
+  if (total_turns >= MAX_TURNS) {
+    log_comment(debug,"MOVE TIMED OUT!");
+  }
+
+  if (stuck_cnt >= MAX_STUCK) {
+    log_comment(debug,"GOT STUCK!");
+  }
+  log_comment(debug,"about to deactivate");
+  for(int i = 0; i < n; i++) {
+    deactivate_actuator(i);
+  }
+  log_comment(debug,"Move done!");
+}
+
+void send_all_to(Stream* debug,int val) {
+  int vec[NUM_ACTUATORS];
+  // First, lift
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    vec[i] = val;
+  }
+  move_vector(debug,NUM_ACTUATORS,vec);
+}
+
+void relax(Stream* debug) {
+  send_all_to(debug,500);
+}
+
+void contract(Stream* debug) {
+  send_all_to(debug,0);
+}
+
+void expand(Stream* debug) {
+  send_all_to(debug,1023); 
+}
+
+void experiment(Stream* debug) {
+  activate_actuators(0,-1,MAX_SPEED);
+}
+
+
+void OutputVector(Stream* stream,int n,int v[]) {
+  for(int i = 0; i < n; i++) {
+    stream->print(v[i]);
+    stream->print(" ");
+  }
+  stream->println();
+}
+
+void OutputVectorSerial(int n,int v[]) {
+  OutputVector(&Serial,n,v);
+}
+
+/*
+
+Our coal here is implement a "driver" for the 6-controller PCB board
+that I designed.  Ideally this driver willl be usable for any gneral
+purpose need to control 6 motors.  However, I am personally focused on
+controlling 6 Firgelli Actuators in my Gluss robot.  So at the time of
+this writing this is probably slanted for this purpose, and in fact
+the board interfaces better to the Firgelli actuator hardware device,
+which uses potentiometers to return position, than to generaly rotary
+motors, although if you ignore that and use only the voltage wires,
+you can control DC rotary motors.
+
+There are various functions which exist purely for testing:
+
+"l" - contract as much as possible
+"j" - relax (to middle position) as much as possible
+"k" - expand as much as possible
+
+Status commands:
+"s" - return the positional vector of all actuators (this should be
+expanded to return the functional status of all acutators as well, but
+that is for the future)
+
+"a" - attempt to determine which actuators are functional or not
+
+
+
+ */
+
+void main_controller(Stream* debug,String str) {
+  switch(str[0]) {
+  case 'a':
+    find_responsive(debug);
+    log_comment(debug,"done with Calculate.");
+    break;
+  case 'j':
+    relax(debug);
+    log_comment(debug,"done with Relax.");
+    break;
+  case 'k':
+    expand(debug);
+    log_comment(debug,"done with Expand.");
+    break;
+  case 'l':
+    contract(debug);
+    log_comment(debug,"done with Contract.");
+    break;
+  case 'x':
+    log_comment(debug,"About to activate neg.");
+    for(int i = 0; i < NUM_ACTUATORS; i++) {
+      activate_actuators(i,-1,MAX_SPEED);
+    }
+    log_comment(debug,"done with Experiment neg.");
+    break;
+  case 'y':
+    log_comment(debug,"About to activate pos.");
+    for(int i = 0; i < NUM_ACTUATORS; i++) {
+      activate_actuators(i,1,MAX_SPEED);
+    }
+    log_comment(debug,"done with Experiment pos.");
+    break;
+  case 's': // status
+    log_comment(debug,"About to get status");
+    int cval[NUM_ACTUATORS];
+    sensePositionVector(NUM_ACTUATORS,cval);
+    OutputVector(debug,NUM_ACTUATORS,cval);
+    log_comment(debug,"Done with status.");
+    break;
+  }
+}
+
+
+int r_cnt = 0;
+void loop()
+{
+  r_cnt++;
+  if(bluetooth.available()>0)  // If the bluetooth sent any characters
+    {
+      int x = bluetooth.available();
+      Serial.println("x = ");
+      Serial.println(x);
+      String str = bluetooth.readStringUntil('\n');
+      bluetooth.println("str = "+str);
+      log_comment(&bluetooth,str);
+    
+      // Send any characters the bluetooth prints to the serial monitor
+      main_controller(&bluetooth,str);
+    }
+  if(Serial.available()>0)  // If stuff was typed in the serial monitor
+    {
+      // Send any characters the Serial monitor prints to the bluetooth
+      String s =  Serial.readStringUntil('\n');
+      bluetooth.println(s);
+    }
+}
+void SetUpActuator(int i,actuator* a);
+
+void setup()
+{
+  // It is possible that this is a real problem for battery powered operation!!!!
+  Serial.begin(9600);  // Begin the serial monitor at 9600bps
+  Serial.println("Serial port ready!");
+  
+
+  bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
+  bluetooth.print("$");  // Print three times individually
+  bluetooth.print("$");
+  bluetooth.print("$");  // Enter command mode
+  delay(100);  // Short delay, wait for the Mate to send back CMD
+  bluetooth.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
+  // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
+  bluetooth.begin(9600);
+  
+  Serial.println("XXX!");
+  
+  // This is my original code.  With the new (0.2) board I intend to order,
+  // this will not be correct.  However for now I am trying to write 
+  // even a different piece of code to make the (poorly designed v0.1 board work.
+  //  for(int i = 0; i < NUM_ACTUATORS; i++) {
+  //    
+  //    // NOTE: On my particular board, pin # 45 is stuck HIGH for some reason.  This is a sign that we have to try to make
+  //    // our whole system more fault tolerant.  However, in the mean time,  I will skip over that pair!
+  //    if (i < 4) {
+  //        act[i].forwardPin = 53 - (2*i);
+  //        act[i].reversePin = act[i].forwardPin - 1;
+  //    } else {
+  //        act[i].forwardPin = 53 - (2*(i+1));
+  //        act[i].reversePin = act[i].forwardPin - 1;
+  //    }
+  //     // In the Arduino Mega, the Anaglog pins A0, A1, etc, are numbered 54,55, etc.
+  //     act[i].speedPin = 2+i;
+  //     act[i].potPin = 54+i;
+  //     act[i].nm = 'a' + i;
+  //     act[i].minV = 0;
+  //     act[i].maxV = 1023;
+  //     act[i].responsive = 1;
+  //  }
+  
+  // Note: I really hosed this up on the v0.1 board.
+
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    
+    SetUpActuator(i,&(act[i]));
+    
+    // Write all the acutators high because that is the only way to test!!!
+    
+    
+  }
+  
+  for(int i = 0; i < NUM_ACTUATORS; i++) {
+    pinMode(54+i,INPUT);
+  }
+  
+  // Make sure the PWM pins are set to output for controlling speed.
+  for(int i = 2; i < 9; i++) {
+    pinMode(i,OUTPUT);
+  }
+  
+  for(int i = 0; i < 4 * 5; i++) {
+    pinMode(34+i,OUTPUT);
+  }
+  
+  Serial.println("Setup done!");
+  //  find_responsive(&Serial);
+  // Now lets just put something into place to allow us to remark them unresponsive...
+  
+}
+
+void SetUpActuator(int i,actuator* a) {
+  a->forwardPin = 53 - 2*i;
+  a->reversePin = a->forwardPin - 1;
+    
+  // In the Arduino Mega, the Anaglog pins A0, A1, etc, are numbered 54,55, etc.
+  a->speedPin = 2+i;
+  a->potPin = 54+i;
+  a->nm = 'a' + i;
+  a->minV = 0;
+  a->maxV = 1023;
+  a->responsive = 1;    
+}
