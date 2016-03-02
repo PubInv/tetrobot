@@ -426,9 +426,9 @@ void main_controller(Stream* debug,String str) {
     int cval[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS,cval);
     // Do a lisp-style status output
-    debug->print("(status ");
+    debug->print("(status (list ");
     OutputVector(debug,NUM_ACTUATORS,cval);
-    debug->print(")");
+    debug->print("))");
     debug->println();
     log_comment(debug,"Done with status.");
     break;
@@ -446,7 +446,6 @@ void loop()
       Serial.println("x = ");
       Serial.println(x);
       String str = bluetooth.readStringUntil('\n');
-      bluetooth.println("str = "+str);
       log_comment(&bluetooth,str);
     
       // Send any characters the bluetooth prints to the serial monitor

@@ -27,6 +27,7 @@
   )
 
 (defun build-procs (k ports)
+  (close-procs)
   (mapcar (lambda (p) (try-building k p)) ports)
   )
 
@@ -84,7 +85,17 @@
 (defun big () (send-all "k"))
 (defun small () (send-all "l"))
 (defun relax () (send-all "j"))
-(defun status () (send-all "s"))
+(defun s () (send-all "s"))
+
+;; This is used by the arduino code to set the current status in a buffer-local variable!
+(defun status (args)
+  ;; For now we just print
+  (print
+   (list "WE WOULD SAVE THIS:"
+	 args
+	 "YES WE WOULD."
+   )))
+
 
 (defun test-major-moves ()
   (progn
@@ -94,38 +105,49 @@
     (relax)
     ))
 	
-(defun ordinary-insertion-filter (proc string)
-  (when (buffer-live-p (process-buffer proc))
-    (with-current-buffer (process-buffer proc)
-      (let ((moving (= (point) (process-mark proc))))
-        (save-excursion
-          ;; Insert the text, advancing the process marker.
-          (goto-char (process-mark proc))
-          (insert string)
-          (set-marker (process-mark proc) (point)))
-        (if moving (goto-char (process-mark proc)))))))
+(defun my-eval-string (str)
+  "Read and evaluate all forms in str.
+Return the results of all forms as a list."
+  (let ((next 0)
+    ret)
+    (condition-case err
+    (while t
+      (setq ret (cons (funcall (lambda (ret) (setq next (cdr ret)) (eval (car ret))) (read-from-string str next)) ret)))
+      (end-of-file))
+    (nreverse ret)))
 
-;; Here I attempt to write a function that
-;; listens for end-of-line, can treats each line as lisp-expression as it is encountered.
-;; Other than that appends the process name to each line (hopefully valubable for processing
-;; multiple buffers asyncrhonously.  
-(defun treat-as-elisp-and-annotate-filter (proc string)
+;; Possibly here I should set a buffer-local marker that points
+;; to the currently unprocessed position.  Then we can "process"
+;; from the marker to the end of the buffer (at each eoln),
+;; assuming that there is no eoln within an s-expr.
+(setq gluss-b-output nil)
+(defun ordinary-insertion-filter-x (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
-      (let ((currentpoint (point))
-	    (moving (= (point) (process-mark proc))))
+      (make-local-variable 'gluss-b-output)
+      (if (null gluss-b-output)
+	  (setq gluss-b-output (point-max-marker)))
+      (let ((moving (= (point) (process-mark proc)))
+	    (cpoint (point)))
+	(print "beggining")
+	(print string)
+	(print "OM:")
+	(print gluss-b-output)
         (save-excursion
           ;; Insert the text, advancing the process marker.
-          (goto-char (process-mark proc))
+	  ;;          (goto-char (process-mark proc))
+	  (end-of-buffer)
           (insert string)
-	  (if (string-match "\n" string)
-	      ;; Now we want to process from the current mark to the "Point", treating
-	      ;; as potentially multiple s-sexpressions
-	      (progn
-		(print (list "|"
-		 (buffer-substring (currentpoint) (point-max))
-		 "|"))
-		)
-	    )
+	  (progn
+	    (goto-char (marker-position gluss-b-output))
+	    (while (search-forward "\n" nil t)
+
+	      (print (list "XX" (buffer-substring (marker-position gluss-b-output) (point)) "XX"))
+      	      (my-eval-string (buffer-substring (marker-position gluss-b-output) (point)))
+	      (set-marker gluss-b-output (point))
+	      (print "OM:")
+	      (print gluss-b-output)
+	      )
+	  )
           (set-marker (process-mark proc) (point)))
         (if moving (goto-char (process-mark proc)))))))
