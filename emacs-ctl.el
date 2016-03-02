@@ -29,6 +29,7 @@
 (defun build-procs (k ports)
   (close-procs)
   (mapcar (lambda (p) (try-building k p)) ports)
+  (protected-mapcar (lambda (p) (set-process-filter (get-process p) 'glusss-bot-response-filter)) ports)
   )
 
 
@@ -109,11 +110,18 @@
   "Read and evaluate all forms in str.
 Return the results of all forms as a list."
   (let ((next 0)
-    ret)
+	ret)
     (condition-case err
-    (while t
-      (setq ret (cons (funcall (lambda (ret) (setq next (cdr ret)) (eval (car ret))) (read-from-string str next)) ret)))
-      (end-of-file))
+	(while t
+	  (setq ret (cons (funcall (lambda (ret) (setq next (cdr ret)) (eval (car ret))) (read-from-string str next)) ret)))
+      (end-of-file
+       nil)
+      (error
+       ;; Display the usual message for this error.
+       (print err)
+       (message "%s" (error-message-string err))
+       nil
+       ))
     (nreverse ret)))
 
 ;; Possibly here I should set a buffer-local marker that points
@@ -121,7 +129,7 @@ Return the results of all forms as a list."
 ;; from the marker to the end of the buffer (at each eoln),
 ;; assuming that there is no eoln within an s-expr.
 (setq gluss-b-output nil)
-(defun ordinary-insertion-filter-x (proc string)
+(defun glusss-bot-response-filter (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (make-local-variable 'gluss-b-output)
@@ -129,10 +137,7 @@ Return the results of all forms as a list."
 	  (setq gluss-b-output (point-max-marker)))
       (let ((moving (= (point) (process-mark proc)))
 	    (cpoint (point)))
-	(print "beggining")
-	(print string)
-	(print "OM:")
-	(print gluss-b-output)
+	(end-of-buffer)
         (save-excursion
           ;; Insert the text, advancing the process marker.
 	  ;;          (goto-char (process-mark proc))
@@ -141,13 +146,12 @@ Return the results of all forms as a list."
 	  (progn
 	    (goto-char (marker-position gluss-b-output))
 	    (while (search-forward "\n" nil t)
-
-	      (print (list "XX" (buffer-substring (marker-position gluss-b-output) (point)) "XX"))
+;;	      (print (list "XX" (buffer-substring (marker-position gluss-b-output) (point)) "XX"))
       	      (my-eval-string (buffer-substring (marker-position gluss-b-output) (point)))
 	      (set-marker gluss-b-output (point))
-	      (print "OM:")
-	      (print gluss-b-output)
+;;	      (print "OM:")
+;;	      (print gluss-b-output)
 	      )
-	  )
+	    )
           (set-marker (process-mark proc) (point)))
         (if moving (goto-char (process-mark proc)))))))

@@ -1,5 +1,4 @@
 #include "Arduino.h"
-#include <EEPROM.h>
 #include <stdlib.h>
 #include <SoftwareSerial.h>
 #include <math.h>
@@ -79,6 +78,25 @@ void activate_actuators(int actuator,int direction,int strength)
     //     Serial.println(act[actuator].forwardPin);   
   }
 }
+
+void report_status(Stream* stream) {
+    int cval[NUM_ACTUATORS];
+    stream->print("(status (list ");
+    for(int i = 0; i < NUM_ACTUATORS; i++) {
+      stream->print("'( ");      
+      stream->print(i);
+      stream->print(" . ");
+      if (act[i].responsive) {
+	stream->print(cval[i]);
+      } else {
+	stream->print(" nil");
+      }
+      stream->print(") ");
+    }
+    stream->print("))");
+    stream->println();
+}
+
 
 int findByName(char c) {
   for(int i = 0; i < NUM_ACTUATORS; i++) {
@@ -321,6 +339,7 @@ void move_vector(Stream* debug,int n,int *vec) {
     deactivate_actuator(i);
   }
   log_comment(debug,"Move done!");
+  report_status(debug);
 }
 
 void send_all_to(Stream* debug,int val) {
@@ -360,6 +379,8 @@ void OutputVectorSerial(int n,int v[]) {
   OutputVector(&Serial,n,v);
 }
 
+
+
 /*
 
 Our coal here is implement a "driver" for the 6-controller PCB board
@@ -385,8 +406,6 @@ that is for the future)
 
 "a" - attempt to determine which actuators are functional or not
 
-
-
  */
 
 void main_controller(Stream* debug,String str) {
@@ -407,29 +426,9 @@ void main_controller(Stream* debug,String str) {
     contract(debug);
     log_comment(debug,"done with Contract.");
     break;
-  case 'x':
-    log_comment(debug,"About to activate neg.");
-    for(int i = 0; i < NUM_ACTUATORS; i++) {
-      activate_actuators(i,-1,MAX_SPEED);
-    }
-    log_comment(debug,"done with Experiment neg.");
-    break;
-  case 'y':
-    log_comment(debug,"About to activate pos.");
-    for(int i = 0; i < NUM_ACTUATORS; i++) {
-      activate_actuators(i,1,MAX_SPEED);
-    }
-    log_comment(debug,"done with Experiment pos.");
-    break;
   case 's': // status
     log_comment(debug,"About to get status");
-    int cval[NUM_ACTUATORS];
-    sensePositionVector(NUM_ACTUATORS,cval);
-    // Do a lisp-style status output
-    debug->print("(status (list ");
-    OutputVector(debug,NUM_ACTUATORS,cval);
-    debug->print("))");
-    debug->println();
+    report_status(debug);
     log_comment(debug,"Done with status.");
     break;
   }
