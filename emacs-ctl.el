@@ -77,16 +77,14 @@
   (bufferp (process-buffer (get-process p)))
   )
 
-
-
-
-
 ;; Driving commands
 
 (defun big () (send-all "k"))
 (defun small () (send-all "l"))
 (defun relax () (send-all "j"))
 (defun s () (send-all "s"))
+
+(defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
 
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
@@ -140,18 +138,37 @@ Return the results of all forms as a list."
 	(end-of-buffer)
         (save-excursion
           ;; Insert the text, advancing the process marker.
-	  ;;          (goto-char (process-mark proc))
 	  (end-of-buffer)
           (insert string)
 	  (progn
 	    (goto-char (marker-position gluss-b-output))
 	    (while (search-forward "\n" nil t)
-;;	      (print (list "XX" (buffer-substring (marker-position gluss-b-output) (point)) "XX"))
       	      (my-eval-string (buffer-substring (marker-position gluss-b-output) (point)))
 	      (set-marker gluss-b-output (point))
-;;	      (print "OM:")
-;;	      (print gluss-b-output)
 	      )
 	    )
           (set-marker (process-mark proc) (point)))
         (if moving (goto-char (process-mark proc)))))))
+
+
+;; Now we will make some datatypes...
+;; A basic idea is to have a "posture", which
+;; consists of assignments to various actuators (not necessarily all.)
+;; In may be particularly valuable to not force all actuators
+;; to move at the same time.  The driver does not
+;; actually support this yet.
+
+(setq SAMPLE-POSTURE
+      '((A (0 . 400)
+	   (3 . 200))
+	(B (0 . 100)
+	   (1 . 200)
+	   (2 . 300)
+	   (3 . 400))))
+;; This implies that we are naming the controllers "A" and "B" etc.
+;; However, we want the driver code to be the same, so we actually
+;; want to dynamically set the name from here, just as we would like
+;; to be able to set the DEBUG Level.
+
+;; A Gait consists of moving through a series of postures.
+
