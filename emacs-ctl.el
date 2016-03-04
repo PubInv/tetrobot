@@ -86,6 +86,10 @@
 
 (defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
 
+;; This function doesn't really make sense from a posturing point of view,
+;; it is only for testing.
+(defun p-all (ps) (send-all (format "%s" ps)))
+
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
   ;; For now we just print
@@ -158,13 +162,13 @@ Return the results of all forms as a list."
 ;; to move at the same time.  The driver does not
 ;; actually support this yet.
 
-(setq SAMPLE-POSTURE
-      '((A (0 . 400)
-	   (3 . 200))
-	(B (0 . 100)
-	   (1 . 200)
-	   (2 . 300)
-	   (3 . 400))))
+;; (setq SAMPLE-POSTURE
+;;       '((A (0 400)
+;; 	   (3 200))
+;; 	(B (0 100)
+;; 	   (1 200)
+;; 	   (2 300)
+;; 	   (3 400))))
 ;; This implies that we are naming the controllers "A" and "B" etc.
 ;; However, we want the driver code to be the same, so we actually
 ;; want to dynamically set the name from here, just as we would like
