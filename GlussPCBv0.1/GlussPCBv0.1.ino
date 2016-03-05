@@ -45,6 +45,8 @@ int num_responsive = 0;
 
 int responsive[NUM_ACTUATORS];
 
+String Current_Call_Id = "";
+
 
 // NOTE: It is important to have sufficient battery power. The actuators don't move
 // if you don't have sufficient battery power. It is impossible to tell if things
@@ -93,7 +95,13 @@ void sensePositionVector(int n,int v[]);
 void report_status(Stream* stream) {
     int cval[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS, cval);
-    stream->print("(status (list ");
+    stream->print("(status ");
+    stream->print("(list ");
+    if (!Current_Call_Id.equals("")) {
+      stream->print("'");
+      stream->print(Current_Call_Id);
+      stream->print(" ");
+    }
     for(int i = 0; i < NUM_ACTUATORS; i++) {
       stream->print("'( ");      
       stream->print(i);
@@ -361,6 +369,7 @@ void move_vector(Stream* debug,int n,int *vec) {
     deactivate_actuator(i);
   }
   log_comment(INFORM,debug,"Move done!");
+  // TODO: move this out and move into the command loop.
   report_status(debug);
 }
 
@@ -465,10 +474,38 @@ int nth_number(String str,int n) {
 
 void interpret_function_as_sepxr(Stream *debug,String str) {
   sexpr* s = parse(str);
-  String fun = value_s(nth(s,0));
+  // If 0th element is atom, we treat as funciton.
+  // if list, we treat it as (function symbol)) pair, and
+  // return symbol when we give back commands associated with this.
+  // We in theory could implement Arduino multi-tasking and
+  // report different gensyms asynchronously, but we will
+  // pretend that this controller is only processing one command
+  // synchronously at a time now, so we an use a global for the symbol
+
+  sexpr* first = nth(s,0);
+  String fun;
+  String call_symbol;
+  if (first->tp == CONS_T) {
+    fun = value_s(first->car);
+    call_symbol = value_s(nth(first,1));
+    // now call_sym
+    Current_Call_Id = call_symbol;
+  } else if (first->tp == STRING_T) {
+    fun = value_s(first); 
+  } else {
+    log_comment(PANIC,debug,"BAD FORM FOR COMMAND, MUST BE STRING of (FUN SYM) form");
+    String echo = print_as_String(s);
+    log_comment(PANIC,debug,echo);
+  }
+
   log_comment(PANIC,debug,"fun from s-Expression =");
-    log_comment(PANIC,debug,fun);
-  if (fun.equals("m")) {
+  log_comment(PANIC,debug,fun);
+  if (fun.equals("s")) {
+    log_comment(INFORM,debug,"About to get status");
+    report_status(debug);
+    log_comment(INFORM,debug,"Done with status.");
+
+  } else if (fun.equals("m")) {
     int ps[NUM_ACTUATORS];
     for(int i = 0; i <  NUM_ACTUATORS; i++) {
       ps[i] = value_i(nth(s,(i+1)));
@@ -501,6 +538,12 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   }
 }
 
+// This just really be converted into an "all lisp function" ---
+// no naked commands. We need each command to be of the form
+// (com sym args)...
+// where sym is the (nullable) symbol which will be sent back
+// on the serial port as the callback.
+// Rather a lot of refactoring...
 void main_controller(Stream* debug,String str) {
   switch(str[0]) {
   case 'a':
@@ -519,6 +562,7 @@ void main_controller(Stream* debug,String str) {
     contract(debug);
     log_comment(INFORM,debug,"done with Contract.");
     break;
+    // Let's first switch this to status....
   case 's': // status
     log_comment(INFORM,debug,"About to get status");
     report_status(debug);
