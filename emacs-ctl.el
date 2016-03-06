@@ -19,12 +19,27 @@
 		     (B4 (B 4))
 		     (B5 (B 5))))
 
-(defun driver-send-com (driver com)
- ;; In theory this will work if the com is a string or an s-expr
-  (let* ((driver-string (cdr (assoc driver CONTROLLER-PORTS)))
-	(process (get-process driver-string))
-	(command-str (format "%s" command)))
-    (process-send-string process command-str)))
+;; sym is an optional identifying symbol to uniquely identify the call...
+(defun driver-send-com (driver com &optional sym)
+  ;; In theory this will work if the com is a string or an s-expr
+  (progn
+    (print (format "driver-send-com %s %s %s" driver com sym))
+    (if (and (stringp com) sym)
+	(print "Whoa, we can't add a symbol to a string!"))
+    (let* ((driver-string (cdr (assoc driver CONTROLLER-PORTS)))
+	   (process (get-process driver-string))
+	   (com-with-sym (if (or (null sym) (stringp com))
+			     com
+			   (cons (list (car com) sym) (cdr com))))
+	   )
+      (let (
+	    (command-str (format "%s" com-with-sym)))
+	(print (format "about to call with str: %s" command-str))
+	(process-send-string process command-str))
+	)
+      ))
+
+
 
 		     
 (defun try-building (k port)
@@ -79,10 +94,10 @@
 
 
 
-(defun send-all (command)
+(defun send-all (command &optional sym)
   (protected-mapcar
    (lambda (p)
-     (driver-send-com (car p) command))
+     (driver-send-com (car p) command sym))
    CONTROLLER-PORTS))
 
 
@@ -103,11 +118,37 @@
   )
 
 ;; Driving commands
+(defun get-symbol-for-com-use ()
+  (let* ((sym-name (gensym))
+	 (sym (intern (format "%s" sym-name))))
+    (put sym 'latch-value 0)
+    sym))
 
-(defun big () (send-all "k"))
-(defun small () (send-all "l"))
-(defun relax () (send-all "j"))
-(defun s () (send-all "s"))
+(defun big (&optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all '(k) msym)))
+
+(defun small (&optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all '(l) msym)))
+
+(defun relax (&optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all '(j) msym)))
+
+(defun s (&optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all '(s) msym)))
+
+
 
 (defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
 
@@ -115,11 +156,26 @@
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
   ;; For now we just print
-  (print
-   (list "WE WOULD SAVE THIS:"
-	 args
-	 "YES WE WOULD."
-   )))
+  (let ((driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
+	(sym (car args)))
+    (print sym)
+    (print (get sym 'latch-value))
+    (print (get sym 'then-function))
+    (print "in status")
+    (incf (get sym 'latch-value))
+    ;; This part of the function should be in the callback from the driver, with sym passed in.
+    (if (>= (get sym 'latch-value) 2)
+	(progn
+	(print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
+	(print (get sym 'then-function))
+	(funcall (get sym 'then-function))
+	)
+      )
+    (print
+     (list "WE WOULD SAVE THIS:"
+	   args
+	   "YES WE WOULD."
+	   ))))
 
 
 (defun test-major-moves ()
@@ -129,15 +185,21 @@
     (small)
     (relax)
     ))
-	
-(defun my-eval-string (str)
+
+
+;; Got this from StackExchange....
+(defun my-eval-string (driver str)
   "Read and evaluate all forms in str.
 Return the results of all forms as a list."
   (let ((next 0)
 	ret)
     (condition-case err
 	(while t
-	  (setq ret (cons (funcall (lambda (ret) (setq next (cdr ret)) (eval (car ret))) (read-from-string str next)) ret)))
+	  (setq ret
+		(cons
+		 (funcall (lambda (ret) (setq next (cdr ret)) (eval (car ret)))
+			  (read-from-string str next))
+		 ret)))
       (end-of-file
        nil)
       (error
@@ -160,7 +222,8 @@ Return the results of all forms as a list."
       (if (null gluss-b-output)
 	  (setq gluss-b-output (point-max-marker)))
       (let ((moving (= (point) (process-mark proc)))
-	    (cpoint (point)))
+	    (cpoint (point))
+	    (driver 'A))
 	(end-of-buffer)
         (save-excursion
           ;; Insert the text, advancing the process marker.
@@ -169,7 +232,7 @@ Return the results of all forms as a list."
 	  (progn
 	    (goto-char (marker-position gluss-b-output))
 	    (while (search-forward "\n" nil t)
-      	      (my-eval-string (buffer-substring (marker-position gluss-b-output) (point)))
+      	      (my-eval-string driver (buffer-substring (marker-position gluss-b-output) (point)))
 	      (set-marker gluss-b-output (point))
 	      )
 	    )
@@ -306,11 +369,6 @@ Return the results of all forms as a list."
 ;; A dance is therefore a series of "steps". A step can be
 ;; any command.
 
-(defun dance (steps)
-  ;; Execute the first step and set up the callbacks with the continuations.
-  (
-  )
-
 (defun test-dance ()
   (let ((s1 '(small))
 	(s2 '(big))
@@ -322,5 +380,123 @@ Return the results of all forms as a list."
 
 
 
+;; Okay now I am playing around with the promise concept, trying to understand it.
+;; Our fundamental need is to wait on mulitple asynchronous processes.
+;; If we had promise objects 
 
 
+
+;; This is weird that I am not using limit or then.
+(defun create-latch (procs then sym)
+  ;; execute all of procs, passing the same variable to each. limit is reached,
+  ;; execute the "then" function.)
+  (let* ((limit (length procs)))
+    (progn
+      (put sym 'latch-value 0)
+      (put sym 'then-function then)
+      (print (get sym 'then-function))
+      (print "MMMM")
+      (mapcar (lambda (p)
+		(progn
+		  (print then)
+		  (print "BBBB")
+		  (funcall p sym limit then)
+		  ))
+	      procs))))
+
+
+
+;; Now, how can we use create-latch to do a dance?
+;; We have to mass the symbol to p, and have the function update it!
+
+(defun create-procs-from-step (cmd)
+  ;; We need to return a list of the individual commands to be executed on the drivers for this cmd
+  ;; We are doing this so that we can defer execution to add the latch control code.
+  (mapcar
+   (lambda (p)
+     ;; Note were are returning a thunk here...
+     (let ((x (car p)))
+       ;; This should be replace with a standard wrapping function or macro....
+       `(lambda (symxxx limit then)
+	  (print symxxx)
+	  (print (get symxxx 'then-function))
+	  (print "AAA")
+	  (print (format " about to inoke: %s %s %s " (quote ,x) (quote ,cmd) symxxx ))
+	  (driver-send-com (quote ,x) (quote ,cmd) symxxx)
+	  )))
+   CONTROLLER-PORTS))
+
+
+
+(defun dance (steps)
+  ;; Execute the first step and set up the callbacks with the continuations.
+  (if (null steps)
+      t
+    (let* ((sym-name (gensym))
+	   (sym (intern (format "%s" sym-name)))
+	   (procs (create-procs-from-step (car steps))))
+      (progn
+	(print sym)
+	(print procs)
+	(print "qqq")
+	(put sym 'latch-value 0)
+	(create-latch
+	 procs
+	 ;; This is supposed to be a lambda expression...
+	 `(lambda ()
+	   (print "XXXX")
+	   (dance (quote ,(cdr steps))))
+	 sym
+	)))))
+
+
+
+(defun test-dance1 ()
+  ;; I really need to support better names in the driver, but until I do,
+  ;; this will ahve to work.
+  (let ((s1 '(j))
+	(s2 '(l))
+	(s3 '(k))
+	(s4 '(l))
+	    )
+    (dance (list s1 s2))
+    )
+  )
+
+
+(defun test-dance2 ()
+  (let ((s1 '(small))
+	(s2 '(big))
+	(s3 '((A0 0) (A1 0) (A2 0)))
+	(s4 '(small)))
+    (dance (list s1 s2 s3 s4))
+    )
+  )
+
+
+
+;; Okay now I am playing around with the promise concept, trying to understand it.
+;; Our fundamental need is to wait on mulitple asynchronous processes.
+;; If we had promise objects 
+
+(defun test-create-latch ()
+  (let* ((sym-name (gensym))
+	 (sym (intern (format "%s" sym-name))))
+    	(put sym 'latch-value 0)
+  (create-latch (list (lambda (x limit then)
+			(progn
+			  (print "A")
+			  (incf (get x 'latch-value))
+			  (if (>= (get sym 'latch-value) limit)
+			      (funcall then))
+					  ))
+		      (lambda (x limit then)
+			(progn
+			  (print "B")
+			  (incf (get x 'latch-value))
+			  (if (>= (get sym 'latch-value) limit)
+			      (funcall then))
+			  ))
+		      )
+		(lambda () (print x) (print "YES, THEN CALLED! UUUUUU"))
+		sym)))
