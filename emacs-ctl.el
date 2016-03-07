@@ -1,3 +1,5 @@
+(require 'cl)
+
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
 (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB)))
@@ -38,9 +40,6 @@
 	(process-send-string process command-str))
 	)
       ))
-
-
-
 		     
 (defun try-building (k port)
   (let ((n 0)
@@ -128,29 +127,40 @@
   (let ((msym (if sym
 		  sym
 		(get-symbol-for-com-use))))
-    (send-all '(k) msym)))
+    (send-all '(big) msym)))
 
 (defun small (&optional sym)
   (let ((msym (if sym
 		  sym
 		(get-symbol-for-com-use))))
-    (send-all '(l) msym)))
+    (send-all '(small) msym)))
 
 (defun relax (&optional sym)
   (let ((msym (if sym
 		  sym
 		(get-symbol-for-com-use))))
-    (send-all '(j) msym)))
+    (send-all '(relax) msym)))
 
-(defun s (&optional sym)
+(defun get-status (&optional sym)
   (let ((msym (if sym
 		  sym
 		(get-symbol-for-com-use))))
-    (send-all '(s) msym)))
+    (send-all '(get-status) msym)))
 
 
 
-(defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
+;; Note: This is only for testing --- there is
+;; no good reason to every assume the same geometry
+;; for the different drivers.
+;; EX: (m '(100 200 300 400 500 600) SYM)
+(defun m (args &optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all (append '(m) args) msym)))
+
+
+;; (defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
 
 
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
@@ -259,12 +269,7 @@ Return the results of all forms as a list."
 ;; want to dynamically set the name from here, just as we would like
 ;; to be able to set the DEBUG Level.
 
-;; A Gait consists of moving through a series of postures.
-
-
-;; This function doesn't really make sense from a posturing point of view,
-;; it is only for testing.
-(defun p-all (ps) (send-all (format "%s" ps)))
+;; A dance consists of moving through a series of postures.
 
 ;; Before implementing a gait function, I need to have
 ;; call-backs defined, numbers associated with each callback, and
@@ -283,12 +288,6 @@ Return the results of all forms as a list."
 ;; several drivers, as in (p ((A0 400) (B3 500))).
 
 
-(defun p (ps)
-  ;; let's move through each of the items, finding the symbol, mapping into
-  ;; a statement for each driver.
-  (let ((ds (mapcar (lambda (c) (car c))) CONTROLLER-PORTS))
-    ;; Now that we have the symbols, let's look through ps looking for each in turn
-  (send-all (format "%s" ps))))
 
 (defun p-assignments (ps)
   (p-assignments-aux ps ())
@@ -336,17 +335,29 @@ Return the results of all forms as a list."
   (let* ((command-str (format "%s" command)))
     (driver-send-com driver command)))
 
+;; TODO: Test that the args are properly handled this way.
+;; EX: (p ((A0 100) (B3 200) (A2 300) (B2 400)) SYM)
+;; (defun p (args &optional sym)
+;;   (let ((msym (if sym
+;; 		  sym
+;; 		(get-symbol-for-com-use))))
+;;     (send-all (append '(p) args) msym)))
 
 
 ;; Now the restuls of p-assignments can be more multiplexed to the drivers
 ;; in a pretty straightforward way....
-(defun p (cmd)
+;; TODO --- TEST THIS, and add the optional symbol argument, then put in
+;; the dance.
+(defun p (cmd &optional sym)
   (let ((a (p-assignments cmd)))
     (protected-mapcar
      (lambda (cmd-1)
-       (let ((driver (car cmd-1))
-	      (command (format "%s" (cons 'p (cdr cmd-1)))))
-	 (driver-send-com driver command)
+       (let* ((msym (if sym
+		  sym
+		(get-symbol-for-com-use)))
+	      (driver (car cmd-1))
+	      (command (cons 'p (cdr cmd-1))))
+	 (driver-send-com driver command msym)
 	 )
        )
      a)
@@ -454,12 +465,12 @@ Return the results of all forms as a list."
 (defun test-dance1 ()
   ;; I really need to support better names in the driver, but until I do,
   ;; this will ahve to work.
-  (let ((s1 '(j))
-	(s2 '(l))
-	(s3 '(k))
-	(s4 '(l))
+  (let ((s1 '(relax))
+	(s2 '(small))
+	(s3 '(big))
+	(s4 '(small))
 	    )
-    (dance (list s1 s2))
+    (dance (list s1 s2 s3 s4))
     )
   )
 
@@ -467,7 +478,7 @@ Return the results of all forms as a list."
 (defun test-dance2 ()
   (let ((s1 '(small))
 	(s2 '(big))
-	(s3 '((A0 0) (A1 0) (A2 0)))
+	(s3 '(p (A0 0) (A1 0) (A2 0)))
 	(s4 '(small)))
     (dance (list s1 s2 s3 s4))
     )
