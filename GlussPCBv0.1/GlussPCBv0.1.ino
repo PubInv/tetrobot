@@ -33,13 +33,15 @@ const byte bluetoothRx = 13;
 
 SoftwareSerial bluetooth(bluetoothRx, bluetoothTx);
 
+const int BLUETOOTH_BAUD_RATE = 9600;
+
 const int DEBUG = 5;
 const int INFORM = 4;
 const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = WARN;
+int DEBUG_LEVEL = INFORM;
 
 int num_responsive = 0;
 
@@ -49,6 +51,37 @@ String Current_Call_Id = "";
 
 
 // NOTE: It is important to have sufficient battery power. The actuators don't move
+// This is desirable because we want to make
+// sure that any debug statements are prefixed
+// with comment characters.
+void log_comment(Stream* debug,String str) {
+  debug->print(";; ");
+  debug->println(str);  
+}
+void log_comment(Stream* debug,int i) {
+   debug->print(";; ");
+   debug->println(i);  
+}
+void log_comment(int level,Stream* debug,String str) {
+  if (level <= DEBUG_LEVEL) {
+    debug->print(";; ");
+    debug->println(str);
+  }
+}
+void log_comment(int level,Stream* debug,int i) {
+  if (level < DEBUG_LEVEL) {
+    debug->print(";; ");
+    debug->println(i);
+  }
+}
+
+// I don't know why this is needed
+void log_comment_i(int level,Stream* debug,int i) {
+  if (level < DEBUG_LEVEL) {
+    debug->print(";; ");
+    debug->println(i);
+  }
+}
 // if you don't have sufficient battery power. It is impossible to tell if things
 // are actuators are responsive if you do not have enough battery power.
 
@@ -58,40 +91,21 @@ String Current_Call_Id = "";
 // 1 means extend, -1 means restract
 void activate_actuators(int actuator,int direction,int strength)
 {
-  //  Serial.println("Activating!");
-  //  Serial.println("Forward PIN");
-  //  Serial.println(act[actuator].forwardPin);
-  //  Serial.println("Reverse PIN");
-  //  Serial.println(act[actuator].reversePin);
-  //  
-  //  Serial.println("Speed PIN");
-  //  Serial.println(act[actuator].speedPin);
-  //    Serial.println("strength");
-  //      Serial.println(strength);
   
   analogWrite(act[actuator].speedPin,strength);
   if (direction == 1) {
     digitalWrite(act[actuator].reversePin,LOW);
     digitalWrite(act[actuator].forwardPin,HIGH);  
-    //      Serial.println("actuator"); 
-    //      Serial.println(actuator);  
-    //      Serial.println("reversePIN LOW"); 
-    //     Serial.println(act[actuator].reversePin);
-    //           Serial.println("forwardPIN HIGH"); 
-    //     Serial.println(act[actuator].forwardPin);
   } else if (direction == -1) {
     digitalWrite(act[actuator].reversePin,HIGH);
     digitalWrite(act[actuator].forwardPin,LOW);  
-    //         Serial.println("actuator"); 
-    //      Serial.println(actuator);  
-    //      Serial.println("reversePIN HIGH"); 
-    //     Serial.println(act[actuator].reversePin);
-    //           Serial.println("forwardPIN LOW"); 
-    //     Serial.println(act[actuator].forwardPin);   
   }
 }
 void sensePositionVector(int n,int v[]);
-  
+
+// Note: We could construct and print an S-Expression here
+// instead, but I see little value in that, and at presnt
+// my sexpr library doesn't support the "dot" syntax.
 void report_status(Stream* stream) {
     int cval[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS, cval);
@@ -165,9 +179,6 @@ float dist(int n, int a[],int b[]) {
     float bi = b[i];
     sum += ((ai - bi)*(ai - bi));
   }
-  // Serial.println("SPUD");
-  // Serial.println(dist3(a,b));
-  // Serial.println(sqrt(sum));
   return sqrt(sum);
 }
 
@@ -197,10 +208,10 @@ void compute_responsiveness(Stream* debug) {
     if (act[i].responsive == 0) {   
       // We demand a positive motion 
       act[i].responsive = (((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
-      Serial.println("SPUDX");
-      Serial.println(i);
-      Serial.println(eval[i] - cval[i]);
-      Serial.println(((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
+      log_comment(DEBUG,debug,"SPUDX");
+      log_comment(DEBUG,debug,i);
+      log_comment(DEBUG,debug,eval[i] - cval[i]);
+      log_comment(DEBUG,debug,((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
     }
   }  
   
@@ -218,37 +229,14 @@ void compute_responsiveness(Stream* debug) {
   for(int i = 0; i < NUM_ACTUATORS; i++) {   
     if (act[i].responsive == 0) {    
       act[i].responsive = (((eval[i] - rval[i]) >= RESPONSE_THRESHOLD) ? 1 : 0);
-      Serial.println("SPUDY");
-      Serial.println(i);
-      Serial.println(abs(eval[i] - rval[i]));
+      log_comment(DEBUG,debug,"SPUDY");
+      log_comment(DEBUG,debug,i);
+      log_comment(DEBUG,debug,abs(eval[i] - rval[i]));
     }  
   }
   
 }
 
-// This is desirable because we want to make
-// sure that any debug statements are prefixed
-// with comment characters.
-void log_comment(Stream* debug,String str) {
-  debug->print(";; ");
-  debug->println(str);  
-}
-void log_comment(Stream* debug,int i) {
-   debug->print(";; ");
-   debug->println(i);  
-}
-void log_comment(int level,Stream* debug,String str) {
-  if (level <= DEBUG_LEVEL) {
-    debug->print(";; ");
-    debug->println(str);
-  }
-}
-void log_comment(int level,Stream* debug,int i) {
-  if (level < DEBUG_LEVEL) {
-    debug->print(";; ");
-    debug->println(i);
-  }
-}
 
 void find_responsive(Stream* debug) {
   for(int i = 0; i < NUM_ACTUATORS; i++) { 
@@ -274,10 +262,10 @@ void find_responsive(Stream* debug) {
       //   log_comment(debug,act[i].responsive);
     }
   }
-  //  if (num_responsive != NUM_ACTUATORS) {
-  //     log_comment(debug,"WE'VE GOT UNRESPONSIVE ACTUATORS");
-  //     log_comment(debug,NUM_ACTUATORS - num_responsive);
-  //  }
+  if (num_responsive != NUM_ACTUATORS) {
+     log_comment(debug,"WE'VE GOT UNRESPONSIVE ACTUATORS");
+     log_comment(debug,NUM_ACTUATORS - num_responsive);
+  }
 }
 
 
@@ -369,8 +357,6 @@ void move_vector(Stream* debug,int n,int *vec) {
     deactivate_actuator(i);
   }
   log_comment(INFORM,debug,"Move done!");
-  // TODO: move this out and move into the command loop.
-  report_status(debug);
 }
 
 void send_all_to(Stream* debug,int val) {
@@ -399,6 +385,7 @@ void experiment(Stream* debug) {
 }
 
 
+
 void OutputVector(Stream* stream,int n,int v[]) {
   for(int i = 0; i < n; i++) {
     stream->print(v[i]);
@@ -410,6 +397,11 @@ void OutputVectorSerial(int n,int v[]) {
   OutputVector(&Serial,n,v);
 }
 
+void OutputVectorAsComment(Stream* stream,int n,int v[]) {
+  stream->print(";; ");
+  OutputVector(stream,n,v);
+  stream->println();
+}
 
 
 /*
@@ -426,14 +418,14 @@ you can control DC rotary motors.
 
 There are various functions which exist purely for testing:
 
-"l" - contract as much as possible
-"j" - relax (to middle position) as much as possible
-"k" - expand as much as possible
+"small" - contract as much as possible
+"relax" - relax (to middle position) as much as possible
+"big" - expand as much as possible
 
 "(m a0 a1 a2 a3 a4 a5)" -- Move to these positions.
 
 Status commands:
-"s" - return the positional vector of all actuators (this should be
+"status" - return the positional vector of all actuators (this should be
 expanded to return the functional status of all acutators as well, but
 that is for the future)
 
@@ -490,8 +482,11 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     call_symbol = value_s(nth(first,1));
     // now call_sym
     Current_Call_Id = call_symbol;
+    log_comment(WARN,debug,"Seeting Currrent_call_ID");
+    log_comment(WARN,debug,Current_Call_Id);
   } else if (first->tp == STRING_T) {
-    fun = value_s(first); 
+    fun = value_s(first);
+    Current_Call_Id = "";
   } else {
     log_comment(PANIC,debug,"BAD FORM FOR COMMAND, MUST BE STRING of (FUN SYM) form");
     String echo = print_as_String(s);
@@ -500,12 +495,24 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
 
   log_comment(PANIC,debug,"fun from s-Expression =");
   log_comment(PANIC,debug,fun);
-  if (fun.equals("s")) {
+  if (fun.equals("get-status")) {
     log_comment(INFORM,debug,"About to get status");
     report_status(debug);
     log_comment(INFORM,debug,"Done with status.");
+  } else if (fun.equals("relax")) {
+    relax(debug);
+    log_comment(INFORM,debug,"done with Relax.");
+   } else if (fun.equals("big")) {
+    expand(debug);
+    log_comment(INFORM,debug,"done with Expand.");
+   } else if (fun.equals("small")) {
+    contract(debug);
+    log_comment(INFORM,debug,"done with Contract.");
+  } else if (fun.equals("responsive")) {
+    find_responsive(debug);
+    log_comment(INFORM,debug,"done with Calculate.");
 
-  } else if (fun.equals("m")) {
+   } else if (fun.equals("m")) {
     int ps[NUM_ACTUATORS];
     for(int i = 0; i <  NUM_ACTUATORS; i++) {
       ps[i] = value_i(nth(s,(i+1)));
@@ -514,28 +521,66 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     move_vector(debug,NUM_ACTUATORS,ps);
   } else if (fun.equals("p")) {
 
-    // We will similarly move here, but we are looking for lists
-    // within the list, rather than a simple.
-
-    
     // First, fill out the position vector...
     int ps[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS,ps);
+    log_comment(INFORM,debug,"Here are the position that we sense:");
+    OutputVectorAsComment(debug,NUM_ACTUATORS,ps);
 
     // now read each sublist to change the positions....
-    int len = s_length(s);
+    String full = print_as_String(s);
+    log_comment(PANIC,debug,full);
+
+    sexpr* args = s->cdr;
+    int len = s_length(args);
+    String echo = print_as_String(args);
+    log_comment(PANIC,debug,echo);
     for(int i = 0; i <  len; i++) {
-      sexpr* sub = nth(s,i);
-      int j = value_i(nth(sub,0));
-      int v = value_i(nth(sub,1));		      
-      ps[j] = v;
+      sexpr* sub = nth(args,i);
+      String substr = print_as_String(sub);
+      log_comment(PANIC,debug,substr);
+
+      String x = print_as_String(nth(sub,0));
+      log_comment(PANIC,debug,x);
+      
+      String y = print_as_String(nth(sub,1));
+      log_comment(PANIC,debug,y);
+
+      String js = value_s(nth(sub,0));
+      String vs = value_s(nth(sub,1));
+      log_comment(INFORM,debug,"TYPE");
+      log_comment_i(INFORM,debug,nth(sub,1)->tp);
+      log_comment(INFORM,debug,"VS = ");
+      log_comment(INFORM,debug,vs);
+      int j = js.toInt();
+      int ji = value_i(nth(sub,0));
+      int v = vs.toInt();
+      int vi = value_i(nth(sub,1));
+      log_comment(INFORM,debug,"Here is the nth(sub,1)");
+      log_comment(INFORM,debug,print_as_String(nth(sub,1)));
+      log_comment(INFORM,debug,"Setting value v on j:");
+      debug->print(";; ");
+      debug->println(ji);
+      debug->print(";; ");
+      debug->println(vi);
+      log_comment_i(INFORM,debug,v);
+      log_comment(INFORM,debug,"J =");      
+      log_comment_i(INFORM,debug,j);
+      ps[ji] = vi;
+      log_comment_i(INFORM,debug,ps[ji]);
     }
-    
+    log_comment(INFORM,debug,ps[0]);
+    log_comment(INFORM,debug,"Here are the position whe are moving to:");
+    OutputVectorAsComment(debug,NUM_ACTUATORS,ps);
     move_vector(debug,NUM_ACTUATORS,ps);
   } else {
     log_comment(PANIC,debug,"Don't know how to handle:");
     log_comment(PANIC,debug,str);
   }
+  // We still want to report status here no matter what happens
+  // so the controller knows that we are done.
+  report_status(debug);
+
 }
 
 // This just really be converted into an "all lisp function" ---
@@ -545,33 +590,7 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
 // on the serial port as the callback.
 // Rather a lot of refactoring...
 void main_controller(Stream* debug,String str) {
-  switch(str[0]) {
-  case 'a':
-    find_responsive(debug);
-    log_comment(INFORM,debug,"done with Calculate.");
-    break;
-  case 'j':
-    relax(debug);
-    log_comment(INFORM,debug,"done with Relax.");
-    break;
-  case 'k':
-    expand(debug);
-    log_comment(INFORM,debug,"done with Expand.");
-    break;
-  case 'l':
-    contract(debug);
-    log_comment(INFORM,debug,"done with Contract.");
-    break;
-    // Let's first switch this to status....
-  case 's': // status
-    log_comment(INFORM,debug,"About to get status");
-    report_status(debug);
-    log_comment(INFORM,debug,"Done with status.");
-    break;
-  case '(':
-    interpret_function_as_sepxr(debug,str);
-    break;
-  }
+  interpret_function_as_sepxr(debug,str);
 }
 
 
@@ -611,46 +630,20 @@ void setup()
   bluetooth.print("$");
   bluetooth.print("$");  // Enter command mode
   delay(100);  // Short delay, wait for the Mate to send back CMD
-  bluetooth.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
+  String c_atom1 = "U,";
+  String c_atom2 = ",N";
+  String commandString = String(c_atom1+BLUETOOTH_BAUD_RATE+c_atom2);
+  bluetooth.println(commandString);  // Temporarily Change the baudrate to 9600, no parity
   // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
-  bluetooth.begin(9600);
+  
+  bluetooth.begin(BLUETOOTH_BAUD_RATE);
   
   Serial.println("XXX!");
 
   log_comment(PANIC,&bluetooth,"Alive and listening");
-  
-  // This is my original code.  With the new (0.2) board I intend to order,
-  // this will not be correct.  However for now I am trying to write 
-  // even a different piece of code to make the (poorly designed v0.1 board work.
-  //  for(int i = 0; i < NUM_ACTUATORS; i++) {
-  //    
-  //    // NOTE: On my particular board, pin # 45 is stuck HIGH for some reason.  This is a sign that we have to try to make
-  //    // our whole system more fault tolerant.  However, in the mean time,  I will skip over that pair!
-  //    if (i < 4) {
-  //        act[i].forwardPin = 53 - (2*i);
-  //        act[i].reversePin = act[i].forwardPin - 1;
-  //    } else {
-  //        act[i].forwardPin = 53 - (2*(i+1));
-  //        act[i].reversePin = act[i].forwardPin - 1;
-  //    }
-  //     // In the Arduino Mega, the Anaglog pins A0, A1, etc, are numbered 54,55, etc.
-  //     act[i].speedPin = 2+i;
-  //     act[i].potPin = 54+i;
-  //     act[i].nm = 'a' + i;
-  //     act[i].minV = 0;
-  //     act[i].maxV = 1023;
-  //     act[i].responsive = 1;
-  //  }
-  
-  // Note: I really hosed this up on the v0.1 board.
 
   for(int i = 0; i < NUM_ACTUATORS; i++) {
-    
     SetUpActuator(i,&(act[i]));
-    
-    // Write all the acutators high because that is the only way to test!!!
-    
-    
   }
   
   for(int i = 0; i < NUM_ACTUATORS; i++) {
