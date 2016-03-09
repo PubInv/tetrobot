@@ -470,7 +470,8 @@ Return the results of all forms as a list."
 
 
 ;; Now, how can we use create-latch to do a dance?
-;; We have to mass the symbol to p, and have the function update it!
+
+
 
 (defun create-procs-from-step (cmd)
   ;; We need to return a list of the individual commands to be executed on the drivers for this cmd
