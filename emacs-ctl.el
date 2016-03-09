@@ -171,9 +171,6 @@
     (send-all (append '(m) args) msym)))
 
 
-;; (defun m-all (k) (send-all (format "(m %d %d %d %d %d %d)" k k k k k k)))
-
-
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
   ;; For now we just print
