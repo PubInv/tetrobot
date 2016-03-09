@@ -183,30 +183,40 @@
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
   ;; For now we just print
-  (let ((driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
-	(num-drivers (get-num-live-drivers CONTROLLER-PORTS))
-	(sym (car args)))
-    (print sym)
-    (print (get sym 'latch-value))
-    (print (get sym 'then-function))
-    (print "in status")
+  (let* ((driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
+	 (num-drivers (get-num-live-drivers CONTROLLER-PORTS))
+	 (sym (car args))
+	 (then (if sym (get sym 'then-function) nil)))
     (incf (get sym 'latch-value))
     ;; This part of the function should be in the callback from the driver, with sym passed in.
 
     ;; In reality the latch-value limit here should be the number of live actuators....
     (if (>= (get sym 'latch-value) num-drivers)
 	(progn
-	(print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
-	(print (get sym 'then-function))
-	(funcall (get sym 'then-function))
-	)
+	  (print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
+	  (print (get sym 'then-function))
+	  (if then
+	      (funcall then))
+	  )
       )
-    (print
-     (list "WE WOULD SAVE THIS:"
-	   args
-	   "YES WE WOULD."
-	   ))))
+    (let ((driver-string (cdr (assoc driver CONTROLLER-PORTS))))
+      (let ((process (get-process driver-string)))
+	(with-current-buffer (process-buffer process)
+	  (setq gluss-status args)
+	  )
+	  )
+    )
+    ))
 
+;; This needs some error protecting
+(defun get-current-status (driver)
+  (let* ((driver-string (cdr (assoc driver CONTROLLER-PORTS)))
+	 (process (get-process driver-string)))
+    (with-current-buffer (process-buffer process)
+      gluss-status
+      )
+    )
+  )
 
 (defun test-major-moves ()
   (progn
@@ -245,15 +255,20 @@ Return the results of all forms as a list."
 ;; from the marker to the end of the buffer (at each eoln),
 ;; assuming that there is no eoln within an s-expr.
 (setq gluss-b-output nil)
+(setq gluss-status nil)
 (defun glusss-bot-response-filter (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (make-local-variable 'gluss-b-output)
+      (make-local-variable 'gluss-status)
       (if (null gluss-b-output)
 	  (setq gluss-b-output (point-max-marker)))
       (let ((moving (= (point) (process-mark proc)))
 	    (cpoint (point))
-	    (driver 'A))
+	    ;; What is this? This is probably a bug.
+	    (driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
+;;	    (driver 'A)
+	    )
 	(end-of-buffer)
         (save-excursion
           ;; Insert the text, advancing the process marker.
@@ -464,8 +479,6 @@ Return the results of all forms as a list."
 ;; Okay now I am playing around with the promise concept, trying to understand it.
 ;; Our fundamental need is to wait on mulitple asynchronous processes.
 ;; If we had promise objects 
-
-
 
 ;; This is weird that I am not using limit or then.
 (defun create-latch (procs then sym)
