@@ -554,6 +554,20 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
       ps[ji] = vi;
      }
     move_vector(debug,NUM_ACTUATORS,ps);
+  } else if (fun.equals("set-activation")) {
+    // a zero values means make inactive, a non-zero means active
+    // now read each sublist to change the positions....
+    String full = print_as_String(s);
+    log_comment(PANIC,debug,full);
+
+    sexpr* args = s->cdr;
+    int len = s_length(args);
+    for(int i = 0; i <  len; i++) {
+      sexpr* sub = nth(args,i);
+       int ji = value_i(nth(sub,0));
+       int vi = value_i(nth(sub,1));
+       act[ji].responsive = (vi != 0);
+     }
   } else {
     log_comment(PANIC,debug,"Don't know how to handle:");
     log_comment(PANIC,debug,str);
@@ -564,12 +578,6 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
 
 }
 
-// This just really be converted into an "all lisp function" ---
-// no naked commands. We need each command to be of the form
-// (com sym args)...
-// where sym is the (nullable) symbol which will be sent back
-// on the serial port as the callback.
-// Rather a lot of refactoring...
 void main_controller(Stream* debug,String str) {
   interpret_function_as_sepxr(debug,str);
 }

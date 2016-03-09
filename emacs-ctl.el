@@ -170,11 +170,21 @@
 		(get-symbol-for-com-use))))
     (send-all (append '(m) args) msym)))
 
+(defun get-num-live-drivers (ports)
+  (let ((cnt 0))
+    (protected-mapcar
+     (lambda (p)
+       (if (get-process (cdr p))
+	   (incf cnt)))
+     ports)
+    cnt))
+
 
 ;; This is used by the arduino code to set the current status in a buffer-local variable!
 (defun status (args)
   ;; For now we just print
   (let ((driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
+	(num-drivers (get-num-live-drivers CONTROLLER-PORTS))
 	(sym (car args)))
     (print sym)
     (print (get sym 'latch-value))
@@ -182,7 +192,9 @@
     (print "in status")
     (incf (get sym 'latch-value))
     ;; This part of the function should be in the callback from the driver, with sym passed in.
-    (if (>= (get sym 'latch-value) 2)
+
+    ;; In reality the latch-value limit here should be the number of live actuators....
+    (if (>= (get sym 'latch-value) num-drivers)
 	(progn
 	(print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
 	(print (get sym 'then-function))
@@ -379,20 +391,29 @@ Return the results of all forms as a list."
 ;; in a pretty straightforward way....
 ;; TODO --- TEST THIS, and add the optional symbol argument, then put in
 ;; the dance.
-(defun p (cmd &optional sym)
-  (let ((a (p-assignments cmd)))
-    (protected-mapcar
-     (lambda (cmd-1)
-       (let* ((msym (if sym
+(defun p-style (cmd args &optional sym)
+  (let ((a (p-assignments args))
+	(msym (if sym
 		  sym
-		(get-symbol-for-com-use)))
-	      (driver (car cmd-1))
-	      (command (cons 'p (cdr cmd-1))))
+		(get-symbol-for-com-use))))
+    (protected-mapcar
+     (lambda (arg)
+       ;; TODO : BUG : this should probably be the same symbol (outside the mapcar!!)
+       (let* ((driver (car arg))
+	      (command (cons cmd (cdr arg))))
 	 (driver-send-com driver command msym)
 	 )
        )
      a)
     )
+  )
+
+(defun p (args &optional sym)
+  (p-style 'p args sym)
+  )
+
+(defun set-activation (args &optional sym)
+  (p-style 'set-activation args sym)
   )
 
 
@@ -561,3 +582,25 @@ Return the results of all forms as a list."
 		      )
 		(lambda () (print x) (print "YES, THEN CALLED! UUUUUU"))
 		sym)))
+
+;; This is piggybacking on the "p" syntax, which allows you to potentially
+;; address every actuator -- probably unneeded but good for consistentcy sake.
+(defun test-set-actuator-unresponsive () 
+  (let* ((actuator '((A2 0)))
+	 (sym (get-symbol-for-com-use))
+	 (then (lambda () (print "QQQQQ")
+		 (print "We Really want to check the status here, but that is unimplemented."))))
+    ;; The only really good way to test is to have "then" function
+    ;; attached to the completion that screams if it goes wrong. This
+    ;; function should be able to read the status (not yet fully materialized)
+    ;; and observe that the actuator we desire is in fact inactive.
+    ;; This also requires that we modify the status to report unresponsive
+    ;; (currently being report as "nil").
+    ;; So in fact this will be a bit of machinery!
+
+    ;; Probably I will need to extend things to stack up multiple handlers...
+    ;; at present this would not work in the "dance" function because it would overload the symbol
+    ;; A realy lisp hero would like create a macro for this in some way...
+    (put sym 'then-function then)
+    (set-activation actuator sym)
+    ))
