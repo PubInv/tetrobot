@@ -6,10 +6,8 @@ import select
 
 # configure the serial connections (the parameters differs on the device you are connecting to)
 ser = serial.Serial(
-    port='/dev/tty.2TETBOT-RNI-SPP',
-#   port='/dev/tty.usbmodem14141',
-#    port='/dev/cu.usbmodem14141',
-#    port='/dev/cu.2TETBOT-RNI-SPP',
+    port='/dev/cu.2TETBOT-RNI-SPP',
+#    port='/dev/cu.RNBT-D411-RNI-SPP',
     baudrate=9600,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
@@ -34,7 +32,7 @@ while 1 :
         cin = ser.read(1)
         outbuff += cin[0]
         if cin == "\n":
-            print outbuff.rstrip()
+            print "|"+outbuff.rstrip()+"|"
             outbuff = ""
 
     while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:

@@ -41,7 +41,7 @@ const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = INFORM;
+int DEBUG_LEVEL = DEBUG;
 
 int num_responsive = 0;
 
@@ -302,11 +302,12 @@ void move_vector(Stream* debug,int n,int *vec) {
     }
 
     log_comment(DEBUG,debug,"aaa");
+    log_comment_i(DEBUG,debug,max_diff);
     for(int i = 0; i < n; i++) {  
       // This should probably adjust speed for those that 
       // need to move less  
       float speed_ratio = (float) abs(d[i]) / (float) max_diff;
-      log_comment(DEBUG,debug,"activating");
+      //      log_comment(DEBUG,debug,"activating");
       if (act[i].responsive) { // don't move the unresponsive ones!
 	activate_actuators(i,dir[i], (int) (speed_ratio * CRUISE_SPEED));
       } else {
@@ -337,9 +338,15 @@ void move_vector(Stream* debug,int n,int *vec) {
      
     in_position = true;
     for(int i = 0; i < n; i++) {
-      if (abs(cval[i] - vec[i]) < tolerance) {
+      int computed = abs(cval[i] - vec[i]);
+      if (computed < tolerance) {
 	deactivate_actuator(i);   
       } else {
+	log_comment(DEBUG,debug,"Out of tolerance");
+	String s = "";
+	s = s + i + " " + computed;
+	log_comment(DEBUG,debug,s);		
+	//	log_comment(DEBUG,debug,computed);	
 	in_position = false;
       }
     }
@@ -511,7 +518,14 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   } else if (fun.equals("responsive")) {
     find_responsive(debug);
     log_comment(INFORM,debug,"done with Calculate.");
-
+   } else if (fun.equals("debug-level")) {
+    sexpr* args = s->cdr;
+    sexpr* sub = nth(args,0);
+    int level = value_i(sub);
+    log_comment_i(PANIC,debug,level);    
+    DEBUG_LEVEL = level;   
+    log_comment(PANIC,debug,"done-with debug-level, set to:");
+    log_comment_i(PANIC,debug,level);
    } else if (fun.equals("m")) {
     int ps[NUM_ACTUATORS];
     for(int i = 0; i <  NUM_ACTUATORS; i++) {
@@ -533,45 +547,16 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
 
     sexpr* args = s->cdr;
     int len = s_length(args);
-    String echo = print_as_String(args);
-    log_comment(PANIC,debug,echo);
     for(int i = 0; i <  len; i++) {
       sexpr* sub = nth(args,i);
-      String substr = print_as_String(sub);
-      log_comment(PANIC,debug,substr);
-
-      String x = print_as_String(nth(sub,0));
-      log_comment(PANIC,debug,x);
-      
-      String y = print_as_String(nth(sub,1));
-      log_comment(PANIC,debug,y);
-
-      String js = value_s(nth(sub,0));
-      String vs = value_s(nth(sub,1));
-      log_comment(INFORM,debug,"TYPE");
-      log_comment_i(INFORM,debug,nth(sub,1)->tp);
-      log_comment(INFORM,debug,"VS = ");
-      log_comment(INFORM,debug,vs);
-      int j = js.toInt();
-      int ji = value_i(nth(sub,0));
-      int v = vs.toInt();
-      int vi = value_i(nth(sub,1));
-      log_comment(INFORM,debug,"Here is the nth(sub,1)");
-      log_comment(INFORM,debug,print_as_String(nth(sub,1)));
-      log_comment(INFORM,debug,"Setting value v on j:");
-      debug->print(";; ");
-      debug->println(ji);
-      debug->print(";; ");
-      debug->println(vi);
-      log_comment_i(INFORM,debug,v);
-      log_comment(INFORM,debug,"J =");      
-      log_comment_i(INFORM,debug,j);
+       int ji = value_i(nth(sub,0));
+       int vi = value_i(nth(sub,1));
       ps[ji] = vi;
-      log_comment_i(INFORM,debug,ps[ji]);
-    }
-    log_comment(INFORM,debug,ps[0]);
+     }
+    /*    log_comment(INFORM,debug,ps[0]);
     log_comment(INFORM,debug,"Here are the position whe are moving to:");
     OutputVectorAsComment(debug,NUM_ACTUATORS,ps);
+    */
     move_vector(debug,NUM_ACTUATORS,ps);
   } else {
     log_comment(PANIC,debug,"Don't know how to handle:");

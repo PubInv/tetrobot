@@ -147,6 +147,17 @@
 		(get-symbol-for-com-use))))
     (send-all '(get-status) msym)))
 
+(setq DEBUG 5)
+(setq INFORM 4)
+(setq WARN 3)
+(setq ERROR 2)
+(setq PANIC 1)
+
+(defun debug-level (level &optional sym)
+  (let ((msym (if sym
+		  sym
+		(get-symbol-for-com-use))))
+    (send-all `(debug-level ,(symbol-value level)) msym)))
 
 
 ;; Note: This is only for testing --- there is
@@ -296,29 +307,29 @@ Return the results of all forms as a list."
 (defun p-assignments-aux (ps acc)
   (if (null ps)
       acc
-  (let* ((p (car ps))
-	 ;; p is the one we are processing....
-	 (pa (cadr (assoc (car p) ACTUATOR-MAP))))
-    ;; pa is now of the form (D NUM)
-    (let ((pb (cadr (assoc (car pa) acc))))
-      ;; pb is a list if it exists in the accumulator already.
-      (let ((newacc (assq-delete-all (car pa) acc)))
-	(p-assignments-aux
-	 (cdr ps)
-	 ;; now we have the additional item back to acc...
-	 (cons (append
-		(list (car pa) (list (cadr pa)  (cadr p)))
-		(if (null pb)
-		    nil
-		(list pb)))
-	       newacc)
-	 )
-       )
-      )
-    )
-  ))
+    (let* ((p (car ps))
+	   ;; p is the one we are processing....
+	   (pa (cadr (assoc (car p) ACTUATOR-MAP))))
+      ;; pa is now of the form (D NUM)
+      (let ((pb (cdr (assoc (car pa) acc))))
+	;; pb is a list if it exists in the accumulator already.
+	(let ((newacc (assq-delete-all (car pa) acc)))
+	  (p-assignments-aux
+	   (cdr ps)
+	   ;; now we have the additional item back to acc...
+	   (let ((x (list (car pa) (list (cadr pa)  (cadr p)))))
+	     (cons (append
+		    x
+		    pb
+		    )
+		   newacc)
+	     )
+	   )
+	  )
+	)
+      )))
 
-(defun test-p-assignments ()
+(defun test-p-assignments1 ()
   (assert
    (equal
     '(
@@ -330,6 +341,29 @@ Return the results of all forms as a list."
     (p-assignments '((B5 500) (A4 400 ) (B3 200)))
     )
   ))
+
+(defun test-p-assignments2 ()
+  (let ((pass (p-assignments '((B5 0) (B4 200) (B3 400) (B2 600) (B1 800) (B0 1000)))))
+  (assert
+   (equal
+    6
+    (length (cdar pass))
+    )
+  )))
+
+(defun test-p-assignments3 ()
+  (let ((pass (p-assignments '((B5 0) (B4 200) (B3 400)))))
+  (assert
+   (equal
+    3
+    (length (cdar pass))
+    )
+   )))
+(defun test-all-assignments ()
+  (test-p-assignments1)
+  (test-p-assignments2)
+  (test-p-assignments3)
+  )
 
 (defun send1 (driver command)
   (let* ((command-str (format "%s" command)))
@@ -380,10 +414,28 @@ Return the results of all forms as a list."
 ;; A dance is therefore a series of "steps". A step can be
 ;; any command.
 
-(defun test-dance ()
+(defun test-dance1 ()
   (let ((s1 '(small))
 	(s2 '(big))
 	(s3 '((A0 0) (A1 0) (A2 0)))
+	(s4 '(small)))
+    (dance (list s1 s2 s3 s4))
+    )
+  )
+
+(defun test-dance2 ()
+  (let ((s1 '(p '((B0 400) (B1 400))))
+	(s2 '(p '((B0 0) (B1 0))))
+	(s3 '(p '((B0 600) (B1 600))))
+	(s4 '(small)))
+    (dance (list s1 s2 s3 s4))
+    )
+  )
+
+(defun test-dance3 ()
+  (let ((s1 '(p '((A0 400) (A1 400))))
+	(s2 '(p '((A0 0) (A1 0))))
+	(s3 '(p '((A0 600) (A1 600))))
 	(s4 '(small)))
     (dance (list s1 s2 s3 s4))
     )
