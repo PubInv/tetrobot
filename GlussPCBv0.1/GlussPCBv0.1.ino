@@ -553,10 +553,6 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
        int vi = value_i(nth(sub,1));
       ps[ji] = vi;
      }
-    /*    log_comment(INFORM,debug,ps[0]);
-    log_comment(INFORM,debug,"Here are the position whe are moving to:");
-    OutputVectorAsComment(debug,NUM_ACTUATORS,ps);
-    */
     move_vector(debug,NUM_ACTUATORS,ps);
   } else {
     log_comment(PANIC,debug,"Don't know how to handle:");
