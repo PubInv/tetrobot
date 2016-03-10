@@ -145,7 +145,9 @@
     (send-all '(relax) msym)))
 
 
-;; Movement poses
+;; Movement poses -- a distinction should be made between a complete pose
+;; and a partial pose. Note one could even go so far as to design
+;; a move of one node keeping all other nodes in the same position.
 (setq lo 0)
 (setq hi 900)
 (setq mid 450)
@@ -161,8 +163,50 @@
 
 (setq lean-back-pose
       `(
-      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,hi) (A4 ,hi) (A5 ,hi)
-	   (B0 ,mid) (B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,hi) (B5 ,hi)))
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,hi) (A4 ,mid) (A5 ,mid)
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,lo) (B4 ,mid) (B5 ,mid)))
+
+;; Could we write an inversion function that would compute this?  Such a mirror
+;; function would be quite valuable....it is not clear a human decomposition
+;; into understandable functions would be quite interesting!!! But shall remain a TODO.
+(setq lean-forward-pose
+      `(
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,mid) (A5 ,mid)
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi) (B4 ,mid) (B5 ,mid)))
+
+
+(setq lean-right-ppose
+      `(
+      	   (A1 ,lo) (A2 ,hi)
+	   (B1 ,lo) (B2 ,hi)))
+
+(setq lean-left-ppose
+      `(
+      	   (A2 ,lo) (A1 ,hi)
+	   (B2 ,lo) (B1 ,hi)))
+
+(setq raise-left-ppose
+      `(
+      	   (A1 ,lo) 
+	   (B1 ,lo)))
+
+(setq raise-right-ppose
+      `(
+      	   (A2 ,lo) 
+	   (B2 ,lo)))
+
+(setq reach-f-ppose
+      `(
+      	   (A3 ,hi) (A4 ,hi) (A5 ,hi)
+	   ))
+
+(setq reach-b-ppose
+      `(
+	(B3 ,hi) (B4 ,hi) (B5 ,hi)
+	))
+
+
+
 
 (defun flat (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
@@ -187,6 +231,56 @@
 		  (get-symbol-for-com-use))))
       (p lean-back-pose msym)
   ))
+
+(defun lean-forward (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p lean-forward-pose msym)
+  ))
+
+(defun raise-left (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p raise-left-ppose msym)
+  ))
+
+(defun raise-right (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p raise-right-ppose msym)
+  ))
+
+(defun lean-left (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p lean-left-ppose msym)
+  ))
+
+(defun lean-right (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p lean-right-ppose msym)
+  ))
+
+(defun reach-f (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p reach-f-ppose msym)
+  ))
+(defun reach-b (&optional sym)
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p reach-b-ppose msym)
+  ))
+
 
 ;;
 
