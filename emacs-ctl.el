@@ -123,6 +123,9 @@
     (put sym 'latch-value 0)
     sym))
 
+;; Poses!
+;; Test poses
+;; TODO: create "defpose" macro!!!
 (defun big (&optional sym)
   (let ((msym (if sym
 		  sym
@@ -140,6 +143,53 @@
 		  sym
 		(get-symbol-for-com-use))))
     (send-all '(relax) msym)))
+
+
+;; Movement poses
+(setq lo 0)
+(setq hi 900)
+(setq mid 450)
+(setq flat-pose
+      `(
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,lo) (A5 ,lo)
+	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,lo) (B4 ,lo) (B5 ,lo)))
+
+(setq hunker-pose
+      `(
+      	   (A0 ,hi) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,hi) (A5 ,hi)
+	   (B0 ,hi) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,lo) (B4 ,hi) (B5 ,hi)))
+
+(setq lean-back-pose
+      `(
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,hi) (A4 ,hi) (A5 ,hi)
+	   (B0 ,mid) (B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,hi) (B5 ,hi)))
+
+(defun flat (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+     (p flat-pose msym)
+  ))
+
+(defun hunker (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p hunker-pose msym)
+      ))
+
+(defun lean-back (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (if sym
+		  sym
+		  (get-symbol-for-com-use))))
+      (p lean-back-pose msym)
+  ))
+
+;;
+
 
 (defun get-status (&optional sym)
   (let ((msym (if sym
@@ -265,9 +315,7 @@ Return the results of all forms as a list."
 	  (setq gluss-b-output (point-max-marker)))
       (let ((moving (= (point) (process-mark proc)))
 	    (cpoint (point))
-	    ;; What is this? This is probably a bug.
 	    (driver (car (rassoc (buffer-name (current-buffer)) CONTROLLER-PORTS)))
-;;	    (driver 'A)
 	    )
 	(end-of-buffer)
         (save-excursion
@@ -616,4 +664,16 @@ Return the results of all forms as a list."
     ;; A realy lisp hero would like create a macro for this in some way...
     (put sym 'then-function then)
     (set-activation actuator sym)
-    ))
+    )
+  )
+
+
+;; Useful function snippets
+;; (build-procs 3 CONTROLLER-PORTS)
+
+;; This funtion is for the CURRENT glussbot with the broken actuator
+(defun personalize-current-glussbot ()
+  (let* ((actuator '((A2 0))))
+    (set-activation actuator)
+    )
+  )
