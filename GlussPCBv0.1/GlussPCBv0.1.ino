@@ -41,37 +41,25 @@ const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = DEBUG;
+int DEBUG_LEVEL = ERROR;
 
 int num_responsive = 0;
 
 int responsive[NUM_ACTUATORS];
 
 String Current_Call_Id = "";
+String command_failure = "";
 
 
 // NOTE: It is important to have sufficient battery power. The actuators don't move
 // This is desirable because we want to make
 // sure that any debug statements are prefixed
 // with comment characters.
-void log_comment(Stream* debug,String str) {
-  debug->print(";; ");
-  debug->println(str);  
-}
-void log_comment(Stream* debug,int i) {
-   debug->print(";; ");
-   debug->println(i);  
-}
+
 void log_comment(int level,Stream* debug,String str) {
   if (level <= DEBUG_LEVEL) {
     debug->print(";; ");
     debug->println(str);
-  }
-}
-void log_comment(int level,Stream* debug,int i) {
-  if (level < DEBUG_LEVEL) {
-    debug->print(";; ");
-    debug->println(i);
   }
 }
 
@@ -79,7 +67,9 @@ void log_comment(int level,Stream* debug,int i) {
 void log_comment_i(int level,Stream* debug,int i) {
   if (level < DEBUG_LEVEL) {
     debug->print(";; ");
-    debug->println(i);
+    String s = "";
+    s = s + i;
+    debug->println(s);
   }
 }
 // if you don't have sufficient battery power. It is impossible to tell if things
@@ -91,14 +81,15 @@ void log_comment_i(int level,Stream* debug,int i) {
 // 1 means extend, -1 means restract
 void activate_actuators(int actuator,int direction,int strength)
 {
-  
-  analogWrite(act[actuator].speedPin,strength);
-  if (direction == 1) {
-    digitalWrite(act[actuator].reversePin,LOW);
-    digitalWrite(act[actuator].forwardPin,HIGH);  
-  } else if (direction == -1) {
-    digitalWrite(act[actuator].reversePin,HIGH);
-    digitalWrite(act[actuator].forwardPin,LOW);  
+  if (act[actuator].responsive) {
+    analogWrite(act[actuator].speedPin,strength);
+    if (direction == 1) {
+      digitalWrite(act[actuator].reversePin,LOW);
+      digitalWrite(act[actuator].forwardPin,HIGH);  
+    } else if (direction == -1) {
+      digitalWrite(act[actuator].reversePin,HIGH);
+      digitalWrite(act[actuator].forwardPin,LOW);  
+    }
   }
 }
 void sensePositionVector(int n,int v[]);
@@ -108,6 +99,14 @@ void sensePositionVector(int n,int v[]);
 // my sexpr library doesn't support the "dot" syntax.
 void report_status(Stream* stream) {
     int cval[NUM_ACTUATORS];
+    if (command_failure != "") {
+      String err = "COMMAND_ERROR: " + command_failure;
+      log_comment(PANIC,stream,err);
+          stream->print("(status ");
+	  stream->print("'COMMAND_ERROR");
+	  stream->print(") ");
+    }
+    
     sensePositionVector(NUM_ACTUATORS, cval);
     stream->print("(status ");
     stream->print("(list ");
@@ -172,12 +171,14 @@ float dist3(int a[],int b[]) {
   return sqrt((x-q)*(x-q) + (y-r)*(y-r) + (z-s)*(z-s));
 }
 
-float dist(int n, int a[],int b[]) {
+float dist_actuators(int n, int a[],int b[]) {
   float sum = 0.0;
   for(int i = 0; i < n; i++) {
-    float ai = a[i];
-    float bi = b[i];
-    sum += ((ai - bi)*(ai - bi));
+    if (act[i].responsive) {
+      float ai = a[i];
+      float bi = b[i];
+      sum += ((ai - bi)*(ai - bi));
+    }
   }
   return sqrt(sum);
 }
@@ -209,9 +210,9 @@ void compute_responsiveness(Stream* debug) {
       // We demand a positive motion 
       act[i].responsive = (((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
       log_comment(DEBUG,debug,"SPUDX");
-      log_comment(DEBUG,debug,i);
-      log_comment(DEBUG,debug,eval[i] - cval[i]);
-      log_comment(DEBUG,debug,((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
+      log_comment_i(DEBUG,debug,i);
+      log_comment_i(DEBUG,debug,eval[i] - cval[i]);
+      log_comment_i(DEBUG,debug,((eval[i] - cval[i]) <= -RESPONSE_THRESHOLD) ? 1 : 0);
     }
   }  
   
@@ -230,8 +231,8 @@ void compute_responsiveness(Stream* debug) {
     if (act[i].responsive == 0) {    
       act[i].responsive = (((eval[i] - rval[i]) >= RESPONSE_THRESHOLD) ? 1 : 0);
       log_comment(DEBUG,debug,"SPUDY");
-      log_comment(DEBUG,debug,i);
-      log_comment(DEBUG,debug,abs(eval[i] - rval[i]));
+      log_comment_i(DEBUG,debug,i);
+      log_comment_i(DEBUG,debug,abs(eval[i] - rval[i]));
     }  
   }
   
@@ -245,26 +246,25 @@ void find_responsive(Stream* debug) {
   compute_responsiveness(debug);
   int num_responsive = 0;
   for(int i = 0; i < NUM_ACTUATORS; i++) {
-    log_comment(DEBUG,debug,i);
+    log_comment_i(DEBUG,debug,i);
     //    debug->println(i);
-    log_comment(DEBUG,debug,act[i].responsive);
+    log_comment_i(DEBUG,debug,act[i].responsive);
   }
-  log_comment(debug,"spud xxx");
   
   for(int i = 0; i < NUM_ACTUATORS; i++) { 
-    log_comment(DEBUG,debug,i);
-    log_comment(DEBUG,debug,act[i].responsive);
+    log_comment_i(DEBUG,debug,i);
+    log_comment_i(DEBUG,debug,act[i].responsive);
     if (act[i].responsive == 1) {
       responsive[num_responsive++] = i;
     } else {
       log_comment(ERROR,debug,"ACTUATOR_UNRESPONSIVE:");
-      log_comment(ERROR,debug,(char) act[i].nm);
+      log_comment_i(ERROR,debug,(char) act[i].nm);
       //   log_comment(debug,act[i].responsive);
     }
   }
   if (num_responsive != NUM_ACTUATORS) {
-     log_comment(debug,"WE'VE GOT UNRESPONSIVE ACTUATORS");
-     log_comment(debug,NUM_ACTUATORS - num_responsive);
+    log_comment(DEBUG,debug,"WE'VE GOT UNRESPONSIVE ACTUATORS");
+    log_comment_i(DEBUG,debug,NUM_ACTUATORS - num_responsive);
   }
 }
 
@@ -274,7 +274,7 @@ void move_vector(Stream* debug,int n,int *vec) {
   const float STUCK_DISTANCE = 1.0; // 3-Dimensional distance in the "digital voltage space" that we must move to not be "stuck"
   const int DELAY_TIME = 30; // Time to wait before making a move again
   const int MAX_STUCK = 4; // number of iterations to apply force before we give up as "stuck".
-  const int MAX_TIME_MS = 8000;
+  const int MAX_TIME_MS = 3000;
   const int MAX_TURNS = MAX_TIME_MS / DELAY_TIME;
   
   int cval[n];
@@ -287,13 +287,13 @@ void move_vector(Stream* debug,int n,int *vec) {
      
   while ((!in_position) && (stuck_cnt < MAX_STUCK) && (total_turns < MAX_TURNS)) {  
     total_turns++;
-    log_comment(DEBUG,debug,total_turns);
+    log_comment_i(DEBUG,debug,total_turns);
     // Figure out which directions to move....
     sensePositionVector(n,cval);
     int max_diff = -1;
     int d[n];
     for(int i = 0; i < n; i++) {
-      if (act[i].responsive) { // here we don't try to look for those that are unresponsive!
+      if (act[i].responsive == 1) { // here we don't try to look for those that are unresponsive!
 	d[i] = vec[i] - cval[i];
 	dir[i] = sign(d[i]);
 	if (abs(d[i]) > max_diff)
@@ -308,11 +308,11 @@ void move_vector(Stream* debug,int n,int *vec) {
       // need to move less  
       float speed_ratio = (float) abs(d[i]) / (float) max_diff;
       //      log_comment(DEBUG,debug,"activating");
-      if (act[i].responsive) { // don't move the unresponsive ones!
+      if (act[i].responsive == 1) { // don't move the unresponsive ones!
 	activate_actuators(i,dir[i], (int) (speed_ratio * CRUISE_SPEED));
       } else {
 	log_comment(DEBUG,debug,"unresponsive:");
-	log_comment(DEBUG,debug,i);
+	log_comment_i(DEBUG,debug,i);
       }
     }
 
@@ -326,10 +326,11 @@ void move_vector(Stream* debug,int n,int *vec) {
     sensePositionVector(n,cval);
      
     log_comment(DEBUG,debug,"sense done");
+
      
     // if we didn't move at all, increase stuck_cnt, so we don't
     // permanently spin our motors with no progress
-    if (dist(n,v,cval) < STUCK_DISTANCE) {
+    if (dist_actuators(n,v,cval) < STUCK_DISTANCE) {
       stuck_cnt++;
       log_comment(DEBUG,debug,"stuck!");
     } else {
@@ -338,16 +339,18 @@ void move_vector(Stream* debug,int n,int *vec) {
      
     in_position = true;
     for(int i = 0; i < n; i++) {
-      int computed = abs(cval[i] - vec[i]);
-      if (computed < tolerance) {
-	deactivate_actuator(i);   
-      } else {
-	log_comment(DEBUG,debug,"Out of tolerance");
-	String s = "";
-	s = s + i + " " + computed;
-	log_comment(DEBUG,debug,s);		
-	//	log_comment(DEBUG,debug,computed);	
-	in_position = false;
+      if (act[i].responsive == 1) { // don't move the unresponsive ones!
+	int computed = abs(cval[i] - vec[i]);
+	if (computed < tolerance) {
+	  deactivate_actuator(i);   
+	} else {
+	  log_comment(DEBUG,debug,"Out of tolerance");
+	  String s = "";
+	  s = s + i + " " + computed;
+	  log_comment(DEBUG,debug,s);		
+	  //	log_comment(DEBUG,debug,computed);	
+	  in_position = false;
+	}
       }
     }
     log_comment(DEBUG,debug,"end loop");
@@ -484,6 +487,9 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   sexpr* first = nth(s,0);
   String fun;
   String call_symbol;
+
+  command_failure = "";
+
   if (first->tp == CONS_T) {
     fun = value_s(first->car);
     call_symbol = value_s(nth(first,1));
@@ -498,6 +504,7 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     log_comment(PANIC,debug,"BAD FORM FOR COMMAND, MUST BE STRING of (FUN SYM) form");
     String echo = print_as_String(s);
     log_comment(PANIC,debug,echo);
+    command_failure = str;
   }
 
   log_comment(PANIC,debug,"fun from s-Expression =");
@@ -571,6 +578,7 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   } else {
     log_comment(PANIC,debug,"Don't know how to handle:");
     log_comment(PANIC,debug,str);
+    command_failure = str;
   }
   // We still want to report status here no matter what happens
   // so the controller knows that we are done.

@@ -117,31 +117,27 @@
   )
 
 ;; Driving commands
-(defun get-symbol-for-com-use ()
-  (let* ((sym-name (gensym))
-	 (sym (intern (format "%s" sym-name))))
-    (put sym 'latch-value 0)
-    sym))
+(defun get-symbol-for-com-use (&optional sym)
+  (if sym
+      sym
+    (let* ((sym-name (gensym))
+	   (sym (intern (format "%s" sym-name))))
+      (put sym 'latch-value 0)
+      sym)))
 
 ;; Poses!
 ;; Test poses
 ;; TODO: create "defpose" macro!!!
 (defun big (&optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(big) msym)))
 
 (defun small (&optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(small) msym)))
 
 (defun relax (&optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(relax) msym)))
 
 
@@ -185,15 +181,38 @@
       	   (A2 ,lo) (A1 ,hi)
 	   (B2 ,lo) (B1 ,hi)))
 
-(setq raise-left-ppose
+(setq raise-right-ppose
       `(
       	   (A1 ,lo) 
 	   (B1 ,lo)))
 
-(setq raise-right-ppose
+(setq raise-left-ppose
       `(
       	   (A2 ,lo) 
 	   (B2 ,lo)))
+
+(setq right-f-ppose
+      `(
+      	   (A1 ,lo) (A4 ,lo) 
+	   (B1 ,hi) (B4 ,hi)))
+
+(setq right-down-f-ppose
+      `(
+      	   (A1 ,mid) (A2 ,hi) (A4 ,lo) 
+	   (B1 ,hi) (B4 ,hi)))
+
+
+(setq left-f-ppose
+      `(
+      	   (A2 ,lo) (A5 ,lo) 
+	   (B2 ,hi) (B5 ,hi)))
+
+(setq left-down-f-ppose
+      `(
+      	   (A2 ,mid) (A1 ,hi) (A5, lo)
+	   (B2 ,hi) (B5 ,hi)))
+
+
 
 (setq reach-f-ppose
       `(
@@ -205,90 +224,181 @@
 	(B3 ,hi) (B4 ,hi) (B5 ,hi)
 	))
 
+(setq front-up-ppose
+      `(
+	(A0 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
+	(B3 ,lo)
+	))
+
+(setq front-f-ppose
+      ;; driving A1 and A2 lo here is questionable, but A2 is stuck lo
+      `(
+	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
+	(B3 ,mid)
+	))
+
+(setq back-up-ppose
+      `(
+	(A0 ,lo) (A3 ,lo) 
+	(B3 ,lo) (B4 ,hi) (B5 ,hi)
+	))
+
+(setq back-f-ppose
+      ;; This mean moves the back foot forward.
+      `(
+	(A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,mid) (A4 ,lo) (A5 ,lo)
+	(B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,lo) (B5 ,lo)
+	))
 
 
+;; I'm making some progress here.  Let's try to put together
+;; a dance that moves the front forward from a flat position (and small)
+;; The dance steps are:
+;; 0) flat
+;; 1) front-up
+;; 2) down and flat.
+;; We might have to mix a lean in there.
+
+;; here here are seeking the maximum front-forward which is still flat
+;; with back 
+(setq front-f-ppose
+      ;; driving A1 and A2 lo here is questionable, but A2 is stuck lo
+      `(
+	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
+	(B3 ,mid)
+	))
+
+
+(defun front-step-f (&optional sym)
+  (dance '((flat) (lean-back) (front-up) (front-f) (lean-forward)))
+  )
+
+(defun back-step-f (&optional sym)
+  (dance '((flat) (lean-forward) (back-up) (back-f) (lean-back)))
+  )
+
+
+;; Now I will try to move the right foot forward.
+
+(defun right-step-f (&optional sym)
+  (dance '((lean-left) (raise-right) (right-f) (right-down-f))
+  ))
+
+(defun left-step-f (&optional sym)
+  (dance '((lean-right) (raise-left) (left-f) (left-down-f))
+	 ))
+
+(defun move-forward (&optional sym)
+  (dance '(
+	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
+	   (lean-left) (raise-right) (right-f) (right-down-f)
+	   (lean-right) (raise-left) (left-f) (left-down-f)
+	   (lean-forward) (back-up) (back-f) (lean-back))
+  ))
 
 (defun flat (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
      (p flat-pose msym)
   ))
 
 (defun hunker (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p hunker-pose msym)
       ))
 
 (defun lean-back (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p lean-back-pose msym)
   ))
 
 (defun lean-forward (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p lean-forward-pose msym)
   ))
 
-(defun raise-left (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
-      (p raise-left-ppose msym)
-  ))
-
-(defun raise-right (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
-      (p raise-right-ppose msym)
-  ))
 
 (defun lean-left (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p lean-left-ppose msym)
   ))
 
 (defun lean-right (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p lean-right-ppose msym)
   ))
 
 (defun reach-f (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p reach-f-ppose msym)
-  ))
+      ))
+
+
 (defun reach-b (&optional sym)
-    (let ((msym (if sym
-		  sym
-		  (get-symbol-for-com-use))))
+    (let ((msym (get-symbol-for-com-use sym)))
       (p reach-b-ppose msym)
   ))
+
+
+(defun front-up (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p front-up-ppose msym)
+      ))
+
+(defun front-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p front-f-ppose msym)
+      ))
+
+(defun back-up (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p back-up-ppose msym)
+      ))
+
+(defun back-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p back-f-ppose msym)
+      ))
+
+(defun right-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p right-f-ppose msym)
+      ))
+
+(defun right-down-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p right-down-f-ppose msym)
+      ))
+
+(defun left-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p left-f-ppose msym)
+      ))
+
+(defun left-down-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p left-down-f-ppose msym)
+      ))
+
+(defun raise-right (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p raise-right-ppose msym)
+      ))
+
+(defun raise-left (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p raise-left-ppose msym)
+      ))
 
 
 ;;
 
 
 (defun get-status (&optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(get-status) msym)))
 
 (setq DEBUG 5)
@@ -298,9 +408,7 @@
 (setq PANIC 1)
 
 (defun debug-level (level &optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all `(debug-level ,(symbol-value level)) msym)))
 
 
@@ -309,9 +417,7 @@
 ;; for the different drivers.
 ;; EX: (m '(100 200 300 400 500 600) SYM)
 (defun m (args &optional sym)
-  (let ((msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+  (let ((msym (get-symbol-for-com-use sym)))
     (send-all (append '(m) args) msym)))
 
 (defun get-num-live-drivers (ports)
@@ -331,6 +437,8 @@
 	 (num-drivers (get-num-live-drivers CONTROLLER-PORTS))
 	 (sym (car args))
 	 (then (if sym (get sym 'then-function) nil)))
+    (print "processing:")
+    (print sym)
     (incf (get sym 'latch-value))
     ;; This part of the function should be in the callback from the driver, with sym passed in.
 
@@ -338,7 +446,7 @@
     (if (>= (get sym 'latch-value) num-drivers)
 	(progn
 	  (print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
-	  (print (get sym 'then-function))
+	  (print then)
 	  (if then
 	      (funcall then))
 	  )
@@ -550,9 +658,7 @@ Return the results of all forms as a list."
 ;; the dance.
 (defun p-style (cmd args &optional sym)
   (let ((a (p-assignments args))
-	(msym (if sym
-		  sym
-		(get-symbol-for-com-use))))
+	(msym (get-symbol-for-com-use sym)))
     (protected-mapcar
      (lambda (arg)
        ;; TODO : BUG : this should probably be the same symbol (outside the mapcar!!)
@@ -665,7 +771,7 @@ Return the results of all forms as a list."
 
 
 
-(defun dance (steps)
+(defun dance-orig (steps)
   ;; Execute the first step and set up the callbacks with the continuations.
   (if (null steps)
       t
@@ -685,6 +791,24 @@ Return the results of all forms as a list."
 	   (dance (quote ,(cdr steps))))
 	 sym
 	)))))
+
+;; This is my attempt to create using just the "then" functionality
+;; without calling create-latch so that we can execute more arbitrary functions.
+;; Note this should probably take symbol as an optional argument
+(defun dance (steps)
+  ;; Execute the first step and set up the callbacks with the continuations.
+  (if (null steps)
+      t
+    (let* (
+	   (sym (get-symbol-for-com-use))
+		  )
+      (progn
+	(put sym 'then-function 
+	     `(lambda ()
+		(print "XXXX")
+		(dance (quote ,(cdr steps)))))
+	(funcall (caar steps) sym)
+	))))
 
 
 
