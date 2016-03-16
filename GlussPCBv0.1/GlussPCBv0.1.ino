@@ -41,7 +41,7 @@ const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = ERROR;
+int DEBUG_LEVEL = DEBUG;
 
 int num_responsive = 0;
 
@@ -475,7 +475,23 @@ int nth_number(String str,int n) {
 }
 
 void interpret_function_as_sepxr(Stream *debug,String str) {
-  sexpr* s = parse(str);
+
+  log_comment(DEBUG,debug,"interpreting:");
+  log_comment(DEBUG,debug,str);
+  // Note that parse needs a "char const *" that should not be changed.
+  int len = str.length();
+
+  // Note this is a stack-allocated char *
+  char buffer[len+1];
+
+  
+  str.toCharArray(buffer,len+1);
+
+
+  log_comment(DEBUG,debug,"buffer");
+  log_comment(DEBUG,debug,buffer);
+  
+  sexpr* s = parse(buffer);
   // If 0th element is atom, we treat as funciton.
   // if list, we treat it as (function symbol)) pair, and
   // return symbol when we give back commands associated with this.
@@ -487,6 +503,11 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   sexpr* first = nth(s,0);
   String fun;
   String call_symbol;
+
+  log_comment(DEBUG,debug,"parsed as:");
+  log_comment(DEBUG,debug,print_as_String(s));
+  log_comment(DEBUG,debug,print_as_String(first));
+  
 
   command_failure = "";
 
