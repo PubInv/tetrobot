@@ -296,6 +296,14 @@
 	   (lean-forward) (back-up) (back-f) (lean-back))
   ))
 
+(defun move-forward-3 (&optional sym)
+  (let ((com '(
+	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
+	   (lean-left) (raise-right) (right-f) (right-down-f)
+	   (lean-right) (raise-left) (left-f) (left-down-f)
+	   (lean-forward) (back-up) (back-f) (lean-back))))
+    (dance (append com (append com com)))))
+
 (defun flat (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
@@ -723,6 +731,9 @@ Return the results of all forms as a list."
   )
 
 
+  
+
+
 
 ;; Okay now I am playing around with the promise concept, trying to understand it.
 ;; Our fundamental need is to wait on mulitple asynchronous processes.
@@ -895,3 +906,45 @@ Return the results of all forms as a list."
     (set-activation actuator)
     )
   )
+
+
+;; Here begins the part where I try to right a function to find good values to move two,
+;; while keeping 4 still, or 1 with 5 still.  This can be done with a brute force algorithm.
+;; the tricky part is the coordinate system.
+;; I am currently planning a coordinate system:
+;; Given nodes are named F,B,L,R,H,T, for Front, Back, Left, Right, Head, Tail
+;; The origin is the median of FB
+;; The Y axis goes through F and B
+;; The shortest line connecting FB and RL defines the YZ plane.
+;; If that FB line intersect RL, then FB defines the XY plane.
+;; Input to the system is the collection of 4 or 5 nodes to remain fixed,
+;; The pairs (NODE . POINT) where NODE is to be move to POINT or
+;; to minimize distance. POINT is specified in the Cartesian coordinates
+;; of the FB system described above.
+;; This should be a useful reference:
+;; https://en.wikipedia.org/wiki/Skew_lines
+;; http://mathworld.wolfram.com/Line-LineDistance.html
+;; Note we will also have to generate a physical model
+;; of our joint/actuator complex to map from voltage of the potentiometer
+;; to cartesian distance.
+;; I think we will have to solve this as a system of equations.
+;; In our case, the system is so simple we could probably build a map between
+;; configurations that 3D models if we quantize positions pretty easily.
+
+;; In order to test this, I need a way to draw the 3D positions
+;; in three space from emacs, or at least from a file. I think
+;; OpenGL is probably the standard way to do this, although
+;; I am sure there are browser based mechanisms as well.
+;; This could end up taking as much as a week of work---yuck.
+;; I could probably get it working faster by simply tuning the
+;; steps by hand.
+
+;; This coordinate system would let us drive a graphical representation
+;; as well if we had any need to do that.
+
+;; An additional function that would be fun would be drive  4 nodes
+;; to be coplanar as quickly as possible.  Input would be the 4 nodes, only.
+;; This is good for making the feet lay flat.
+
+;; Actually, our coordinate system probably gives us a good way to
+;; do the coplanarity thing in a sneaky way: just put the RL line on the FB line.
