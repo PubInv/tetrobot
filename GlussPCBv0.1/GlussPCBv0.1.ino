@@ -75,6 +75,12 @@ void log_comment_i(int level,Stream* debug,int i) {
 // if you don't have sufficient battery power. It is impossible to tell if things
 // are actuators are responsive if you do not have enough battery power.
 
+int freeRam () 
+{
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
 
 
 
@@ -128,6 +134,9 @@ void report_status(Stream* stream) {
     }
     stream->print("))");
     stream->println();
+    int ram = freeRam();
+    log_comment(PANIC,stream,"Free Mem");
+    log_comment_i(PANIC,stream,ram);
 }
 
 
@@ -474,6 +483,7 @@ int nth_number(String str,int n) {
   return val;
 }
 
+
 void interpret_function_as_sepxr(Stream *debug,String str) {
 
   log_comment(DEBUG,debug,"interpreting:");
@@ -516,7 +526,7 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     call_symbol = value_s(nth(first,1));
     // now call_sym
     Current_Call_Id = call_symbol;
-    log_comment(WARN,debug,"Seeting Currrent_call_ID");
+    log_comment(WARN,debug,"Setting Currrent_call_ID");
     log_comment(WARN,debug,Current_Call_Id);
   } else if (first->tp == STRING_T) {
     fun = value_s(first);
@@ -601,10 +611,11 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     log_comment(PANIC,debug,str);
     command_failure = str;
   }
+  del(s);
   // We still want to report status here no matter what happens
   // so the controller knows that we are done.
   report_status(debug);
-
+  
 }
 
 void main_controller(Stream* debug,String str) {
