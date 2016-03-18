@@ -3,6 +3,7 @@
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
 (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB)))
+(setq BAUD_RATE 19200)
 
 ;; This could be done automatically, but the benefit of that is small untill we have
 ;; many drivers.
@@ -50,7 +51,7 @@
       (condition-case err
 	  ;; Protected form.
 	  (let (
-		(p (make-serial-process :port port :speed 9600))
+		(p (make-serial-process :port port :speed BAUD_RATE))
 		)
 	    (if p
 		(setq process p)))
@@ -149,8 +150,8 @@
 (setq mid 450)
 (setq flat-pose
       `(
-      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,lo) (A5 ,lo)
-	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,lo) (B4 ,lo) (B5 ,lo)))
+      	   (A0 ,mid) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 100 lo)) (A4 ,lo) (A5 ,lo)
+	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,(+ 100 lo)) (B4 ,lo) (B5 ,lo)))
 
 (setq hunker-pose
       `(

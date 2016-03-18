@@ -8,7 +8,7 @@ import select
 ser = serial.Serial(
     port='/dev/cu.2TETBOT-RNI-SPP',
 #    port='/dev/cu.RNBT-D411-RNI-SPP',
-    baudrate=9600,
+    baudrate=19200,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS

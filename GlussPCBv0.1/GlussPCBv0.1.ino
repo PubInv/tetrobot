@@ -33,8 +33,18 @@ const byte bluetoothRx = 13;
 
 SoftwareSerial bluetooth(bluetoothRx, bluetoothTx);
 
-const int BLUETOOTH_BAUD_RATE = 9600;
+// const String BLUETOOTH_BAUD_RATE = 9600;
 
+// Note:  This requires special syntax, must be precise!
+
+// This doesn't seem to work....sadly. Not sure if to fast or some other problem
+// const int BLUETOOTH_BAUD_RATE = 38400;
+// const String BLUETOOTH_BAUD_RATE_STRING = "38.4";
+
+// Note: These work....
+const int BLUETOOTH_BAUD_RATE = 19200;
+const String BLUETOOTH_BAUD_RATE_STRING = "19.2";
+  
 const int DEBUG = 5;
 const int INFORM = 4;
 const int WARN = 3;
@@ -65,7 +75,7 @@ void log_comment(int level,Stream* debug,String str) {
 
 // I don't know why this is needed
 void log_comment_i(int level,Stream* debug,int i) {
-  if (level < DEBUG_LEVEL) {
+  if (level <= DEBUG_LEVEL) {
     debug->print(";; ");
     String s = "";
     s = s + i;
@@ -661,7 +671,7 @@ void setup()
   delay(100);  // Short delay, wait for the Mate to send back CMD
   String c_atom1 = "U,";
   String c_atom2 = ",N";
-  String commandString = String(c_atom1+BLUETOOTH_BAUD_RATE+c_atom2);
+  String commandString = String(c_atom1+BLUETOOTH_BAUD_RATE_STRING+c_atom2);
   bluetooth.println(commandString);  // Temporarily Change the baudrate to 9600, no parity
   // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
   
