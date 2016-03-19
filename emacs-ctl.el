@@ -150,37 +150,53 @@
 (setq mid 450)
 (setq flat-pose
       `(
-      	   (A0 ,mid) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 100 lo)) (A4 ,lo) (A5 ,lo)
-	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,(+ 100 lo)) (B4 ,lo) (B5 ,lo)))
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 300 lo)) (A4 ,mid) (A5 ,mid)
+	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,(+ 300 lo)) (B4 ,mid) (B5 ,mid)))
 
 (setq hunker-pose
       `(
       	   (A0 ,hi) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,hi) (A5 ,hi)
 	   (B0 ,hi) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,lo) (B4 ,hi) (B5 ,hi)))
 
+;; This raises the interesting issue of how many actuators should you really move.
+;; The question is is a command a full pose or a partial pose? In the end as always
+;; the question comes down to convenience. There are different approaches to this:
+;; One is to leave all feet down, but I have no way to do that.
 (setq lean-back-pose
       `(
-      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,hi) (A4 ,mid) (A5 ,mid)
-	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,lo) (B4 ,mid) (B5 ,mid)))
+      	   (A0 ,lo) (A3 ,hi)
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,lo)
+	   ))
 
 ;; Could we write an inversion function that would compute this?  Such a mirror
 ;; function would be quite valuable....it is not clear a human decomposition
 ;; into understandable functions would be quite interesting!!! But shall remain a TODO.
 (setq lean-forward-pose
       `(
-      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,mid) (A5 ,mid)
-	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi) (B4 ,mid) (B5 ,mid)))
+      	   (A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,lo)
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi)))
 
+
+(setq lean-right-right-f-ppose
+      `(
+      	   (A0 ,(+ lo 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
+	   (B2 ,hi) (B1 ,lo) (B3 ,mid)))
 
 (setq lean-right-ppose
       `(
-      	   (A1 ,lo) (A2 ,hi)
-	   (B1 ,lo) (B2 ,hi)))
+      	   (A0 ,(+ mid 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
+	   (B2 ,hi) (B1 ,lo) (A3 ,lo)))
+
+(setq lean-right-x-ppose
+      `(
+	(A3 ,mid)
+	(B3 ,hi)
+))
 
 (setq lean-left-ppose
       `(
-      	   (A2 ,lo) (A1 ,hi)
-	   (B2 ,lo) (B1 ,hi)))
+      	   (A0 ,(+ mid 100)) (A2 ,lo) (A1 ,hi) (A3 ,lo)
+	   (B2 ,lo) (B1 ,hi) (A3 ,lo)))
 
 (setq raise-right-ppose
       `(
@@ -194,12 +210,12 @@
 
 (setq right-f-ppose
       `(
-      	   (A1 ,lo) (A4 ,lo) 
+      	   (A1 ,(+ mid 100)) (A4 ,lo) 
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq right-down-f-ppose
       `(
-      	   (A1 ,mid) (A2 ,hi) (A4 ,lo) 
+      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,lo) 
 	   (B1 ,hi) (B4 ,hi)))
 
 
@@ -208,10 +224,16 @@
       	   (A2 ,lo) (A5 ,lo) 
 	   (B2 ,hi) (B5 ,hi)))
 
+(setq left-f-x-ppose
+      `(
+      	   (A2 ,lo) (A5 ,mid) 
+	   (B2 ,hi) (B5 ,hi)))
+
 (setq left-down-f-ppose
       `(
-      	   (A2 ,mid) (A1 ,hi) (A5, lo)
-	   (B2 ,hi) (B5 ,hi)))
+      	   (A0 ,lo) (A2 ,mid) (A3 ,lo) (A1 ,mid) (A5, lo)
+	   (B1 ,mid) (B2 ,mid) (B3 ,mid) (B5 ,hi)
+	   ))
 
 
 
@@ -247,7 +269,7 @@
 (setq back-f-ppose
       ;; This mean moves the back foot forward.
       `(
-	(A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,mid) (A4 ,lo) (A5 ,lo)
+	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A3 ,lo) (A4 ,lo) (A5 ,lo)
 	(B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,lo) (B5 ,lo)
 	))
 
@@ -292,9 +314,18 @@
 (defun move-forward (&optional sym)
   (dance '(
 	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
-	   (lean-left) (raise-right) (right-f) (right-down-f)
-	   (lean-right) (raise-left) (left-f) (left-down-f)
-	   (lean-forward) (back-up) (back-f) (lean-back))
+	   (lean-left)
+	   (right-f)
+	   (right-down-f)
+	   (lean-right-right-f)
+	   (left-f-x)
+	   (left-down-f)
+	   (lean-forward)
+	   (back-up)
+	   (back-f)
+	   (lean-back)
+	   (flat)
+	   )
   ))
 
 (defun move-forward-3 (&optional sym)
@@ -338,6 +369,16 @@
 (defun lean-right (&optional sym)
     (let ((msym (get-symbol-for-com-use sym)))
       (p lean-right-ppose msym)
+  ))
+
+(defun lean-right-x (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p lean-right-x-ppose msym)
+  ))
+
+(defun lean-right-right-f (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p lean-right-right-f-ppose msym)
   ))
 
 (defun reach-f (&optional sym)
@@ -385,6 +426,11 @@
 (defun left-f (&optional sym)
     (let ((msym (get-symbol-for-com-use sym)))
       (p left-f-ppose msym)
+      ))
+
+(defun left-f-x (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p left-f-x-ppose msym)
       ))
 
 (defun left-down-f (&optional sym)
@@ -494,7 +540,7 @@
 Return the results of all forms as a list."
   (let ((next 0)
 	ret)
-    (condition-case err
+   (condition-case err
 	(while t
 	  (setq ret
 		(cons
