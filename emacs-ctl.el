@@ -413,25 +413,21 @@
   ))
 
 (defun long (&optional sym)
-  "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
      (p long-pose msym)
   ))
 
 (defun hunker (&optional sym)
-  "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
       (p hunker-pose msym)
       ))
 
 (defun lean-back (&optional sym)
-  "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
       (p lean-back-pose msym)
   ))
 
 (defun lean-forward (&optional sym)
-  "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
       (p lean-forward-pose msym)
   ))
@@ -524,6 +520,10 @@
       (p raise-left-ppose msym)
       ))
 
+(defun ex (pose &optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+      (p pose msym)
+      ))
 
 ;;
 
@@ -1071,3 +1071,41 @@ Return the results of all forms as a list."
 
 ;; Actually, our coordinate system probably gives us a good way to
 ;; do the coplanarity thing in a sneaky way: just put the RL line on the FB line.
+
+;; Need to treat this as an rassoc as well, in which case we won't have to repeat
+(setq LEFT-RIGHT-SYMMETRY
+      '((A1 . A2) (B1 . B2) (A4 . A5) (B4 . B5)))
+
+(setq BACK-FRONT-SYMMETRY
+      '((A3 . B3) (A1 . B1) (A2 . B2) (A4 . B4) (A5 . B5)))
+
+(defun mirror-left-right (p)
+  "Take a pose produce a new pose that represents the left-to-right axis mirroring of the same pose"
+  (replace-from-assoc p LEFT-RIGHT-SYMMETRY))
+
+(defun mirror-back-front (p)
+    "Take a pose produce a new pose that represents the back-to-front axis mirroring of the same pose"
+  (replace-from-assoc p BACK-FRONT-SYMMETRY))
+
+(defun replace-from-assoc (pose a)
+  "Take a pose and replace all head symbols with results from the assoc list"
+  (mapcar #'(lambda (x)
+	      (let ((sym (or (assoc (car x) a)
+			     (rassoc (car x) a))))
+		(if (null sym)
+		    x
+		  (cons (cdr sym) (cdr x)))))
+	  pose))
+
+
+
+(defun test-mirror ()
+  (progn
+  (assert
+   (equal (mirror-left-right raise-right-ppose)
+	  raise-left-ppose))
+  (assert
+   (equal (mirror-back-front reach-f-ppose)
+	  reach-b-ppose))
+  ))
+
