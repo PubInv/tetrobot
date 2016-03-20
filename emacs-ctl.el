@@ -253,6 +253,36 @@
 	(B3 ,lo)
 	))
 
+(setq front-left-ppose
+      `(
+	(A1 ,hi) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,lo)
+	(B3 ,mid)
+	))
+
+(setq front-left-down-ppose
+      `(
+	(A1 ,hi) (A2 ,lo) (A3 ,mid) (A4 ,hi) (A5 ,lo)
+	(B3 ,mid)
+	))
+
+(setq left-up-back-ppose
+      `(
+	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A5 ,hi)
+	(B0 ,hi) (B2, lo) (B5 ,lo)
+	))
+
+(setq left-dn-back-ppose
+      `(
+	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A5 ,hi)
+	(B0 ,hi) (B2, mid) (B3 ,lo) (B5 ,lo)
+	))
+
+(setq long-pose
+      `(
+	(A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,hi) (A4 ,hi) (A5 ,hi)
+	(B0 ,lo) (B1 ,hi) (B2 ,hi) (B3 ,hi) (B4 ,hi) (B5 ,hi)
+	))
+
 (setq front-f-ppose
       ;; driving A1 and A2 lo here is questionable, but A2 is stuck lo
       `(
@@ -311,8 +341,8 @@
   (dance '((lean-right) (raise-left) (left-f) (left-down-f))
 	 ))
 
-(defun move-forward (&optional sym)
-  (dance '(
+(setq move-forward-steps
+      '(
 	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
 	   (lean-left)
 	   (right-f)
@@ -325,21 +355,67 @@
 	   (back-f)
 	   (lean-back)
 	   (flat)
-	   )
+	   ))
+      
+(defun move-forward (&optional sym)
+  (dance move-forward-steps
   ))
 
 (defun move-forward-3 (&optional sym)
-  (let ((com '(
-	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
-	   (lean-left) (raise-right) (right-f) (right-down-f)
-	   (lean-right) (raise-left) (left-f) (left-down-f)
-	   (lean-forward) (back-up) (back-f) (lean-back))))
+  (let ((com move-forward-steps))
     (dance (append com (append com com)))))
+
+(defun turn-left (&optional sym)
+  "turn to the left"
+    (let ((msym (get-symbol-for-com-use sym)))
+      (dance '(
+	       (flat)
+	       (lean-back)
+	       (front-up)
+	       (front-left-down)
+	       (lean-right)
+	       (left-up-back)
+	       (left-dn-back)	       
+	       (lean-left)
+	       (right-f)
+	       (right-down-f)
+	       (flat)
+	       ))
+      ))
+
+(defun front-left-down (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p front-left-down-ppose msym)
+  ))
+
+(defun front-left (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p front-left-ppose msym)
+  ))
+
+(defun left-up-back (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p left-up-back-ppose msym)
+  ))
+
+(defun left-dn-back (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p left-dn-back-ppose msym)
+  ))
+
 
 (defun flat (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
      (p flat-pose msym)
+  ))
+
+(defun long (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p long-pose msym)
   ))
 
 (defun hunker (&optional sym)
