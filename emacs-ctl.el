@@ -22,6 +22,13 @@
 		     (B4 (B 4))
 		     (B5 (B 5))))
 
+(setq LEFT-RIGHT-SYMMETRY
+      '((A1 . A2) (B1 . B2) (A4 . A5) (B4 . B5)))
+
+(setq BACK-FRONT-SYMMETRY
+      '((A3 . B3) (A1 . B1) (A2 . B2) (A4 . B4) (A5 . B5)))
+
+
 ;; sym is an optional identifying symbol to uniquely identify the call...
 (defun driver-send-com (driver com &optional sym)
   ;; In theory this will work if the com is a string or an s-expr
@@ -100,6 +107,28 @@
      (driver-send-com (car p) command sym))
    CONTROLLER-PORTS))
 
+(defun replace-from-assoc (pose a)
+  "Take a pose and replace all head symbols with results from the assoc list"
+  (mapcar #'(lambda (x)
+	      (let* ((a-assoc (assoc (car x) a))
+		     (r-assoc (rassoc (car x) a)))
+		(if (and a-assoc r-assoc)
+		    (throw 'EGREGIOUS-SYMMETRY-DUPLICATION)
+		  (if (and (null a-assoc) (null r-assoc))
+		      x
+		    (cons (if a-assoc (cdr a-assoc)
+			    (car r-assoc)
+			    )
+			  (cdr x))))))
+	  pose))
+
+(defun mirror-left-right (p)
+  "Take a pose produce a new pose that represents the left-to-right axis mirroring of the same pose"
+  (replace-from-assoc p LEFT-RIGHT-SYMMETRY))
+
+(defun mirror-back-front (p)
+    "Take a pose produce a new pose that represents the back-to-front axis mirroring of the same pose"
+  (replace-from-assoc p BACK-FRONT-SYMMETRY))
 
 (defun test-one ()
   (progn
@@ -148,6 +177,16 @@
 (setq lo 0)
 (setq hi 900)
 (setq mid 450)
+
+;; These are poses which are symmetric and have not mirror poses.
+;; (But the could have opposites---are inversions a thing?
+(setq long-pose
+      `(
+	(A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,hi) (A4 ,hi) (A5 ,hi)
+	(B0 ,lo) (B1 ,hi) (B2 ,hi) (B3 ,hi) (B4 ,hi) (B5 ,hi)
+	))
+
+
 (setq flat-pose
       `(
       	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 300 lo)) (A4 ,mid) (A5 ,mid)
@@ -158,24 +197,16 @@
       	   (A0 ,hi) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,hi) (A5 ,hi)
 	   (B0 ,hi) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,lo) (B4 ,hi) (B5 ,hi)))
 
-;; This raises the interesting issue of how many actuators should you really move.
-;; The question is is a command a full pose or a partial pose? In the end as always
-;; the question comes down to convenience. There are different approaches to this:
-;; One is to leave all feet down, but I have no way to do that.
-(setq lean-back-pose
-      `(
-      	   (A0 ,lo) (A3 ,hi)
-	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,lo)
-	   ))
 
-;; Could we write an inversion function that would compute this?  Such a mirror
-;; function would be quite valuable....it is not clear a human decomposition
-;; into understandable functions would be quite interesting!!! But shall remain a TODO.
+;; Here begin poses that may have mirrors.
 (setq lean-forward-pose
       `(
       	   (A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,lo)
-	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi)))
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi)
+	   ))
 
+(setq lean-back-pose
+      (mirror-back-front lean-forward-pose))
 
 (setq lean-right-right-f-ppose
       `(
@@ -187,16 +218,16 @@
       	   (A0 ,(+ mid 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
 	   (B2 ,hi) (B1 ,lo) (A3 ,lo)))
 
+(setq lean-left-ppose
+      (mirror-left-right lean-right-ppose))
+
+;; Some poses are used only on one side for walking
 (setq lean-right-x-ppose
       `(
 	(A3 ,mid)
 	(B3 ,hi)
 ))
 
-(setq lean-left-ppose
-      `(
-      	   (A0 ,(+ mid 100)) (A2 ,lo) (A1 ,hi) (A3 ,lo)
-	   (B2 ,lo) (B1 ,hi) (A3 ,lo)))
 
 (setq raise-right-ppose
       `(
@@ -204,30 +235,30 @@
 	   (B1 ,lo)))
 
 (setq raise-left-ppose
-      `(
-      	   (A2 ,lo) 
-	   (B2 ,lo)))
+      (mirror-left-right raise-right-ppose))
 
 (setq right-f-ppose
       `(
       	   (A1 ,(+ mid 100)) (A4 ,lo) 
 	   (B1 ,hi) (B4 ,hi)))
 
-(setq right-down-f-ppose
-      `(
-      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,lo) 
-	   (B1 ,hi) (B4 ,hi)))
-
-
 (setq left-f-ppose
-      `(
-      	   (A2 ,lo) (A5 ,lo) 
-	   (B2 ,hi) (B5 ,hi)))
+      (mirror-left-right right-f-ppose))
 
 (setq left-f-x-ppose
       `(
       	   (A2 ,lo) (A5 ,mid) 
 	   (B2 ,hi) (B5 ,hi)))
+
+(setq left-f-x-ppose
+      `(
+      	   (A2 ,lo) (A5 ,mid) 
+	   (B1 ,mid) (B2 ,mid) (B3 ,lo) (B5 ,hi)))
+
+(setq right-down-f-ppose
+      `(
+      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,lo) 
+	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-down-f-ppose
       `(
@@ -236,22 +267,23 @@
 	   ))
 
 
-
 (setq reach-f-ppose
       `(
       	   (A3 ,hi) (A4 ,hi) (A5 ,hi)
 	   ))
 
 (setq reach-b-ppose
-      `(
-	(B3 ,hi) (B4 ,hi) (B5 ,hi)
-	))
+	(mirror-back-front reach-f-ppose))
 
 (setq front-up-ppose
       `(
 	(A0 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
 	(B3 ,lo)
 	))
+
+(setq back-up-ppose
+      (mirror-back-front front-up-ppose))
+
 
 (setq front-left-ppose
       `(
@@ -277,57 +309,31 @@
 	(B0 ,hi) (B2, mid) (B3 ,lo) (B5 ,lo)
 	))
 
-(setq long-pose
-      `(
-	(A0 ,mid) (A1 ,hi) (A2 ,hi) (A3 ,hi) (A4 ,hi) (A5 ,hi)
-	(B0 ,lo) (B1 ,hi) (B2 ,hi) (B3 ,hi) (B4 ,hi) (B5 ,hi)
-	))
 
-(setq front-f-ppose
-      ;; driving A1 and A2 lo here is questionable, but A2 is stuck lo
+
+
+(setq front-out-ppose
       `(
 	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
 	(B3 ,mid)
 	))
 
-(setq back-up-ppose
-      `(
-	(A0 ,lo) (A3 ,lo) 
-	(B3 ,lo) (B4 ,hi) (B5 ,hi)
-	))
-
-(setq back-f-ppose
-      ;; This mean moves the back foot forward.
-      `(
+(setq back-in-ppose
+            ;; This mean moves the back foot forward.
+     `(
 	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A3 ,lo) (A4 ,lo) (A5 ,lo)
 	(B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,lo) (B5 ,lo)
 	))
 
 
-;; I'm making some progress here.  Let's try to put together
-;; a dance that moves the front forward from a flat position (and small)
-;; The dance steps are:
-;; 0) flat
-;; 1) front-up
-;; 2) down and flat.
-;; We might have to mix a lean in there.
-
-;; here here are seeking the maximum front-forward which is still flat
-;; with back 
-(setq front-f-ppose
-      ;; driving A1 and A2 lo here is questionable, but A2 is stuck lo
-      `(
-	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
-	(B3 ,mid)
-	))
 
 
 (defun front-step-f (&optional sym)
-  (dance '((flat) (lean-back) (front-up) (front-f) (lean-forward)))
+  (dance '((flat) (lean-back) (front-up) (front-out) (lean-forward)))
   )
 
 (defun back-step-f (&optional sym)
-  (dance '((flat) (lean-forward) (back-up) (back-f) (lean-back)))
+  (dance '((flat) (lean-forward) (back-up) (back-in) (lean-back)))
   )
 
 
@@ -343,7 +349,7 @@
 
 (setq move-forward-steps
       '(
-	   (flat) (lean-back) (front-up) (front-f) (lean-forward)
+	   (flat) (lean-back) (front-up) (front-out) (lean-forward)
 	   (lean-left)
 	   (right-f)
 	   (right-down-f)
@@ -352,7 +358,7 @@
 	   (left-down-f)
 	   (lean-forward)
 	   (back-up)
-	   (back-f)
+	   (back-in)
 	   (lean-back)
 	   (flat)
 	   ))
@@ -470,9 +476,9 @@
       (p front-up-ppose msym)
       ))
 
-(defun front-f (&optional sym)
+(defun front-out (&optional sym)
     (let ((msym (get-symbol-for-com-use sym)))
-      (p front-f-ppose msym)
+      (p front-out-ppose msym)
       ))
 
 (defun back-up (&optional sym)
@@ -480,9 +486,9 @@
       (p back-up-ppose msym)
       ))
 
-(defun back-f (&optional sym)
+(defun back-in (&optional sym)
     (let ((msym (get-symbol-for-com-use sym)))
-      (p back-f-ppose msym)
+      (p back-in-ppose msym)
       ))
 
 (defun right-f (&optional sym)
@@ -1073,29 +1079,8 @@ Return the results of all forms as a list."
 ;; do the coplanarity thing in a sneaky way: just put the RL line on the FB line.
 
 ;; Need to treat this as an rassoc as well, in which case we won't have to repeat
-(setq LEFT-RIGHT-SYMMETRY
-      '((A1 . A2) (B1 . B2) (A4 . A5) (B4 . B5)))
 
-(setq BACK-FRONT-SYMMETRY
-      '((A3 . B3) (A1 . B1) (A2 . B2) (A4 . B4) (A5 . B5)))
 
-(defun mirror-left-right (p)
-  "Take a pose produce a new pose that represents the left-to-right axis mirroring of the same pose"
-  (replace-from-assoc p LEFT-RIGHT-SYMMETRY))
-
-(defun mirror-back-front (p)
-    "Take a pose produce a new pose that represents the back-to-front axis mirroring of the same pose"
-  (replace-from-assoc p BACK-FRONT-SYMMETRY))
-
-(defun replace-from-assoc (pose a)
-  "Take a pose and replace all head symbols with results from the assoc list"
-  (mapcar #'(lambda (x)
-	      (let ((sym (or (assoc (car x) a)
-			     (rassoc (car x) a))))
-		(if (null sym)
-		    x
-		  (cons (cdr sym) (cdr x)))))
-	  pose))
 
 
 
