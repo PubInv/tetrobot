@@ -281,8 +281,21 @@
 	(B3 ,lo)
 	))
 
+(setq front-up-short-ppose
+      `(
+	(A0 ,lo) (A3 ,lo) (A4 ,mid) (A5 ,mid)
+	(B3 ,lo)
+	))
+
+
 (setq back-up-ppose
       (mirror-back-front front-up-ppose))
+
+(setq back-up-short-ppose
+      (mirror-back-front front-up-short-ppose))
+
+(setq back-right-down-ppose
+      (mirror-back-front front-left-down-ppose))
 
 
 (setq front-left-ppose
@@ -318,6 +331,12 @@
 	(B3 ,mid)
 	))
 
+(setq front-out-short-ppose
+      `(
+	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,mid) (A5 ,mid)
+	(B3 ,mid)
+	))
+
 (setq back-in-ppose
             ;; This mean moves the back foot forward.
      `(
@@ -347,6 +366,15 @@
   (dance '((lean-right) (raise-left) (left-f) (left-down-f))
 	 ))
 
+;; Q: If we reverse these steps will we move backwards?
+;; A: No, not unless we reverse and mirror each operation, but
+;; that should be possible. My approach of having function
+;; symbols here is a real problem. Can I change dance so that
+;; it takes closures or something so that it doesn't require
+;; function symbols everywhere?
+;; Also, want a routine like "get-status" that captures
+;; state.  Also want a "diff" for poses!!
+;; Our goal is to be able to complete reverse any set of movements!!
 (setq move-forward-steps
       '(
 	   (flat) (lean-back) (front-up) (front-out) (lean-forward)
@@ -362,19 +390,76 @@
 	   (lean-back)
 	   (flat)
 	   ))
+
+(setq move-forward-poses
+      (list
+       flat-pose
+       lean-back-pose
+       front-up-ppose
+       front-out-ppose
+       lean-forward-pose
+       lean-left-ppose
+       right-f-ppose
+       right-down-f-ppose
+       lean-right-right-f-ppose
+       left-f-x-ppose
+       left-down-f-ppose
+       lean-forward-pose
+       back-up-ppose
+       back-in-ppose
+       lean-back-pose
+       flat-pose
+       ))
+;; I really need to create the steps not as functions but as poses...
+;; Let me start that process....
+;; This should be a reversible symbol...
+(setq lean-forward-then-back-to-test
+      (list flat-pose lean-forward-pose lean-back-pose flat-pose
+	    ))
+
+;; Note: This only works if you start and end with a complete pose,
+;; otherwise it is undertermined.
+;; Now let's try to rithgt a function that reverses and mirrors..
+;; Perhaps I will call it "regress".
+;; Basic attempt at an algorithm:
+;; (A B C) => (C B A)
+;; Maybe it is just "reverse, with no mirroring".
+
+(defun regress (steps)
+  (reverse steps)
+  )
+
+(defun test-regress ()
+  (equal (regress (regress lean-forward-then-back-to-test)) lean-forward-then-back-to-test)
+  )
+
+;; this doesn't seem to work --- perhaps disproves the simple reversal notion, not sure.
+(defun test-step-backward ()
+  "Test by making the gluss bot step forward and then back"
+  (dance
+   (mapcar (lambda (s)
+	     (mirror-back-front s)
+	     )
+	   move-forward-poses)))
+
+
+;; TODO: It is really critical that we figure out how to mathematically
+;; reverse stepping forward, and mathematically invert turning to the left.
+;; it is not a simple reversal of steps --- must be reverse with invert.
+;; Or maybe simply invert!! (Not really a reversal, but a symmetry.
       
 (defun move-forward (&optional sym)
-  (dance move-forward-steps
+  (fdance move-forward-steps
   ))
 
 (defun move-forward-3 (&optional sym)
   (let ((com move-forward-steps))
-    (dance (append com (append com com)))))
+    (fdance (append com (append com com)))))
 
 (defun turn-left (&optional sym)
   "turn to the left"
     (let ((msym (get-symbol-for-com-use sym)))
-      (dance '(
+      (fdance '(
 	       (flat)
 	       (lean-back)
 	       (front-up)
@@ -388,6 +473,35 @@
 	       (flat)
 	       ))
       ))
+
+(setq turn-left-poses
+      (list
+       flat-pose
+       lean-right-ppose
+       left-up-back-ppose
+       left-dn-back-ppose
+       lean-left-ppose
+       right-f-ppose
+       right-down-f-ppose
+
+       lean-back-pose
+       front-up-short-ppose
+       front-left-down-ppose
+
+       
+       lean-forward-pose
+       back-up-short-ppose
+       (mirror-left-right (mirror-back-front front-left-down-ppose))
+       )
+      )
+
+
+(defun test-turn-right ()
+  "Test by making the gluss bot step forward and then back"
+  (dance
+   (mapcar #'mirror-left-right
+	   turn-left-poses)))
+
 
 (defun front-left-down (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
@@ -578,9 +692,10 @@
     (print sym)
     (incf (get sym 'latch-value))
     ;; This part of the function should be in the callback from the driver, with sym passed in.
-
+    (print "QQQQ")
+    (print (or (get sym 'num-controllers) num-drivers))
     ;; In reality the latch-value limit here should be the number of live actuators....
-    (if (>= (get sym 'latch-value) num-drivers)
+    (if (>= (get sym 'latch-value) (or (get sym 'num-controllers) num-drivers))
 	(progn
 	  (print "YES, WE WOULD TRIGGER THIS GOT SECOND CALL")
 	  (print then)
@@ -823,6 +938,17 @@ Return the results of all forms as a list."
   (p '((B5 500) (A4 400 ) (B3 200)))
   )
 
+(defun number-controllers-affected (ps)
+  (let ((found))
+    (mapcar (lambda (p)
+		    (if (not (member (car (cadr (assoc (car p) ACTUATOR-MAP))) found))
+			(setq found (cons (car (cadr (assoc (car p) ACTUATOR-MAP))) found))))
+	    ps)
+    (length found)))
+
+(defun test-number-controllers-affected ()
+  (equal 2 (number-controllers-affected '((A0 0) (A1 550) (A2 550) (A3 300) (A4 450) (A5 450) (B0 450) (B1 550) (B2 550) (B3 300) (B4 450) (B5 450))))
+  )
 
 ;; Okay, now we need to create a "dance" function.
 ;; The key to dancing is not take the next step until the step is done.
@@ -832,32 +958,7 @@ Return the results of all forms as a list."
 ;; A dance is therefore a series of "steps". A step can be
 ;; any command.
 
-(defun test-dance1 ()
-  (let ((s1 '(small))
-	(s2 '(big))
-	(s3 '((A0 0) (A1 0) (A2 0)))
-	(s4 '(small)))
-    (dance (list s1 s2 s3 s4))
-    )
-  )
 
-(defun test-dance2 ()
-  (let ((s1 '(p '((B0 400) (B1 400))))
-	(s2 '(p '((B0 0) (B1 0))))
-	(s3 '(p '((B0 600) (B1 600))))
-	(s4 '(small)))
-    (dance (list s1 s2 s3 s4))
-    )
-  )
-
-(defun test-dance3 ()
-  (let ((s1 '(p '((A0 400) (A1 400))))
-	(s2 '(p '((A0 0) (A1 0))))
-	(s3 '(p '((A0 600) (A1 600))))
-	(s4 '(small)))
-    (dance (list s1 s2 s3 s4))
-    )
-  )
 
 
   
@@ -935,8 +1036,8 @@ Return the results of all forms as a list."
 ;; This is my attempt to create using just the "then" functionality
 ;; without calling create-latch so that we can execute more arbitrary functions.
 ;; Note this should probably take symbol as an optional argument
-(defun dance (steps)
-  ;; Execute the first step and set up the callbacks with the continuations.
+(defun fdance (steps)
+  "take a list of zero-argument functions that can except a symbol as an optional argument"
   (if (null steps)
       t
     (let* (
@@ -945,14 +1046,54 @@ Return the results of all forms as a list."
       (progn
 	(put sym 'then-function 
 	     `(lambda ()
-		(print "XXXX")
-		(dance (quote ,(cdr steps)))))
+		(fdance (quote ,(cdr steps)))))
+	;; I need to make sure I can put a closure here.
 	(funcall (caar steps) sym)
 	))))
 
+;; The advantage of this is that the list of poses are mathematical objects
+;; which can be operated on (at least a little) via operations such as:
+;; Mirror about axis
+;; Invert
+;; Mirror in time
+;; I hypothesize that if we mirror about two axes and time, we can
+;; make the robot reverse its steps.  So "move-forward" can become
+;; "move-back".  But once we turn things into functions (as in closures) this
+;; is opaque.
+(defun dance (steps)
+"Take a list of poses, and expect them to be executed in the controller with the 'p position function"
+  (if (null steps)
+      t
+    (let* (
+	   (sym (get-symbol-for-com-use))
+		  )
+      (progn
+	(put sym 'then-function 
+	     `(lambda ()
+		(dance (quote ,(cdr steps)))))
+	(let ((n (number-controllers-affected (car steps))))
+	  (put sym 'num-controllers n)
+	(funcall 'p (car steps) sym)
+	)))))
 
 
-(defun test-dance1 ()
+;; This is important because it allows us to write and test a "trace-back-in-time function"
+(defun test-dance0 ()
+  (let ((s1 '((A0 400) (B0 400) (B1 400)))
+	(s2 '((A0 400) (B0 0) (B1 0)))
+	(s3 '((A0 400) (B0 600) (B1 600))))
+    (dance (list s1 s2 s3))))
+
+(defun test-dance-one-controller ()
+  (let ((s1 '((A0 800)))
+	(s2 '((A0 400) (B0 0) (B1 0)))
+	(s3 '((B0 400) (B1 600))))
+    (dance (list s1 s2 s3 s1))))
+
+
+
+;; These test are currently RED, I don't know why.
+(defun test-fdance1 ()
   ;; I really need to support better names in the driver, but until I do,
   ;; this will ahve to work.
   (let ((s1 '(relax))
@@ -960,17 +1101,17 @@ Return the results of all forms as a list."
 	(s3 '(big))
 	(s4 '(small))
 	    )
-    (dance (list s1 s2 s3 s4))
+    (fdance (list s1 s2 s3 s4))
     )
   )
 
 
-(defun test-dance2 ()
+(defun test-fdance2 ()
   (let ((s1 '(small))
 	(s2 '(big))
 	(s3 '(p (A0 0) (A1 0) (A2 0)))
 	(s4 '(small)))
-    (dance (list s1 s2 s3 s4))
+    (fdance (list s1 s2 s3 s4))
     )
   )
 
