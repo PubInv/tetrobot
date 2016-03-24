@@ -211,7 +211,7 @@
 (setq lean-right-right-f-ppose
       `(
       	   (A0 ,(+ lo 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
-	   (B2 ,hi) (B1 ,lo) (B3 ,mid)))
+	   (B2 ,hi) (B1 ,lo) (B3 ,hi)))
 
 (setq lean-right-ppose
       `(
@@ -294,8 +294,6 @@
 (setq back-up-short-ppose
       (mirror-back-front front-up-short-ppose))
 
-(setq back-right-down-ppose
-      (mirror-back-front front-left-down-ppose))
 
 
 (setq front-left-ppose
@@ -309,6 +307,10 @@
 	(A1 ,hi) (A2 ,lo) (A3 ,mid) (A4 ,hi) (A5 ,lo)
 	(B3 ,mid)
 	))
+
+(setq back-right-down-ppose
+      (mirror-back-front front-left-down-ppose))
+
 
 (setq left-up-back-ppose
       `(
@@ -339,8 +341,8 @@
 
 (setq back-in-ppose
             ;; This mean moves the back foot forward.
-     `(
-	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A3 ,lo) (A4 ,lo) (A5 ,lo)
+      `(
+	(A0 ,lo) (A3, lo)
 	(B1 ,lo) (B2 ,lo) (B3 ,lo) (B4 ,lo) (B5 ,lo)
 	))
 
@@ -401,6 +403,7 @@
        lean-left-ppose
        right-f-ppose
        right-down-f-ppose
+       ;; Good to here
        lean-right-right-f-ppose
        left-f-x-ppose
        left-down-f-ppose
