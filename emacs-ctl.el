@@ -130,10 +130,9 @@
     "Take a pose produce a new pose that represents the back-to-front axis mirroring of the same pose"
   (replace-from-assoc p BACK-FRONT-SYMMETRY))
 
-(defun test-one ()
-  (progn
+(defun init ()
     (build-procs 3 CONTROLLER-PORTS)
-    (send-all "x")))
+    (debug-level 'ERROR))
 
 ;; look back in the current buffer to find the most recent
 ;; status report
@@ -239,7 +238,7 @@
 
 (setq right-f-ppose
       `(
-      	   (A1 ,(+ mid 100)) (A4 ,mid) 
+      	   (A1 ,(+ mid 100)) (A4 ,lo) 
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-f-ppose
@@ -253,7 +252,7 @@
 (setq left-f-x-ppose
       `(
       	   (A2 ,lo) (A5 ,mid) 
-	   (B1 ,mid) (B2 ,mid) (B3 ,lo) (B5 ,hi)))
+	   (B1 ,mid) (B2 ,mid) (B3 ,mid) (B5 ,hi)))
 
 (setq right-down-f-ppose
       `(
@@ -384,6 +383,7 @@
 	   (right-f)
 	   (right-down-f)
 	   (lean-right-right-f)
+	   (lean-right)
 	   (left-f-x)
 	   (left-down-f)
 	   (lean-forward)
@@ -394,25 +394,34 @@
 	   ))
 
 (setq move-forward-poses
+      (append
+       (list
+	flat-pose)
       (list
-       flat-pose
-       lean-back-pose
-       front-up-ppose
-       front-out-ppose
-       lean-forward-pose
+       lean-right-ppose
+       left-f-ppose
+       left-down-f-ppose
+       )
+       
+      (list
        lean-left-ppose
        right-f-ppose
        right-down-f-ppose
-       ;; Good to here
-       lean-right-right-f-ppose
-       left-f-x-ppose
-       left-down-f-ppose
+       )
+      
+      (list 
        lean-forward-pose
        back-up-ppose
        back-in-ppose
        lean-back-pose
-       flat-pose
-       ))
+       front-out-ppose
+       lean-forward-pose
+       )
+      
+      (list
+       flat-pose)
+      ))
+
 ;; I really need to create the steps not as functions but as poses...
 ;; Let me start that process....
 ;; This should be a reversible symbol...
