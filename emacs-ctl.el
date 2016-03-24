@@ -239,7 +239,7 @@
 
 (setq right-f-ppose
       `(
-      	   (A1 ,(+ mid 100)) (A4 ,lo) 
+      	   (A1 ,(+ mid 100)) (A4 ,mid) 
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-f-ppose
@@ -257,7 +257,7 @@
 
 (setq right-down-f-ppose
       `(
-      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,lo) 
+      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,mid) 
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-down-f-ppose
@@ -1220,10 +1220,6 @@ Return the results of all forms as a list."
 ;; do the coplanarity thing in a sneaky way: just put the RL line on the FB line.
 
 ;; Need to treat this as an rassoc as well, in which case we won't have to repeat
-
-
-
-
 
 (defun test-mirror ()
   (progn
