@@ -464,6 +464,13 @@
   (fdance move-forward-steps
   ))
 
+(defun move-forward (&optional sym)
+    (dance move-forward-poses)
+    )
+
+
+
+
 (defun move-forward-3 (&optional sym)
   (let ((com move-forward-steps))
     (fdance (append com (append com com)))))
@@ -508,7 +515,7 @@
       )
 
 
-(defun test-turn-right ()
+(defun test-turn-rightUntitled event ()
   "Test by making the gluss bot step forward and then back"
   (dance
    (mapcar #'mirror-left-right
