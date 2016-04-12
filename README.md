@@ -1,5 +1,7 @@
 # gluss
 
+You probably want to visit the [public website](http://pubinv.github.io/gluss) first.
+
 ## Update as of Feb 16th
 
 Today a major milestone was acheived!  My open-source [PCB board](https://oshpark.com/shared_projects/5xxBXrSD) available at OSH Park supported simultaneous motion of 6 actuators (at low speed).
