@@ -104,7 +104,7 @@ The <a href="http://pubinv.github.io/CoilChoice/">CoilChoice</a> project may be 
 </li>
 </ul>
 
-##The Intellectual Underpinnings of The Gluss Project
+## The Intellectual Underpinnings of The Gluss Project
 
 Like most ideas, the idea of gluss is a melding of several pre-existing ideas:
 <ul>
@@ -133,35 +133,35 @@ No discussion of pseudopods is complete without a mention of <a href="https://en
 </li>
 </ul>
 
-##Next Steps and Research Directions 
+## Next Steps and Research Directions 
 
 The Gluss Projects engenders many research opportunities.
 	  
-###Build a Simulator
+### Build a Simulator
 
 We need a software-only simulator so that gaits and other forms of motion can be investigated and developed without having to actually have Glussbot. Ideally this would have a 3D rendering display and allow both programatic and interactive design of motion.
 
-###Build a physical model with sensors
+### Build a physical model with sensors
 
 It would be magical to control a Glussbot by holding in your hands a small model of the robot that you can move and reshape. Such a model would not need acutators, but each member would need to sense and report its length. Then a change with your hands would immediately create a change in the Glussbot, allowing you to control it elegantly.
 
-###Develop 3D Printable Magnetic Joints Similar to the GeoMag System
+### Develop 3D Printable Magnetic Joints Similar to the GeoMag System
 
 Although the turret joint is a valuale embodiment, it may be possible to build a larger version of the magnet-and-ball-bearing system known as "Geo Mag". Nothing is stopping us from testing this but the time it takes to develop mounts that holds magnets and mount to the Firgelli actuators.
 
-###Explore more numerous tetrahedral Gluss systems
+### Explore more numerous tetrahedral Gluss systems
 
 Our immediate plans are to build a 5-tetrahedron Glussbot and explore if it can crawl faster than the 3-Tet system. However, we could build and control significantly larger systems.
 
-###Build a very small Glussbot
+### Build a very small Glussbot
 
 It is interesting to investigate what is the smallest Glussbot system we can construct.
 
-###Build a Glussbot out of Hydraulic Actuators
+### Build a Glussbot out of Hydraulic Actuators
 
 Some gluss constructed out of the enormously powerful hydraulic actauators used on backhoes and bulldozers would be a fascinating machine, if only as an art project. Possibly the simple attachmend of a bulldozer blade would create an interesting machine that would actually be useful.
 
-###Research Mathematics of Gluss Dancing
+### Research Mathematics of Gluss Dancing
 
 The current control system is very primitive, although it is able to accomplish crawling. It is now clear that we need a way to express and think about more complex and smooth motion over time---the choreography of a gluss dance. This math would be applicable to other sorts of robots as well.
 
