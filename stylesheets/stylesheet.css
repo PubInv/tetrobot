@@ -788,6 +788,9 @@ footer a:hover {
 * html .clearfix {height: 1%;}
 .clearfix {display: block;}
 
+
+/* Here I am overriding some of the bootstrap stuff that came with GitHub-Pages to try to match my theme */
+
 /* #Media Queries
 ================================================== */
 
