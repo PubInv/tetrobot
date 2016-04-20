@@ -449,13 +449,35 @@ a:hover {
 }
 
 header {
-  padding-top: 40px;
-  padding-bottom: 40px;
+  padding-top: 20px;
+  padding-bottom: 20px;
   font-family: 'Architects Daughter', 'Helvetica Neue', Helvetica, Arial, serif;
   /*  background: #2e7bcf url(../images/header-bg.jpg) 0 0 repeat-x; */
   background: #70B878 url(../images/header-bg-greenish2.png) 0 0 repeat-x;
   border-bottom: solid 1px #275da1;
+  color: white;
 /*  opacity: 0.2; */
+}
+header ul li a {
+    color: white;
+}
+
+.navbar {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  font-family: 'Architects Daughter', 'Helvetica Neue', Helvetica, Arial, serif;
+  /*  background: #2e7bcf url(../images/header-bg.jpg) 0 0 repeat-x; */
+  background: #70B878 url(../images/header-bg-greenish2.png) 0 0 repeat-x;
+/*  border-bottom: solid 1px #275da1; */
+  color: white;
+/*  opacity: 0.2; */
+}
+nav ul li a {
+    color: white;
+}
+
+.navbar-inverse .navbar-nav>li>a {
+    color: white;
 }
 
 header h1 {
@@ -490,9 +512,9 @@ header h3 {
   width: 940px;
   margin: 0 auto;
 }
-
+/* Used in the context of a fixed navbar, this must be padded */
 #content-wrapper {
-  padding-top: 30px;
+  padding-top: 20px;
   border-top: solid 1px #fff;
 }
 
@@ -507,7 +529,7 @@ header h3 {
 
 aside#sidebar {
   float: right;
-  width: 200px;
+  width: 225px;
   min-height: 504px;
   padding-left: 20px;
   font-size: 12px;
@@ -525,8 +547,8 @@ aside#sidebar p.repo-owner a {
 }
 
 a.button {
-  width: 134px;
-  height: 58px;
+/*  width: 134px; */
+/*  height: 58px; */
   padding-top: 22px;
   padding-left: 68px;
   font-family: 'Architects Daughter', 'Helvetica Neue', Helvetica, Arial, serif;
@@ -551,9 +573,11 @@ header img {
   right: 25%;
 }
 
+/* This really only applies to the Github buttons, probably not a good idea to put here under a.button */
 aside a.button {
   display: block;
-  width: 138px;
+  /*  width: 138px; */
+  height: 80px; 
   padding-left: 64px;
   margin-bottom: 20px;
   font-size: 21px;
@@ -760,12 +784,14 @@ dl dd {
 }
 
 footer {
+  font-family: 'Architects Daughter', 'Helvetica Neue', Helvetica, Arial, serif;    
   padding-top: 20px;
   padding-bottom: 30px;
   margin-top: 40px;
   font-size: 13px;
-  color: #aaa;
-  background: transparent url('../images/header-bg-greenish2.png') 0 0 no-repeat;
+  color: white;
+  background: transparent url('../images/header-bg-greenish2.png') 0 0 repeat-x;
+  width: 100%;
 }
 
 footer a {
@@ -788,8 +814,9 @@ footer a:hover {
 * html .clearfix {height: 1%;}
 .clearfix {display: block;}
 
-
-/* Here I am overriding some of the bootstrap stuff that came with GitHub-Pages to try to match my theme */
+navbar {
+    display: block;
+}
 
 /* #Media Queries
 ================================================== */
