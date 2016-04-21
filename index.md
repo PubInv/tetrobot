@@ -37,17 +37,17 @@ We've made a couple of videos showing physcial models and discussing our motivat
 <iframe width="280" height="157" src="https://www.youtube.com/embed/WWXpSSwL88s" frameborder="0" allowfullscreen></iframe>
 <iframe width="280" height="157" src="https://www.youtube.com/embed/lLmkdvR1NCo" frameborder="0" allowfullscreen></iframe></span>
 
-##How You Can Get Involved
+## How You Can Get Involved
 
 We want to help the world by harnessing the creativity of amateur and professional makers.
 
 We need competent and energetic artists, writers, video editors, designers, and thinkers. Those functions are just as important as the skills more obviously particular to this project. Perhaps it goes without saying that we also need programmers, Arduino programmers, 3D Printers, mechanical engineers, and electrical engineers. Depending on what you want to research, we also need mathematicians, structural engineers, mechanical engineers,  and roboticists.
 
-###Contact
+### Contact
 
 Because this is a genuine research project and everyone has different talents and interests, the best way to get involved is to email <a href="mailto: read.robert@gmail.com">Rob &lt;read.robert@gmail.com&gt;</a> directly to discuss what you are most interested in.
 
-###Support us on Social Media
+### Support us on Social Media
 
 If you aren't ready to contact us directly, you can support us via social media by:
 <ul>
@@ -57,11 +57,11 @@ If you aren't ready to contact us directly, you can support us via social media 
 </li>
 </ul>
 
-###Build Your Own Glussbot
+### Build Your Own Glussbot
 
 You may want to build your own Glussbot for a playful or serious purpose. All of files needed to do this are published in our various GitHub Repos. The total process is not yet well-documented. It would be a great service to the project if someone would make or assist us in making an Instructable about any phase of the project. The Bill of Materials is about $1300 for the 3-TetGlussbot. We will happily assist you in this to improve our documentation.
 
-###Use our Open-Source 6-controller Arduino Mega Shield
+### Use our Open-Source 6-controller Arduino Mega Shield
 
 As part of this work, we need a Bluetooth-enabled microcontroller that could control up to six 0.6-amp motors. Our approach was to design an <a href="https://oshpark.com/shared_projects/fijpozoB">open-source shield</a> for the Arduino Mega. Any one can freely reuse this design or can order the board from OshPark and then solder it together themselves. We are unaware of any similar 6-channel controller. Promoting our controller helps promote the Gluss Project.
 
