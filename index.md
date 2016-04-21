@@ -82,7 +82,7 @@ These are <a href="https://github.com/PubInv/gluss/issues">issues</a> in GitHub.
 
 <img width="30%" src="./images/Issues.png"/>
 
-##Subprojects Spawned from The Gluss Project
+## Subprojects Spawned from The Gluss Project
 
 The project has done a number of things so far that might be useful to others in some way. Everything we do is freely resuable under various licenses.
 
