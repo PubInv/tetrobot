@@ -88,7 +88,11 @@ The project has done a number of things so far that might be useful to others in
 
 <ul>
 <li>
-The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are [completely parametrizable](http://www.thingiverse.com/thing:1043716) and would allow anyone to make their own Turret Joints. This includes for static applications. For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
+The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are <a href="http://www.thingiverse.com/thing:1043716">
+completely parameterizable</a>
+and would allow anyone to make their own Turret Joints.
+This includes for static applications.
+For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
 <img width="30%" src="./images/OpenSCADScreen.png"/>	  
 </li>
 <li>
