@@ -88,15 +88,15 @@ The project has done a number of things so far that might be useful to others in
 
 <ul>
 <li>
+The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are [completely parametrizable](>http://www.thingiverse.com/thing:1043716) and would allow anyone to make their own Turret Joints. This includes for static applications. For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
+<img width="30%" src="./images/OpenSCADScreen.png"/>	  
+</li>
+<li>
 The <a href="https://github.com/PubInv/S-Expr">Arduino S-Expr</a> project and its <a href="https://github.com/PubInv/Arduino-S-Expr-Test">test project</a> may be useful to anyone who wants to control an Arduino from Lisp or prefer S-Expressions to the closely related JSON format.
 </li>
 <li>
 The <a href="https://oshpark.com/shared_projects/fijpozoB">3x2 Motor Controller MegaShield, v0.2</a> may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time.<br>
 <img width="30%" src="./images/NakedBoard.png"/>	  
-</li>
-<li>
-The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are [completely parametrizable](>http://www.thingiverse.com/thing:1043716) and would allow anyone to make their own Turret Joints. This includes for static applications. For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
-<img width="30%" src="./images/OpenSCADScreen.png"/>	  
 </li>
 <li>
 The <a href="http://pubinv.github.io/CoilChoice/">CoilChoice</a> project may be valuable to anyone desiging coils for the purpose of producing Magnetomotive Force (such as solenoids.) The CoilChoice project was created when we were still attempting to build our own actuator (the GlussPusher project.)<br>
