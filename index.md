@@ -95,7 +95,7 @@ The <a href="https://oshpark.com/shared_projects/fijpozoB">3x2 Motor Controller 
 <img width="30%" src="./images/NakedBoard.png"/>	  
 </li>
 <li>
-The <a href="http://www.thingiverse.com/thing:1043716">Turret Joint</a> Open-SCAD files are completely parametrizable and would allow anyone to make their own Turret Joints. This includes for static applications. For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
+The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are [completely parametrizable](>http://www.thingiverse.com/thing:1043716) and would allow anyone to make their own Turret Joints. This includes for static applications. For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.<br>
 <img width="30%" src="./images/OpenSCADScreen.png"/>	  
 </li>
 <li>
