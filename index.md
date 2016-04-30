@@ -88,7 +88,7 @@ The project has done a number of things so far that might be useful to others in
 
 <ul>
 <li>
-The <a href="https://github.com/PubInv/turret-joint">Turret Joint</a> Open-SCAD files are <a href="http://www.thingiverse.com/thing:1043716">
+The <a href="http://pubinv.github.io/turret-joint/">Turret Joint</a> Open-SCAD files are <a href="http://www.thingiverse.com/thing:1043716">
 completely parameterizable</a>
 and would allow anyone to make their own Turret Joints.
 This includes for static applications.
