@@ -207,7 +207,42 @@ about 2 seconds for the 3TetGlussBot to go from its most compact state to its la
 
 \subsection{Open Source Realizations}
 
+
+We have provided everything necessary to construct gluss in the form of FLOSS. Providing an ``Instructable''-style
+how-to guide is beyond the scope of this article, but a semi-skilled electronics hobbyist can use the following resources to construct their own GlussBot.
+
+\begin{itemize}
+\item
+The \url{http://pubinv.github.io/turret-joint/}Turret Joint Open-SCAD files are \url{http://www.thingiverse.com/thing:1043716"}
+completely parameterizable
+and would allow anyone to make their own Turret Joints.
+This includes for static applications.
+For example, the Turret Joint can be thought of as a static construction system that allows somewhat more angular freedom than existing static construction systems.
+
+    \begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.5\textwidth]{OpenSCADScreen.png}
+    \caption[OpenSCAD Screen shot}
+      \label{octet-truss-patent}
+\end{figure}
+
+<img width="30%" src="./images/"/>	  
+\item
+  The \url{https://github.com/PubInv/S-Expr}Arduino S-Expr project and its
+\url{https://github.com/PubInv/Arduino-S-Expr-Test} test project
+may be useful to anyone who wants to control an Arduino from Lisp or prefer S-Expressions to the closely related JSON format.
+\item
+  The \url{https://oshpark.com/shared_projects/fijpozoB>3x2 Motor Controller MegaShield, v0.2 may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time.
+
+    \begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.5\textwidth]{NakedBoard.png}
+    \caption[Arduino Mega Shield board}
+      \label{octet-truss-patent}
+\end{figure}
+
 \includegraphics[scale=0.5]{TurretJointPieces.png}
+
 
 \subsection{Speed Performance}
 
@@ -274,6 +309,7 @@ difficult.
   provides all the basic machinery needed to build such a simulator.
 \item [Force Performance] A simulator could be extended to provide a force analysis of configurations.
   
+  TODO: Add something about Open Source and PubInv
   
 \end{description}
 
