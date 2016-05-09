@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 \usepackage{geometry} % see geometry.pdf on how to lay out the page. There's lots.
 \usepackage{hyperref}
 \usepackage{graphicx}
@@ -7,8 +7,13 @@
 \usepackage[toc,page]{appendix}
 \usepackage{pifont}
 \usepackage{amsmath}
+\usepackage{draftwatermark}
 
-\geometry{letter} % or letter or a5paper or ... etc
+\SetWatermarkText{DRAFT}
+\SetWatermarkScale{6}
+\SetWatermarkLightness{0.95}
+
+% \geometry{letter} % or letter or a5paper or ... etc
 % \geometry{landscape} % rotated page geometry
 
 % See the ``Article customise'' template for come common customisations
@@ -27,66 +32,80 @@
 
 \maketitle
 
-%%% Probably will want to remvoe this as the article will not be that long
-
-\tableofcontents
+%% \tableofcontents
 
 \section{Introduction}
 
+The best introduction to this paper is to watch the 3:00 minute video of the
+walking robot, or \emph{glussbot}, which this paper describes:\\
+\indent \href{https://www.youtube.com/watch?v=1T8XSMhwKUE}{https://www.youtube.com/watch?v=1T8XSMhwKUE}.\\
+This paper introduces the concept of \emph{gluss}, explains how to build it,
+introduces 3D-printable embodiments of
+a recently invented sperical joint, 
+and gives some results results related to the underlying geometry and math, as well as providing
+references to all of the open-source materials needed to duplicate and expand on this work.
+
 \subsection{Motivation}
 
-Imagine a strong, light, metamorphic robotic substance.
-The uses of such a substance are limited only by our ability to imagine them.
+Imagine a strong, light, metamorphic material that can exert or resist force.
+You can command it to form any shape, limited by its flexibility.
+Using that power, you can, with some thought, get it to crawl across very rough terrain.
+You can command it to form into a bridge or to lift and move heavy objects,
+or to perform all the functions of a crane, a forklift, a backhoe and bulldozer.
+It is a truss that crawls like a slug---a \emph{gluss}.
+If you need more of it, you buy it by the kilo and when it arrives you order it
+to crawl to your existing gluss. You easily join it there, creating 
+larger, stronger, combined mass.
 
-Imagine a bridge that crawls into place in a matter of hours.
-Imagine constructing a temporary highway overpass in 24 hours, or a pedestrian bridge for a festival
-in the morning that comes down in the evening.
+The advantages of snakebots have been widely recognized \cite{liljebäck2012snake}. In general, these have been constructed
+with angular joints. In this paper we propose a different, truss-like apporach to providing similar
+mobility that uses only linear actuators and spherical joints that support no angular forces. This
+potentially combines the advantages of forceful machines with snake-like mobility.
 
-Imagine a snake-like robot that can crawl into a collapsed building and hold the roof up
-while survivors are extracted.
-Imagine material that combines the functionality of forklift, a crane, a bulldozer and a backhoe,
-all in one machine. Imagine a very small gluss that crawl into and holds shut a wound,
-temporarily taking the place of missing tissue.
+Additionally, other geometries, such as moving planes, are possibile with the same material.
+
+Other videos at the YouTube channel, Public Invention, reachable from the above link,
+further motivate the \emph{gluss} concept.
+
 
 \subsection{Concept: Gluss = Slug + Truss}
 
 Imagine a metamorphic machine that forcefully assumes a variety of shapes. It moves like a mollusc or amoeba,
 oozing into position as commanded. It is technically a ``machine'' because it can exert force reliably, but
-it may be thought of as a material, because unlike most robots its compoents are not differentiated.
+it may be thought of as a material, because unlike most robots its components are not differentiated.
 
 Although someday an actual chemical substance may do this, today it can be constructed from commercial components
 and 3D-printable parts. This paper introduces the \emph{gluss} approach to building metamorphic dynamic robots
 and static machines.\footnote{ ``Gluss'' is a portmaneau of ``Slug'' and ``Truss'' because we are attempting to
-build a truss, or space frame, that is capable of moving like a slug, or octopus if you prefer.
+build a truss, or space frame, that is capable of moving like a slug or octopus.
 The word \textit{gluss}
 should be used as a substantive noun in English, much like the word \textit{clay} is used.
-The use of \textit{glusses} the plural
-of \textit{gluss} should be rare and refer to different kinds of metamorphic material, such as the expression
+The use of \textit{glusses}, the plural
+of \textit{gluss}, should be rare and refer to different kinds of metamorphic material, such as the expression
 ``four clays'' suggests four distinct types of clay without specifying how many kilograms of each one means.}
 
 Massively scalable robots have often been proposed. Our particular approach is to use linear actuators,
 which are rod-like machines that can make themselves shorter or longer. These are tied together using
 a relatively new joint \cite{song2003spherical} which allows, for example, as many as 12, but more realistically 4,
 members to be joined together sturdily at a single point.
-A 3-D printed embodiment presented here and called the \emph{turret joint} to allow the
-change of angle to allow gluss to ooze about. Some gluss consists of some actuators joined together
+A 3-D printed embodiment presented here, called the \emph{turret joint}, allows the
+change of angle required for the gluss to ooze about. Some gluss consists of some actuators joined together
 with some turret joints and whatever batteries and control microelectronics are needed. In the
 working, crawling robot discussed here, the \emph{3TetGlussBot}, there are two controllers and two batteries
 in addition to the 12 actuators and the 6 multi-member turret joints, but 3TetGlussBot is only
-a small amount of the gluss we hope to build.
+a small amount of gluss comparted to what we hope to build.
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{3TetGlussBotPhoto.png}
-    \caption[3TetGlussBot Photo]{Photo of the 3TetGlussBot.}
-      \label{3TetGlussBotPhoto}
+    \includegraphics[width=1.0\textwidth]{TwoGeometries.jpg}
+    \caption[The Octet Truss (above) and Tetrahelix (below)]{The Octet Truss (above) and Tetrahelix (below)}
+      \label{twogeometries}
 \end{figure}
 
 
-We present two geometries for gluss which have the advantage of being regular, thus allowing us to
+Although unlimited geometries are possible, two geometries (See Figure \ref{twogeometries}) 
+have the advantage of being regular, thus allowing us to
 seamlessly connect any number of actuators into any amount of gluss.
-The specific actuators, their 12 Volt power supply, control via Arduino Mega microcontrollers, and
-coordination via BlueTooh from an Emacs E-LISP control program are discussed.
 
 \section{The \textit{Turret Joint}}
 
@@ -101,38 +120,42 @@ the joint to fail, as it can with a welded joint.
 
 But we seek a space frame that can change its shape dramatically. Imagine a radio tower in which
 each girder has been replaced with an actuator that can get longer or shorter. Such a tower could
-bend its top down to the ground, or event
+bend its top down to the ground, or even
 tie itself into a knot. To accomplish this, the joints must support significant although not
 limitless range of motion. 
 
-The spherical joint inveted by Song, Kwon and Kim \cite{song2003spherical} is such a joint.
-We name this joint the \emph{Turret joint}.
-In the embodiment mentioned here joint presented here supports somewhat less than a theoretical
+The spherical joint invented by Song, Kwon and Kim \cite{song2003spherical} is such a joint,
+the essence of which is rendered in their patent drawing, Figure \ref{SongKwonKimImage}.
+We name this joint the \emph{Turret Joint}.
+
+\begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.5\textwidth]{SongKwonKimImage.png}
+    \caption[Song, Kwon, Kim, patent image.]{Song, Kwon, Kim, patent image.}
+      \label{SongKwonKimImage}
+\end{figure}
+
+The embodiment mentioned supports somewhat less than a theoretical
 $36\degree$ of motion.
-When properly configured to support the regulat nets of actuators we propose,
+When properly configured to support regular nets of actuators,
 it allows the gluss to be a moving spaceframe. It happens that the specific actuators we use
-are geared such that they hold their position forcefully without power, so the resulting gluss
+are geared such when no power is applied, they strongly resist outside forces that would change their length,
+essentially become rigid members.
+The resulting gluss
 can move into position and then be powered off to be a temporarily static space frame.
 
 One could also use this joint with members which are not actuators. For example, we first
-constructed the joint with carbon fiber rods. In essence it is then becomes a construction with continuously
+constructed the joint with carbon fiber rods. In essence it is then becomes a construction kit with continuously
 variable member lengths liberated from using a finite set of angles.
 
 \subsection{Geometry}
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{ConstraintDrawing.png}
-    \caption[Constraints]{Turret Joint Geometry Constraints}
-      \label{constraint-drawing}
+  \includegraphics[width=0.5\textwidth]{SimplifiedConstraintDrawing.png}
+    \caption[Turret Joint Planar Geometry]{Turret Joint Planar Geometry}
+      \label{simplified-constraint-drawing}
 \end{figure}
-
-%% \begin{figure}[!ht]
-%%   \centering
-%%     \includegraphics[width=0.5\textwidth]{TurretJointMath.png}
-%%     \caption[TurretJointMath]{The Turret Joint analyzing the range of motion. TODO: This needs to be improved, showing the golden triangle and golden gnomon!}
-%%       \label{TurretJointMath}
-%% \end{figure}
 
 How versatile can we make the turret joint?
 
@@ -144,15 +167,15 @@ longest to its length at its shortest.
 The particular actuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
 it already too high?
 
-One way to approaoch this problem is to consider a single triangle formed by joints and actuators.
+One way to approach this problem is to consider a single triangle formed by joints and actuators.
 The joint must support the most acute triangle
-that can be formed with the three acutators and the most obtuse triangle that can be formed with the actuators.
+that can be formed with the three actuators and the most obtuse triangle that can be formed with the actuators.
 
-In fact it is a surprising result that we prove in Appendix \ref{phiproof} that the maximum $Q$ which can be utlized
+In fact it is a surprising result that we prove in Appendix A that the maximum $Q$ which can be utlized
 by an ideal turret joint happens to be
-the famous golden ratio, $\varphi$, and the maximum deviation for any one member coming
+the famous golden ratio, $\varphi \equiv \frac{1 + \sqrt{5}}{2} \approx 1.618...$, and the maximum deviation for any one member coming
 into the joint is $36\degree$.
-Thus in Figure \ref{constraint-drawing} the triangles drawn are in fact a Golden Triangle and a Golden Gnomon.
+Thus in Figure \ref{simplified-constraint-drawing} the triangles drawn are in fact a Golden Triangle and a Golden Gnomon.
 This is interesting but has little to
 do with a real-world joint, which will support less variation because the ``post'' must have a
 certain thickness and the ``rotor'' must have a lip
@@ -173,14 +196,49 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
  but have found that nylon, which is far tougher and less prone to cracking, is superior for the
  rotors which bolt directly to the actuators.
 
-\subsection{Geometries Specific to Gluss}
+ \begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.5\textwidth]{RotorModel.png}
+    \caption[Triangular Rotor Model]{Triangular Rotor Model.}
+      \label{rotormodel}
+\end{figure}
 
-Although the possibly ways to configure acutators and joints is limitless, the simplest thing is to
+ We have innovated the design of the rotor slightly by using a trinagular section of a sphere as the
+ rotor rather than a circular section, as shown in Figure \ref{rotormodel}.
+ Assuming that each actuator is free to rotate about its axis as well as revolve about the
+ center of the ball joint, this shape does not limit motion even in the most pinched
+ configurations. The triangular rotor provides greater extent and curvature of contact,
+ which presumably makes the joint motion
+ smoother and less likely to bind.
+ 
+
+ Figure \ref{parts} shows most of the parts. The nylon trinagular rotor is white and rests upon
+ the red ball. The green part is a Tetrahlix lock, and the yellow parts are the locks for the Octet Trusss
+ geometry.
+
+\begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.7\textwidth]{Parts.jpg}
+    \caption[3D Printed Parts]{3D Printed Parts}
+      \label{parts}
+\end{figure}
+
+In Section \ref{linearactuators}, one of our actuators and also a carbon rod with 3D-printed tubular mounts
+is shown in Figure \ref{rodAndActuator}.
+The carbon rod and mounts can be used as a construction system to build a static structure.
+By cutting the rods to any length, you can build a static version of any geometry that the actuators
+are capable of acheiving.
+
+\subsection{Specific Geometries}
+
+Although the possible ways to configure acutators and joints is limitless, the simplest thing is to
 use regular, repeatable geometries. The two most obvious are the Boerdijk–Coxeter helix
 (more easily called the \textit{tetrahelix})
 \url{https://en.wikipedia.org/wiki/Boerdijk%E2%80%93Coxeter_helix}
-    (See Figure \ref{Boerdijk-Coxeter-Helix}) and the \emph{Octet Truss}
-    \cite{richard1961synergetic} (See Figure \ref{octet-truss-patent}).
+  and the \emph{Octet Truss}
+  \cite{richard1961synergetic}.
+  It is instructive to compare Figure \ref{octet-truss-patent} with the photo of the same object
+  made with the GeoMag toy shown in Figure \ref{twogeometries}.
     
 Roughly speaking, the Tetrahelix is a good way to make a long shaft or tentacle, and the octet truss
 is a good way to make a planar shape. The purpose of a tentacle is to curl, and the we have no word for
@@ -189,16 +247,8 @@ both the tetrahexlix and octet-truss \cite{fuller1982synergetics} in terms of st
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{Coxeter_helix_3_colors_cw.png}
-    \caption[Boerdijk–Coxeter Helix]{Boerdijk–Coxeter Helix, or Tetrahelix, By Tomruen (Own work)
-      [CC BY-SA 4.0 (\href{http://creativecommons.org/licenses/by-sa/4.0}{http://creativecommons.org/licenses/by-sa/4.0})], via Wikimedia Commons}
-      \label{Boerdijk-Coxeter-Helix}
-\end{figure}
-
-\begin{figure}[!ht]
-  \centering
-    \includegraphics[width=0.5\textwidth]{US2986241-2.png}
-    \caption[The Octet Truss]{The Octet Truss, from Buckminster Fuller's patent.}
+    \includegraphics[width=0.5\textwidth]{OctetTrussSelection.png}
+    \caption[The Octet Truss]{The Octet Truss, selected from Buckminster Fuller's patent.}
       \label{octet-truss-patent}
 \end{figure}
 
@@ -206,9 +256,10 @@ The Octet Truss reflects the geomtry called the ``cuboctahedron.''
 
 Because the Turret Joint does not support infinte revolution of all members, the joint, or the ``lock'' or ``stator'' in particular,
 must be adjusted to the regular geometry that one is implementing.  The Figure \ref{lockcomparison} indicates this difference.
-The image is from TurrentJoint.scad
+The image is from TurrentJoint.scad:\\
 \href{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}, an
-open-source file that can be used to 3D print all of the turret joint components. It shows a lock part for the Tetrahelix geometry
+open-source file that can be used to 3D print all of the turret joint components.
+It shows a lock part for the Tetrahelix geometry
 on the left, and the more expansive Octet Truss geometry on the right. Observe that some of the holes are half in this part,
 and have in the ``cap'' parts not shown here.
 
@@ -220,25 +271,18 @@ and have in the ``cap'' parts not shown here.
 \end{figure}
 
 
-At some point the glussbot will bump into itself.
 
-\subsection{Range of Motion for Actuator Nets}
 
-The result that in theory a perfect joint supports a $Q$ of approximately $1.618$ does not imply that any actuator net can acheive any
-geometry. 
-
-An interesting question is:
-
-In a tetrahelix formed of actuators with a given $Q$, how many cells (tetrahedra) are required for the glussbot tip to touch itself?
-In other words, if a tetrahelix tentacle is bolted to the ground, how many cells are required for the tip to reach the ground?
-Or the even greater challenge, to touch the base of the tentacle itself?
-
-More matehmatically, can we define a ``radius of curvature'' as a function of $Q$ for a tetrahelix?
-
-For the Octet Truss architecture, it would be nice to know a radius of curvature that supports forming a cylinder. Would this
-be isotropic in direction, or would it be strongly anisotropic?  
 
 \section{Linear Actuators}
+\label{linearactuators}
+
+\begin{figure}[!ht]
+  \centering
+    \includegraphics[width=1.0\textwidth]{CarbonFiberAndActuator.jpg}
+    \caption[Static Rod and Actuator]{Static Rod and Actuator}
+      \label{rodAndActuator}
+\end{figure}
 
 We use the term Linear Actuator to refer to any device that is capable of changing its length. When
 used in gluss it might be called a \emph{glussion}, a single particle of gluss. Our current gluss
@@ -248,34 +292,45 @@ uses a commercial linear actuator (the Firgelli L-16-140-35-12-P,
 that costs about \$80 and exerts about 50 Newtons of force.
 Turret joints that are 3D printed in ABS plastic have been strong enough for this level of force.
 
-However, in principle there is not reason we could not use the enormous hydraulic cylinders
-used backhoes, bulldozers, and other earth moving equipment. These would of course require much
-stronger joints, probably not made out of plastic.
+However, in principle there is no reason we could not use the enormous hydraulic cylinders
+used by backhoes, bulldozers, and other earth moving equipment. These would of course require much
+stronger joints. Probably not made out of plastic.
 
 We could also attempt to make smaller actuators, to make a pocket-sized gluss. This is probably
 a greater technical challenge, because it is relatively difficult to make small electric motors.
 
 The current actuators use a rotary motor with a lead screw. This has the advantage of great
 strength relative to their size, and the retaining position forcefully. It has the disadvantage
-of being relatively slow. It would be interesitng to build a gluss out of linear motors, for
+of being relatively slow. It would be interesting to build a gluss out of linear motors, for
 example tubular linear synchronous motors. These would be much faster than the lead-screw type
 actuators, resulting in a much faster gluss. 
 
 \section{Control and Motion}
 \subsection{Architecture of the 3TetGlussBot}
 
-We have constructed the simplest possible Tetrahelix-based glussbot that is capable of locomotion.
+We have constructed what we believe to be the simplest possible Tetrahelix-based glussbot that is capable of locomotion
+without relying on inertia.
 It comprises:
 \begin{itemize}  
-\item 12 actuators
-\item 6 turret joints
-\item 2 12V battery packs
+\item 12 actuators,
+\item 6 turret joints,
+\item 2 12V battery packs, and
 \item 2 controller units, each of which comprises:
 \begin{itemize}  
-\item 1 Arduino Mega microcontroller,
+\item 1 Arduino Mega microcontroller, and
 \item 1 custom Arduino Mega shield hosting 6 1-amp motor channels and a BlueTooth module,
 \end{itemize}  
 \end{itemize}
+
+Using these components, an NTetGlussBot can be constructed for any number of tetrahedra $N$
+
+\begin{itemize}  
+\item $(N + 1)\cdot 3$  actuators,
+\item $N+3$ turret joints,
+\item $\lceil \frac{N + 1}{2} \rceil$ 12V battery packs, and
+\item $\lceil \frac{N + 1}{2} \rceil$ controller units,
+\end{itemize}
+for a cost of about \$320 per tetrahedra.
 
 \begin{figure}[!ht]
   \centering
@@ -292,12 +347,16 @@ to provide feedback. The comptuer and the Arduino control programs communicate v
 implemented with our own module. This is very analagous to sending JSON back and forth.
 
 Commands to and feedback from the controller modules are managed by an Emacs E-Lisp program.
-This program organizes motion into ``poses''. A serious of poses make a dance.
+This program organizes motion into ``poses''. A series of poses make a ``dance''.
 In order to dance, the program must synchronize the completion of poses, because there is no
 guarantee how long it will take to achieve a pose. The time to reach a position in theory
 depends on the voltage level provided by the battery and the force resisting the motion.
 In practice, when lightly loaded by moving only itself, the time is relatively predictable. It takes
 about 2 seconds for the 3TetGlussBot to go from its most compact state to its largest, most expanded state.
+
+The current software has been written in anticipation of a much larger number of controllers and much more gluss.
+Nonetheless as mentioned in future steps the current software is specific to the 3-tetrahedron geometry.
+
 
 \subsection{Open Source Realizations}
 
@@ -308,20 +367,16 @@ following resources to construct their own GlussBot.
 \begin{description}
   
 \item [Turret Joint]
-  The Turret Joint is implemented via OpenSCAD files. The file itself is here:
+  The Turret Joint is implemented via OpenSCAD files. The file itself is here:\\
   \href{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}
        {https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}.
        The model may be observed without even installing OpenSCAD, and even 3D printed,
-       from the same file using the customizer feature of Thingiverse.
-       \href{http://www.thingiverse.com/thing:1043716"}{http://www.thingiverse.com/thing:1043716"}
-  \begin{figure}[!ht]
-    \centering
-    \includegraphics[width=0.5\textwidth]{OpenSCADScreen.png}
-    \caption{OpenSCAD Screen shot}
-  \end{figure}
+       from the same file using the customizer feature of Thingiverse.\\
+       \href{http://www.thingiverse.com/thing:1043716}{http://www.thingiverse.com/thing:1043716}
   
 \item [Robot Controller Shield]
-  An Arudino Mega Shield may be ordered directly from OshPark, where it is titled the \emph{3x2 Motor Controller MegaShield, v0.2}.
+  An Arudino Mega Shield may be ordered directly from OshPark and then hand-soldered with through-hole components,
+  where it is titled the \emph{3x2 Motor Controller MegaShield, v0.2}.
   The \href{https://oshpark.com/shared_projects/fijpozoB}{https://oshpark.com/shared\_projects/fijpozoB} shield
   may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time, via Bluetooth.
   Alternatively, you may use the Eagle Soft CAD files, which can be found here:
@@ -332,6 +387,10 @@ following resources to construct their own GlussBot.
     \includegraphics[width=0.5\textwidth]{MotorControllerInPlace.JPG}
     \caption{Arduino Mega Shield board}
   \end{figure}
+
+\item [Mountable Enclosures]
+  Files to 3D Print the mountable enclosures for the battery pack and the Arduion Mega with the Robot Controller Shield are:\\
+  \href{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}
 
 \item [Control Software]
 An Emacs LISP program which controls the 3TetGlussBot via a command-line interface:
@@ -355,19 +414,41 @@ An Arduino Sketch which implements a device driver for the GlussBot Controller S
 
 The 3TetGlussBot is capable of ``walking'' and turning. Some might prefer the term ``crawl'' to ``walk'' in
 this case. It can move forward awkwardly at a rate
-of about five inches per minute. It can turn 30 degrees in about 20 seconds [TODO -- need to check this.]
+of about five inches per minute. It can turn 30 degrees in about 60 seconds.
 We intentionally chose to make the simplest amount of gluss that we thought would be capable of locomtion.
 We believe that by adding more gluss, that is, by connectiong more tetrahedra in the tetrahelix,
 we will open new and more efficient locomotion gaits.
 
 The present mode of walking avoids dragging the pseudopods by leaning to one side or front or back and
 then lifting the pseudopod, moving it forward (without ground contact), and placing it down again.
-Such a gait may be able to handle rugose terrain better than a gait that drags feet.
+Such a gait may be able to handle rugose terrain better than a gait that drags. Furthermore, the
+3TestGlussBot gait assumes and has no anisotropy of friction against the ground, as is typical
+of snakebots.
+It is also non-inertial, in that it simply assumes that the actuators are powerful enough to
+move to any extent commanded of them. No attempt to model force has thus been made in the control of this gait.
+Since the gait was constructed by hand, it does not represent a modelling of the idea of leaning and or
+unweighting a given joint.
 
-The current programmed gaits are probably not optimal.
+The current programmed gaits are not optimal.
 We have programmed locomotion of the 3TetGlussBot only to prove that it can be done, not to make
-a performant robot.
+it fast.
 
+\section{Related Research}
+
+If you read the introduction of the brilliant book by Shigoe Hirose\cite{hirose1993biologically} substituing
+``even simpler soft squiggly thing that might not be as cylindrical as a snake'' for the word ``snake'', you will have
+an excellent motivation for the gluss concept.  More generally, much of the work developed for snakebot
+locomotion\cite{liljebäck2012snake} is directly reusable, in the sense that a long enough tetrahelix can
+model a snake, and further inspires the idea of using simpler models mapped into a gluss model to perform
+complex movements.
+
+This paper presents the gluss as a ``machine'', rather than a ``mechanism''. That is, it motivates gluss
+by asserting it can exert and resist force, yet currently treats gluss positioning as a purely kinematic,
+rather than dynamic problem. The actuators currently in use are geared such that they are so slow
+and powerful that the behavior is not really dynamic. Classic control theory has not yet been needed.
+As the gluss is made large and longer and dynamics are added,
+a finite element approach\cite{géradin2001flexible} seems appropriate,
+given its ability to represent complex structural connections and static analysis.
 
 \section{Future Steps}
 
@@ -376,18 +457,29 @@ a crisp distinction betwen the two, but we have organized these from most diffic
 difficult.
 
 \begin{description}
-\item [Remove Scale:] At present the 3TetGlussBot is programmed as specific geometry. Any program
-  written for it would have zero valua for a robot of the same general shape but built with considerably
+\item [Remove Scale:] (Pure math, physics, computer science) At present the 3TetGlussBot is programmed
+  as a specific geometry. Any program
+  written for it would have zero value for a robot of the same general shape but built with considerably
   more actuators. Ideally, we would be able to program gluss completely independent of the scale
   of implementation. We would treat it as a true metamorphic material, rather than as a net of
   actuators arranged in a particular configuration. This can be considered a problem of pure
   mathematics, touching on wavelet theory, for example. It blends into computer science and
   finally robotics.
-\item [Math of Ideal Systems:] What configurations are possible of ideal and real-world gluss?
+\item [Math of Ideal Systems:] (Geometry) What configurations are possible of ideal and real-world gluss?
   For example, what is the maximum radius of curvature of an octet truss employing joints
   and actuators of specific properties? This is primarily in the realm of geometry, and perhaps
   computational geometry.
-\item [Force Performance:]
+\item [Throw a Ball:] (Mechatronics) Develop the dynamic control needed to throw a ball, thereby moving from
+  kinematicst to dynamics.
+\item [Cheap Actuator:] (Physics, Electrical Engineering) The gluss concept heightens the need for very inexpensive linear
+  actuators. The current actuators at \$80 make construcitng a 100-actuator glussbot very expensive.
+  It should be possible to build a linear actuator for 1/10th of this cost, although it may require
+  giving up some advantages. If we imagine a design spectrum of actuators, creating a new and
+  less expensive point in the spectrum of actuators designs would greatly
+  expand the possibilities of gluss.
+\item [Applications:] (Philosphy, Design, Entrepreneurship) A killer application would help motivate the gluss concept. This does not
+  require engineering, but requires careful thought.
+\item [Static Force Performance:] (Structural Analysis)
 It would be be nice to answer the questions such as:
 \begin{itemize}  
 \item If a 5-tetrahedron tetrahelix were bolted to a frame and extended horizontally, how much
@@ -400,25 +492,19 @@ It would be be nice to answer the questions such as:
 We have not attempted to analyze gluss in terms of force performance. We believe this would
 be analagous to analysis of static space frames using the dynamic configuration at a point.
 Finite elment analysis is a standard approach to this.
-\item [Cheap Actuator:] The gluss concepcts heightens the need for very inexpensive linear
-  actuators. The current actuators at \$80 make construcitng a 100-actuator glussbot very expensive.
-  It should be possible to build a linear actuator for 1/10th of this cost, although it may require
-  giving up some advantages. Creating a new point in the spectrum of actuators desings would greatly
-  expand the possibilities of gluss.
-\item [Applications:] A killer application would help motivate the gluss concept. This does not
-  require engineering, but requires careful thought.
-\item [Quick Joint:] If all of the turret joints in the 3TetGlussBot are dissassembled so that
+\item [Quick Joint:] (Mechanical Engineering) If all of the turret joints in the 3TetGlussBot are dissassembled so that
   the linear actators can be stacked together for efficient transport, it takes more than an hour
   to bolt them back together. It would be very convenient to have a joint that could be
   disassembled and assembled more quickly. We suspect that it is possible to build a magnetic
-  joint similar (but larger) than those used in the GeoMag toy.
-\item [Construction System:] If we imagine the members connecting the joints are not actuators but
+  joint similar (but larger) than those used in the Geomag\textsuperscript{TM} toy.
+  Other approaces would be to design a ``bayonet mount'' or a hose coupling connection.
+\item [Construction System:] (Mechanical Engineering) If we imagine the members connecting the joints are not actuators but
   simply rods that can be cut to any length, we have a construction system for making spaceframes.
   Explore the possibilities of such a construction system to make organic and interesting shapes
   freed of rectilinear limits.
-\item [Build Simulator:] A 3TetGlussBot can be constructed for about \$1300. Nonetheless this
-  is beyond the means of many hobbyist. A simulator would allow one to research locomotion and
-  motion without cost. The open-source, browser deliverable physics engine ``Cannon.js''
+\item [Build Simulator:] (Computer Science) A 3TetGlussBot can be constructed for about \$1300. Nonetheless this
+  is beyond the means of many hobbyist. A simulator would allow one to research 
+  motion without monetary cost. The open-source, browser deliverable physics engine ``Cannon.js''
   provides all the basic machinery needed to build such a simulator.
 \end{description}
 
@@ -428,34 +514,43 @@ Finite elment analysis is a standard approach to this.
 The Gluss Project \href{http://pubinv.github.io/gluss/}{http://pubinv.github.io/gluss/}
 is a free-libre, open-source research, hardware, and software project that welcomes volunteers.
 It is our goal to organize projects for the benefit of all humanity without seeking profit or intellectual property.
-To assist, contact \href{mailto:read.robert@gmail.com}{<read.robert@gmail.com>}.
+To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$>$}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{IEEEabrv,gluss}
 
 \newpage
+
 \appendix
+
+\section{Turret Joint Geometric Limitations}
 
 \label{phiproof}
 
-\section{Maximum usable Q = $\varphi$}
+\subsection{Geometric Preparation}
+
+
 
 Defining all angles against a center line between two rotor holes in a plane,
 let:
 
-$ A \equiv $ Min Actuator Length
+$ A \equiv $ Min Actuator Length. Without loss of generality, assume this is $ 1.0 $.
 
 $ Z \equiv $ Max Actuator Length
 
-$ Q \equiv \frac{Z}{A} $,  The ratio of the actuator lengths, noting that $Q \geq 1$.
+$ Q \equiv \frac{Z}{A} $, The ratio of the actuator lengths, noting that $Q \geq 1$. Since $A = 1$, $Q \equiv Z$.
 
 $ G \equiv $ Greatest Angle Reachable by Center of Rotor
 
 $ L \equiv $ Least Angle Reachable by Center of Rotor
 
+$ P \equiv $ Angle from the Post to the edge of the Rotor
+
 $ \theta \equiv $ Angle of Inmost Edge of the Rotor Hole
 
 $ \psi \equiv $ Angle of Outmost Edge of the Rotor Hole
+
+
 
 \begin{figure}[!ht]
   \centering
@@ -472,19 +567,13 @@ What $\theta, \psi$ maximizes $Q$ and what is $Q$?
 
 We will define the angle of the hole to be:
 
-\[ \Delta \equiv \psi - \theta \]
+\[\tag{Delta Defintition} \Delta \equiv \psi - \theta \]
 
 From the diagram:
 
-\[
-G \equiv \arcsin{ \frac{\frac{Z}{2}}{A}} \equiv \arcsin{\frac{Q}{2}}
-\]
-\[
-L \equiv \arcsin{ \frac{\frac{A}{2}}{Z}} \equiv \arcsin{\frac{1}{Q \cdot 2}}
-\]
 
 We then place engineering constraints upon these variables to represent physical conditions
-which preclude the function of the joint.
+which define the limits of the joint.
 We name these constraints \textit{meet}, \textit{bump}, \textit{capture}.
 
 The \textit{meet} condition means that post is actually within the hole.
@@ -514,12 +603,26 @@ It is perhaps obvious that the rotors cannot bump in the most obtuse position, b
 
 is invariably true because $2\cdot\psi < 180\degree$ because psi is a half angle of a triangle, and likewise $\frac{G - L}{2} < 180\degree$.
 
+\subsection{Maximum usable Q = $\varphi$}
+
+In the previous subsection we set up geometric conditions generally so that we could consider them from
+both a Classical Trigonometry and from Rational Trigonometry.  Although we used the world ``angle'', we did not
+rely additive properties of angles except in the definition of Delta and the ``obtuse bump'' condition.  This will allow us
+to perform an analysis in Rational Trigonometry in the next section.
+
 When we attempt to set $G$ and $L$ to be as wide apart as possible by asserting $G \equiv \psi$ and $L \equiv \theta$, we must
 ensure that all of thse constaints are true. The two meet conditions become true by equality. Likewise the capture condition
 is trivially true by substitution. The obtuse bump condition can
 never be false.  However, the acute bump conditions remains:
 
 \[ \tag{acute bump} \frac{\Delta}{2} \leq \theta  \quad \equiv \quad \frac{G - L}{2} \leq L  \quad \equiv \quad G \leq 3 \cdot L \]
+
+\[
+G \equiv \arcsin{\frac{Q}{2}}
+\]
+\[
+L \equiv \arcsin{\frac{1}{Q \cdot 2}}
+\]
 
 Returning to our definitions of G and L,
 
@@ -532,8 +635,10 @@ mononotonically decreasing function of $Q$ (since $Q$ is in the denominator), th
 \[\tag{original}  \arcsin{\frac{Q}{2}} = 3 \cdot \arcsin{\frac{1}{Q \cdot 2}} \]
 
 Upon investigating this with a spreadsheet we noted that Q suspiciously approached the famous number 1.618..., the golden ratio, $\varphi$.
-We investigated further with the help of Wolfram Alpha Pro \href{https://www.wolframalpha.com}.
-Wolfram Alpha gave us a closed-form solution to \emph{orginal} that we recognized as $\varphi$, but oddly would
+We investigated further with the help of Wolfram Alpha Pro
+(\href{https://www.wolframalpha.com}{https://www.wolframalpha.com}).
+Wolfram Alpha gave us a closed-form solution to \emph{original} of $\frac{1 + \sqrt{5}}{2}$
+that we recognized as $\varphi$, but oddly would
 not show us the set of transofrmations. After verifying that $Q = \varphi$ was
 a solution in that way, we used the special property of
 $\varphi$ that $ \varphi = \frac{1}{\varphi} + 1 $, to rewrite out constaint as:
@@ -555,6 +660,102 @@ turret joint is likely to have a rotor diameter with a lip significantly larger 
 thickness that must be considered in computing $G$ and $L$. Nonetheless this analysis is a starting point for analyzing more
 realistic joints, even if such joints will have to be dealt with numerically rather than having an elegant analytic solution.
 
+\label{rationalphiproof}
+
+\subsection{Rational Trigonometry}
+
+A magician may pull a rabbit out of a hat, but a mathematician should avoid it.
+The Classical Trigonometry result in the last section feels like pulling a rabbit out of a hat because it relies
+on results beyond our ability of human calculation.  Norman J. Wildberger has a presented a simpler re-formulation
+of trigonometry called Rational Trigonometry\cite{wildberger2005} that proposes to avoid such rabbits.
+
+This section assumes the reader is familar with Rational Trigonometry.
+
+In our diagram and our previous formulation, we can almost treat the angles of that diagrams as spreads. However,
+since spreads are non-linear, we cannot use \ref{Delta Defintion}, \ref{acute bump}, or \ref{acute bump} in their
+formulation from that section.
+
+
+Now if we consider $theta$, $G$ and $L$ as spreads, we have the definition of the spread as the quadrance of the
+opposite leg over the quadrance of the hypotenuse:
+
+
+\[ \tag{rational-theta} \theta \quad \equiv \quad \frac{(1/2)^2}{Q^2} \quad \equiv \quad \frac{1}{4 \cdot Q^2}  \]
+
+\[ \tag{rational-psi} \psi \quad \equiv \quad (\frac{Q}{2})^2 \quad \equiv \quad \frac{Q^2}{4}  \]
+
+
+Rather we assert to avoid the problem of the rotors bumping in the case of the most acute trinagle we assert:
+
+\[ \tag{rational acute bump} P \leq \theta  \]
+
+Our goal is to find the maximum Q satisfying all constraints.  It is clear that $\theta$ goes down as $Q$ goes
+up, and that $\psi$ goes up as $Q$ goes up.  $P$ goes up as $Q$ goes up (this remains to be rigourously shown).
+
+Therefore $Q$ is maximized when $P = \theta$.
+
+We can thus use Theorem 56 (Three equal spreads) \cite{wildberger2005} on $\theta$:
+
+\[  \psi \equiv \theta (3 - 4 \cdot \theta)^2  \]
+
+together with \textit{rational-psi} via substitution to obtain a series of purely algebraic manipulations:
+
+\[  \frac{Q^2}{4} = \theta (3 - 4 \cdot \theta)^2  \]
+
+then by substituting \textit{rational-theta}:
+
+\[  \frac{Q^2}{4} = \frac{1}{4 \cdot Q^2} (3 - 4 \cdot \frac{1}{4 \cdot Q^2})^2  \]
+
+performing elementary algebraic simplifcation we obtain:
+
+\[  Q^4 = (3 - \frac{1}{Q^2})^2   \]
+
+Perform the substitution $x = Q^2$:
+
+\[  x^2 = (3 - \frac{1}{x})^2   \]
+
+Take the square root of both sides and converting to common fraction:
+
+\[  x = \pm \frac{(3\cdot x - 1)}{x}   \]
+
+Cross mulitplying and simplifying:
+\[  x^2 - 3\cdot x =  - 1   \]
+
+Completing the square by adding $\frac{9}{4}$ to both sides:
+\[  x^2 - 3\cdot x + \frac{9}{4} =  \frac{5}{4}   \]
+
+Writing left hand side as a square:
+
+\[  (x- \frac{3}{2})^2 =  \frac{5}{4}   \]
+
+Take the square root of both sides:
+
+\[  \pm (x- \frac{3}{2}) =  \pm \frac{\sqrt{5}}{2}   \]
+
+Adding $\frac{3}{2}$ to both sides:
+
+\[  x =   1 + \frac{1}{2} + \frac{\sqrt{5}}{2}   \]
+
+Being previously alerted to the existing of $\varphi$ in our solution, we recognize
+this as $1 + \varphi = \varphi^2$. 
+
+\[  Q = sqrt{x}  =   \sqrt{1 + \varphi}  \]
+
+Substuting back into $x = Q ^ 2$,
+
+\[  Q =   \varphi  \]
+
+Note that we have taken square roots twice in this operation, and therefore must
+check that the negative solutions are not also valid solutions. Wolfram Alpha Pro
+combined with the fact that only $Q > 1.0$ allows us to conclude this is the
+only valid solution.
+
+We have thus obtained the same algebaric result as the trigonometrical more understandably
+and with less recourse to computer aids.
+
+
+
+  
 
 
 
@@ -562,3 +763,4 @@ realistic joints, even if such joints will have to be dealt with numerically rat
 
 
 \end{document}
+
