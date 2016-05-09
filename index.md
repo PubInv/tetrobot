@@ -21,6 +21,11 @@ You may wish to subscribe to our <a href="https://www.youtube.com/watch?v=1T8XSM
 
 The 3TetGlussbot uses commercial linear acuators and the "Turret Joint", an invention of Kwon, Song and Kim, implemented by Rob using a 3D printer. It is controlled by two Arduino Mega with an open-source shield we designed ourselves to allow up to 6 motors to be controlled with a single Mega. An Emacs lisp program communicates via bluetooth with the two controller, giving us a command line interface to control the robot.
 
+## A Techical Paper
+
+We have drafted a [technical paper](https://github.com/PubInv/gluss/blob/gh-pages/doc/Gluss.pdf) describing the gluss concept and some mathematically results relating to the Turret Joint.
+If you are familiar with robotics conference, please recommend a place for us to submit this.
+
 ## Motivation 
 
 Imagine a strong, light, metamorphic robotic substance. The uses of such a substance are limited only by our ability to imagine them.
