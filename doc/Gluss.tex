@@ -442,6 +442,24 @@ locomotion\cite{liljebäck2012snake} is directly reusable, in the sense that a l
 model a snake, and further inspires the idea of using simpler models mapped into a gluss model to perform
 complex movements.
 
+Buckminster Fuller also promoted \emph{tensegrity}, and some research on Tensegrity Robots has been done, the
+work of Paul, Valero-Cuevas, and Lipson\cite{paul2006} being a good starting point.
+This work has developed into a serious effort by NASA to explore tensegrity robots for extraterrestrial
+exploration.
+
+Tensegrities are closely related to the gluss concept, more researched, and potentially more performant.
+In fact a gluss could be considered a special case of a tensegrity, using vanishingly short cables
+and, in the terminology of \cite{paul2006}, \emph{strut-collocated actuation}.
+In spirit, however, the different is that a tensegrity is lighter, more flexible, and more dynamic.
+It has been reasonable to produce a static gait for the 3TetGlussBot because its behavior is not
+very dynamic: it is so slow and strong that velocity is irrelevant at the current scale.
+
+It is possible that gluss is easier to work with for an actual human being on the ground.
+Although of course both systems will use computer control systems, one can imagine a large robot
+crawling into place imperfectly, and some workperson making a manual adjustment: ``Actuator \#37, get shorter!''
+This is probably harder for a tensegrity, which seems to me less intellectually natural.  However, many
+of the future steps outlined in Section \ref{futuresteps} apply to both gluss and tensegrity robots.
+
 This paper presents the gluss as a ``machine'', rather than a ``mechanism''. That is, it motivates gluss
 by asserting it can exert and resist force, yet currently treats gluss positioning as a purely kinematic,
 rather than dynamic problem. The actuators currently in use are geared such that they are so slow
@@ -450,7 +468,10 @@ As the gluss is made large and longer and dynamics are added,
 a finite element approach\cite{géradin2001flexible} seems appropriate,
 given its ability to represent complex structural connections and static analysis.
 
+
+
 \section{Future Steps}
+\label{futuresteps}
 
 Actions are available at the research level and at the hobbyist level, and we refuse to draw
 a crisp distinction betwen the two, but we have organized these from most difficult to least
@@ -672,7 +693,7 @@ of trigonometry called Rational Trigonometry\cite{wildberger2005} that proposes 
 This section assumes the reader is familar with Rational Trigonometry.
 
 In our diagram and our previous formulation, we can almost treat the angles of that diagrams as spreads. However,
-since spreads are non-linear, we cannot use \ref{Delta Defintion}, \ref{acute bump}, or \ref{acute bump} in their
+since spreads are non-linear, we cannot use \textit{Delta Defintion},  or \textit{acute bump} in their
 formulation from that section.
 
 
@@ -739,7 +760,7 @@ Adding $\frac{3}{2}$ to both sides:
 Being previously alerted to the existing of $\varphi$ in our solution, we recognize
 this as $1 + \varphi = \varphi^2$. 
 
-\[  Q = sqrt{x}  =   \sqrt{1 + \varphi}  \]
+\[  Q = \sqrt{x}  =   \sqrt{1 + \varphi}  \]
 
 Substuting back into $x = Q ^ 2$,
 
