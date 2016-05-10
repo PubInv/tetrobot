@@ -1,0 +1,23 @@
+Nodes:
+F
+B
+TF
+TB
+L
+R
+
+Struts:
+
+A0 - TF TB
+A1 - R TF
+A2 - L TF
+A3 - TF F
+A4 - R F
+A5 - L F
+
+B0 - R L
+B1 - TB R
+B2 - L TB
+B3 - TB B
+B4 - R B
+B5 - L B
