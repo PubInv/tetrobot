@@ -8,6 +8,7 @@
 \usepackage{pifont}
 \usepackage{amsmath}
 \usepackage{draftwatermark}
+\usepackage{listings}
 
 \SetWatermarkText{DRAFT}
 \SetWatermarkScale{6}
@@ -18,7 +19,7 @@
 
 % See the ``Article customise'' template for come common customisations
 
-\title{Gluss = Slug + Truss}
+\title{Wavelets for Gluss Robots}
 \author{Robert L. Read
   \thanks{read.robert@gmail.com}
 }
@@ -68,7 +69,7 @@ connected gluss.  Or, if dealing with a robot swarm, we might even relax the con
 be connected.
 
 Our fundamental problem is to compute a mapping from what we might call the ``Blob Space'', $\mathcal{B}$, into
-the ``Gluss Space'', $\matchal{G}$. The properties of the the Blob Space are:
+the ``Gluss Space'', $\mathcal{G}$. The properties of the the Blob Space are:
 \begin{itemize}  
 \item It should be really easy for human beings to design objects in $\mathcal{B}$.
 \item It should be easy to import representations of objects into $\mathcal{B}$.
@@ -81,7 +82,7 @@ The Gluss Space, on the other hand:
 \begin{itemize}  
 \item Imposes strict limitations on geometry to match the physical limitations of actual robots.
 \item An object in $\mathcal{G}$ can be directly implemented with a simulation or a physical robot.
-\item Furthermore time may have limits as well. Motion in $\mathcal{G} must be continuous, and
+\item Furthermore time may have limits as well. Motion in $\mathcal{G}$ must be continuous, and
   might have to be slow.
 \end{itemize}  
 
@@ -91,9 +92,9 @@ potentially decreasing the size of the robot to fit the window.  Even if the glu
 jump through the window, it must potentially deal with these issues, and we may plausible
 assume that it will crawl through the window instead, like a worm.
 
-It would be convenient to model the gluss bot as 6 or 7 spheres in \mathcal{B} of the same size.
+It would be convenient to model the gluss bot as 6 or 7 spheres in $\mathcal{B}$ of the same size.
 These need not really be connected, they should just be close enough that they generally form
-a stout worm, or grub-like, shape.  Then we develop a short series of steps on \matchal{B}, not
+a stout worm, or grub-like, shape.  Then we develop a short series of steps on $\mathcal{B}$, not
 even a smooth animation, that suggests getting through the window. Let us imagine 10 such steps.
 This could probably be done in 3 minutes using a mouse and some javascript code.
 
@@ -143,6 +144,44 @@ Nonetheless we should seek a simple composition of gaits.
 
 What seems like a simple approach is to define a gait as a set of wavelets in the space
 of actuator controls.  That is, a 12-dimensional space, in the case of the 3TetGlussBot.
+
+\section{On the problem of controlling a gluss}
+
+When the number of actuators in a gluss is measured in 10s, it is reasonable to build a computer simulation
+that drags actuators, nodes, of the centroids of tetrahedra to directly.
+Eventually, however, we need to control the gluss with manipulation of a simpler system.
+For example, we would like to control a tentacle with 8 control nodes, independent of the scale of the
+gluss implementing it.
+
+I believe a reasonable approach here is to write an algorithm that takes a model in the ``Blob Space''
+and computes a configuration in the ``gluss space''.
+
+Here is such an algorithm (2-D Algorithm, easily generalized):
+
+\begin{lstlisting}
+  F(Model,Ape) {
+    CM = Centroid(Model);
+    If Ape has one triangle or less:
+    Attach springs from each node to the centroid of Model
+    Else:
+    AM = Centroid(Ape);
+    MomApe = Moment(Ape);
+    MomMod = Moment(Model);
+    ApeBifurcationLine = PerpendicularMidpointLine(AM,MomApe);
+    ModBifurcationLine = PerpendicularMidpointLine(CM,MomMod);
+    return Union(F(Top(Model,ModBifurcationLine),Top(Ape,ApeBifurcationLine)),
+                 F(Bot(Model,ModBifurcationLine),Bot(Ape,ModBifurcationLine)));
+  }
+\end{lstlisting}
+
+The basic ideas is that this computes a set of springs, which when computed by a physics engine, should
+do a pretty good job Aping the model with Gluss space with a configuration of the Ape.
+
+I'm not too happy with this as an algorithm. It is not that easy to say very much meaningful about it.
+I would like to create an error metric, and prove a relationship between the Error(F(Model,Ape),Model).
+
+I believe it is possible to create an analog of wavelets to allow multiresolution computation, but
+have not yet been able to produce any particularly valuable result.
 
 
 
