@@ -1,0 +1,121 @@
+\documentclass[11pt]{article}
+\usepackage{geometry} % see geometry.pdf on how to lay out the page. There's lots.
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{gensymb}
+\usepackage[affil-it]{authblk}
+\usepackage[toc,page]{appendix}
+\usepackage{pifont}
+\usepackage{amsmath}
+\usepackage{draftwatermark}
+
+\SetWatermarkText{DRAFT}
+\SetWatermarkScale{6}
+\SetWatermarkLightness{0.95}
+
+% \geometry{letter} % or letter or a5paper or ... etc
+% \geometry{landscape} % rotated page geometry
+
+% See the ``Article customise'' template for come common customisations
+
+\title{Gluss = Slug + Truss}
+\author{Robert L. Read
+  \thanks{read.robert@gmail.com}
+}
+\affil{Founder, Public Invention, an educational non-profit.}
+
+
+\date{\today}
+
+%%% BEGIN DOCUMENT
+\begin{document}
+
+\maketitle
+
+%% \tableofcontents
+
+\section{Introduction}
+
+This is a draft of an attempt to apply wavelet technology to gluss.
+However, it may touch on pure and applied mathematics in different valuable ways.
+\begin{itemize}  
+\item We will argue that wavelet and Fourier transforms should be reformulated to
+  accept the possibility a function being undefined at various points. Possibly we will
+  learn later that this is wrong, but must provide a means of dealing with it.
+\item We will argue that the tendency to treat solid objects as a curved surface in 3-space
+  is insufficient for the specific purpose of mapping abstractly from objects to gluss gaits
+  and for doing form-matching in three space.
+\item We will argue that wavelets provide an ideal way to define gaits for robots,
+  not as a transform, but as the original means for constructing and representing them.
+\item We will argue that wavelets provide a means of matching solid shapes in both space and time.
+\end{itemize}  
+
+\section{Solid Shape Matching Via Wavelets}
+
+A fundamental problem posed by an attempt to create a metamorphic material is how to specify and controls
+its shape in both space and time. Ordinarily we would refer to the change in shape over time as a ``gait''
+if its purpose is to locomote.
+
+Gluss consists of a number of actuators connected by joints.  Likewise tensegrity robots might consist
+of very numerous colletions of struts connected via cables. Whether we consider a moving robot or
+a static structure, we would like to conveniently compute a configure of a such machines to match
+any solid shape.
+
+It is typical to operate in terms of surfaces. However, we argue it is far better to use three-dimensional
+objects directly. It is entirely reasonable to create a general shape in 3-space as a collection of
+objects which are not in fact in any way connected, and yet still compute a matching shape of a
+connected gluss.  Or, if dealing with a robot swarm, we might even relax the constraint that the result
+be connected.
+
+Our fundamental problem is to compute a mapping from what we might call the ``Blob Space'', $\mathcal{B}$, into
+the ``Gluss Space'', $\matchal{G}$. The properties of the the Blob Space are:
+\begin{itemize}  
+\item It should be really easy for human beings to design objects in $\mathcal{B}$.
+\item It should be easy to import representations of objects into $\mathcal{B}$.
+\item It should be easy to animate objects in $\mathcal{B}$ without constraints imposed by
+  the physical world.  For example, motion need not be continuous and mass need not be conserved.
+\item It is untainted by any notion of scale.
+\end{itemize}  
+
+The Gluss Space, on the other hand:
+\begin{itemize}  
+\item Imposes strict limitations on geometry to match the physical limitations of actual robots.
+\item An object in $\mathcal{G}$ can be directly implemented with a simulation or a physical robot.
+\item Furthermore time may have limits as well. Motion in $\mathcal{G} must be continuous, and
+  might have to be slow.
+\end{itemize}  
+
+Let us consider an example.  We wish to explore the possibility of making a gluss-style robot
+walk to  building and crawl through a window. This is requires locomotion, elevation, and
+potentially decreasing the size of the robot to fit the window.  Even if the glussbot can
+jump through the window, it must potentially deal with these issues, and we may plausible
+assume that it will crawl through the window instead, like a worm.
+
+It would be convenient to model the gluss bot as 6 or 7 spheres in \mathcal{B} of the same size.
+These need not really be connected, they should just be close enough that they generally form
+a stout worm, or grub-like, shape.  Then we develop a short series of steps on \matchal{B}, not
+even a smooth animation, that suggests getting through the window. Let us imagine 10 such steps.
+This could probably be done in 3 minutes using a mouse and some javascript code.
+
+Then we want to specify a Gluss Space matching a glussbot we actually have. We would like
+to automatically map the Blob Space steps into a Gluss Space motion that potentially gets our
+glussbot through the window.
+
+It is possible that work done in animation will assist us greatly in this already; I need
+to research that.
+
+Assuming this is not already a solved problem, I claim that 3D wavelets are the best way
+to approach the mapping problem.
+
+A second example.  In order to give wonder to a child, we want to order our glussbot to
+assume the shape of a lion. We import an .stl file into the Blob Space.  But we have a highly
+constrained gluss bot.  We have to figure out how to order it to approximate the lion shape.
+This problem could be approached as a problem of conformity to an outside surface, but I think
+it will be easier when approached as a problem of matching masses described as 3D wavelets.
+
+
+
+\section{}
+
+
+\end{document}
