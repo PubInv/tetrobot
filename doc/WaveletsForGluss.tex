@@ -113,9 +113,38 @@ constrained gluss bot.  We have to figure out how to order it to approximate the
 This problem could be approached as a problem of conformity to an outside surface, but I think
 it will be easier when approached as a problem of matching masses described as 3D wavelets.
 
+\subsection{On the problem of 3D wavelets}
+
+I suspect it is an open question how to best define 3D wavelets.
+As always, wavelet choice is a design spectrum that depends on the algorithms you wish to use.
+
+It seems to me the fundamental question is whether a wavelet should represent a density function,
+upon which a isovalued surface defines solidity, or if it should be digital, having a hard surface.
+
+If it has a hard surface, how do we create negative wavelets?  Dare we use some analog of complex
+numbers?  And is this really a 3D problem after all?  If we deal with the problem of undefined
+values in a 1-D signal, we have the same problem.
+
+I can imagine that it is intellectually quite interesting to try to design good 3D wavelets.
+Indeed even 2D.  Imagine in 2D that we wish to represent not IMAGES but DRAWINGS.
+
+\section{On a human algebra of Wavelets for Gaits}
+
+It is important to understand that it is painful to define gaits in general. Although
+it seems mathematical, it may actually be much easier to define an Abelian algebra over gaits,
+so that gaits (or wavelet gaits) can be composed by an operation that we call ``addition''.
+
+For example, we want to say to a dancer: ``Walz with the same steps, but hold your hands
+above your head.'' This requires the dancer to subtly adjust their gait, such that an observer
+might not even notice.  If we say to a gluss: ``hold the baby and carry it to safety'', we
+may imagine that to be a radical change to the gait.  Simple composition may not be sufficient.
+
+Nonetheless we should seek a simple composition of gaits.
+
+What seems like a simple approach is to define a gait as a set of wavelets in the space
+of actuator controls.  That is, a 12-dimensional space, in the case of the 3TetGlussBot.
 
 
-\section{}
 
 
 \end{document}
