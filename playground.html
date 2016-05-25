@@ -236,7 +236,7 @@ function init_scene() {
 
     scene.add( light );
 
-
+/*
         var controls = new function () {
             this.size = 100;
             this.sprite = 0;
@@ -261,7 +261,7 @@ function init_scene() {
         gui.add(controls, 'transparent').onChange(controls.redraw);
         gui.add(controls, 'opacity', 0, 1).onChange(controls.redraw);
         gui.addColor(controls, 'color').onChange(controls.redraw);
-
+*/
 
 //        controls.redraw();
     
@@ -576,7 +576,7 @@ function updatePhysics(){
 	    createSpriteText(x,y,controls.size, controls.transparent, controls.opacity, controls.textcolor,controls.colorize);
             };
         }
-    controls.redraw(1000,1000);
+    controls.redraw(500,500);
     
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
