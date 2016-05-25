@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>cannon.js mouse pick demo</title>
+        <style>
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin:0;
+                padding:0;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <script src="./js/three.js"></script>
+        <script src="./js/Detector.js"></script>
+    <script src="./js/cannon.js"></script>
+    	<script src="./js/Projector.js"></script>	
+    <script src="./js/STLLoader.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>    
+    <script src="./js/d3-scale.min.js"></script>
+    <script src="./js/OrbitControls.js"></script>
+     <script type="text/javascript" src="../js/dat.gui.js"></script> 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+        <script>
+    var world;
+var dt = 1 / 60;
+
+var constraintDown = false;
+var camera, scene, renderer, gplane=false, clickMarker=false;
+var geometry, material, mesh;
+var controls,time = Date.now();
+
+var MARGIN = 0;
+var SCREEN_WIDTH = window.innerWidth;
+var SCREEN_HEIGHT = window.innerHeight - 2 * MARGIN;
+
+var jointBody, constrainedBody, mouseConstraint;
+
+var N = 4;
+
+var highest,lowest;
+
+var container, camera, scene, renderer, projector;
+
+var meshes=[], bodies=[];
+
+var global_computed_mesh;
+
+var sceneOrtho = new THREE.Scene();
+var cameraOrtho = new THREE.OrthographicCamera( 0, window.innerWidth, window.innerHeight, 0, - 10, 10 );
+
+// This file is a significant departure from the
+// one that I create it from, which operated on
+// aribtrary STL files.  This developes a robot
+// itself.  However, it remains the case that
+// we keep a tight correlations between the
+// Bodies in the world the meshes (or other three.js objects)
+// in the scne.
+// In the STL world, it made sense to generate the bodies from the scene...
+// but in the case of modeling the robot it make more sense to
+// generate the bodies and then generate the scene from the bodies.
+var big_geo;
+
+// A "robot" is really a graph of vertices with connections.
+// In physical realization, the connections are actuators with length limits.
+// In our first implementation, we will treat this as a set of springs in
+// the cannon.js world...
+// So in a sense we have 3 virtual worlds here: the abstract world
+// of the robot, the cannon.js world of almost-physical objects, and
+// the three.js world of meshes.
+// This will be made slightly more confusing by utilizing Three.js
+// and cannon.js utility classes (such as Vector) for convenience,
+// even in the abstract world of the robot space.
+
+// This is where the cannon.js joints are storied
+var robot_joints = [];
+// This is the cannon.js robot members.
+var robot_members = [];
+// This is a map of the robot links.
+var links_map = [];
+
+var getTexture = function () {
+    var texture = new THREE.TextureLoader("./logo-tight.png");
+    return texture;
+}
+
+function push_body_mesh_pair(body,mesh) {
+    meshes.push(mesh);
+    bodies.push(body);
+}
+
+function create_box(world,scene,i) {
+    var mass = 5, radius = 1.3;
+    boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
+    boxBody = new CANNON.Body({ mass: mass });
+    boxBody.addShape(boxShape);
+    boxBody.position.set(0,N,0);
+    boxBody.angularDamping = 0.9;
+    boxBody.linearDamping = 0.9;
+    world.add(boxBody);
+
+    // The mesh stuff
+    var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
+    
+    var cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+    cubeMesh.castShadow = true;
+    scene.add(cubeMesh);
+    return [boxBody,cubeMesh];
+}
+
+function create_boxes(world,scene) {
+    var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
+
+    for(var i=0; i<N; i++){
+	var pair = create_box(world,scene,i);
+	push_body_mesh_pair(pair[0],pair[1]);
+    }
+}
+
+
+
+function render_label_in_dom(text,x,y) {
+    var child = container.appendChild(document.createElement('p'));    
+    child.innerHTML = text;
+    child.setAttribute("style", "z-index: 100; position: absolute; color: yellow; left: "+x+"px; top: "+y+"py;");
+    //    child.setAttribute("style", "z-index: 100; position: absolute; color: yellow; left: "+200+"px; top: "+300+"py;");    
+}
+
+function render_labels_in_dom(labels) {
+    for(var i = 0; i < labels.length; i++) {
+	render_label_in_dom(labels[i][0],labels[i][1],labels[i][2]);
+    }
+}
+function render_example_labels_in_dom() {
+    var labels = [["AAA",100,100],
+		  ["BBB",200,200],
+		  ["CCC",300,300]
+		 ];
+    render_labels_in_dom(labels);
+}
+
+function establish_controls(camera,container) {
+    controls = new THREE.OrbitControls( camera, container );
+    //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    controls.enableZoom = true;
+    controls.enabled = true;
+
+}
+function init_scene() {
+    projector = new THREE.Projector();
+
+    container = document.createElement( 'div' );
+    document.body.appendChild( container );
+
+    container.style.position = 'absolute';
+    container.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+
+    container.style.backgroundColor = "blue";
+
+    //    render_label_in_dom("hello",200,200);    
+    //    clear_text();
+
+    
+    
+    // scene
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+
+    // camera
+    camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.5, 10000 );
+    camera.position.set(150, 10, 0);
+    var origin = new THREE.Vector3(0,0,0);
+    camera.lookAt(origin);
+    camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
+
+
+    establish_controls(camera,container);
+    
+    scene.add(camera);
+
+    // lights
+    var light, materials;
+    scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+
+    scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+    addShadowedLight( 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight( 0.5, 1, -1, 0xffaa00, 1 );
+    
+    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
+    var d = 200;
+
+    light.position.set( d, d, d );
+
+    light.castShadow = true;
+    light.shadow.CameraVisible = true;
+
+    light.shadow.MapWidth = 1024;
+    light.shadow.MapHeight = 1024;
+
+    light.shadow.CameraLeft = -d;
+    light.shadow.CameraRight = d;
+    light.shadow.CameraTop = d;
+    light.shadow.CameraBottom = -d;
+
+    light.shadow.CameraFar = 3*d;
+    light.shadow.CameraNear = d;
+    light.shadow.Darkness = 0.5;
+
+    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
+    var d = 20;
+
+    light.position.set( -d, d, -d );
+
+    light.castShadow = true;
+    //light.shadow.CameraVisible = true;
+
+    light.shadow.MapWidth = 1024;
+    light.shadow.MapHeight = 1024;
+
+    light.shadow.CameraLeft = -d;
+    light.shadow.CameraRight = d;
+    light.shadow.CameraTop = d;
+    light.shadow.CameraBottom = -d;
+
+    light.shadow.CameraFar = 3*d;
+    light.shadow.CameraNear = d;
+    light.shadow.Darkness = 0.5;
+
+    scene.add( light );
+
+
+        var controls = new function () {
+            this.size = 100;
+            this.sprite = 0;
+            this.transparent = true;
+            this.opacity = 0.6;
+            this.color = 0xffffff;
+            this.rotateSystem = true;
+
+
+            this.redraw = function () {
+                sceneOrtho.children.forEach(function (child) {
+                    if (child instanceof THREE.Sprite) sceneOrtho.remove(child);
+                })
+
+               createSpriteText(controls.size, controls.transparent, controls.opacity, controls.color);
+            };
+        }
+
+        var gui = new dat.GUI();
+        gui.add(controls, 'sprite', 0, 4).step(1).onChange(controls.redraw);
+        gui.add(controls, 'size', 0, 120).onChange(controls.redraw);
+        gui.add(controls, 'transparent').onChange(controls.redraw);
+        gui.add(controls, 'opacity', 0, 1).onChange(controls.redraw);
+        gui.addColor(controls, 'color').onChange(controls.redraw);
+
+
+//        controls.redraw();
+    
+    
+    return scene;
+}
+
+function addShadowedLight( x, y, z, color, intensity ) {
+    var directionalLight = new THREE.DirectionalLight( color, intensity );
+    directionalLight.position.set( x, y, z );
+    scene.add( directionalLight );
+    directionalLight.castShadow = true;
+    var d = 1;
+    directionalLight.shadow.camera.left = -d;
+    directionalLight.shadow.camera.right = d;
+    directionalLight.shadow.camera.top = d;
+    directionalLight.shadow.camera.bottom = -d;
+    directionalLight.shadow.camera.near = 1;
+    directionalLight.shadow.camera.far = 4;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.bias = -0.005;
+}
+
+
+// This needs to be changed to init the floor and ground together...
+function finish_scene_preparation(schen) {
+    // floor
+    //    geometry = new THREE.PlaneGeometry( 200, 200, 1, 1 );
+    //    geometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+    material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
+    markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+    //    THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
+    //    mesh = new THREE.Mesh( geometry, material );
+    //    mesh.castShadow = true;
+    //    mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
+    //    mesh.receiveShadow = true;
+    //    scene.add(mesh);
+
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setClearColor( scene.fog.color );
+
+
+    container.appendChild( renderer.domElement );
+
+    
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+    renderer.shadowMap.Enabled = true;
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    window.addEventListener("mousemove", onMouseMove, false );
+    window.addEventListener("mousedown", onMouseDown, false );
+    window.addEventListener("mouseup", onMouseUp, false );
+
+}
+
+function setClickMarker(x,y,z) {
+    if(!clickMarker){
+        var shape = new THREE.SphereGeometry(0.2, 8, 8);
+        clickMarker = new THREE.Mesh(shape, markerMaterial);
+        scene.add(clickMarker);
+    }
+    clickMarker.visible = true;
+    clickMarker.position.set(x,y,z);
+}
+
+function removeClickMarker(){
+    clickMarker.visible = false;
+}
+
+function onMouseMove(e){
+    // Move and project on the plane
+    if (gplane && mouseConstraint) {
+
+	var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   //x
+					 -( event.clientY / window.innerHeight ) * 2 + 1,  //y
+					 0.5 );                                            //z
+	
+	mouse3D.unproject( camera );
+	//        mouse3D.sub( camera.position );                
+	//        mouse3D.normalize();
+
+        var pos = projectOntoPlane(e.clientX,e.clientY,gplane,camera);
+        if(pos){
+            setClickMarker(pos.x,pos.y,pos.z,scene);
+            moveJointToPoint(pos.x,pos.y,pos.z);
+        }
+    }
+}
+
+function onMouseDown(e){
+    // Find mesh from a ray
+    console.log(e); // you can inspect the click event
+
+    //    if (e.which === 3) { // right click = 3, left click = 1
+    //        alert("right click");
+    //    }
+
+    var mouse3D = new THREE.Vector3( ( e.clientX / window.innerWidth ) * 2 - 1,   //x
+				     -( e.clientY / window.innerHeight ) * 2 + 1,  //y
+				     0.5 );                                            //z
+    mouse3D.unproject( camera );
+    mouse3D.sub(camera.position);
+    console.log(mouse3D);
+    mouse3D.project( camera );
+    console.log("projected");
+    console.log(mouse3D);
+    
+    var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
+    var pos = entity.point;
+    if(pos && entity.object.geometry instanceof THREE.BoxGeometry){
+        constraintDown = true;
+        // Set marker on contact point
+        setClickMarker(pos.x,pos.y,pos.z,scene);
+
+        // Set the movement plane
+        setScreenPerpCenter(pos,camera);
+
+        var idx = meshes.indexOf(entity.object);
+        if(idx !== -1){
+            addMouseConstraint(pos.x,pos.y,pos.z,bodies[idx]);
+        }
+    }
+}
+
+// This function creates a virtual movement plane for the mouseJoint to move in
+function setScreenPerpCenter(point, camera) {
+    // If it does not exist, create a new one
+    if(!gplane) {
+	// We need to be precese about what these coordinates are!
+        var planeGeo = new THREE.PlaneGeometry(400,400);
+	// Something has change in three.js, apparently ray casting only
+	// works with visible objects.  Since we are creating a plan to
+	// move the joint in, I am going to try to create an object here that makes since.
+	var plane_material = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+	plane_material.transparent = true;
+	plane_material.opacity = 0.3;
+	
+        var plane = gplane = new THREE.Mesh(planeGeo,plane_material);
+	//        plane.visible = false; // Hide it..
+	// ????
+	
+        scene.add(gplane);
+    }
+    gplane.visible = true;
+    gplane.name = "movementplane";
+    controls.enabled = false;
+
+    // Center at mouse position
+    gplane.position.copy(point);
+
+    // Make it face toward the camera
+    gplane.quaternion.copy(camera.quaternion);
+}
+
+function onMouseUp(e) {
+    constraintDown = false;
+    // remove the marker
+    removeClickMarker();
+
+    // Send the remove mouse joint to server
+    removeJointConstraint();
+
+    if (gplane.visible == true) {
+	gplane.visible = false;
+	// We need to re-establish the controls because I don't have
+	// any good way of exiting the active state...
+	controls.dispose();
+	establish_controls(camera,container);
+    }
+
+}
+
+var lastx,lasty,last;
+function projectOntoPlane(screenX,screenY,thePlane,camera) {
+    var x = screenX;
+    var y = screenY;
+    var now = new Date().getTime();
+    // project mouse to that plane
+    // This is probably highly wrong...
+    // this means that we can only fold an object on itself.
+    // I think this would work if you have
+    var hit = findNearestIntersectingObject(screenX,screenY,camera,[thePlane]);
+    lastx = x;
+    lasty = y;
+    last = now;
+    if(hit)
+        return hit.point;
+    return false;
+}
+function findNearestIntersectingObject(clientX,clientY,camera,objects) {
+    var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   //x
+                                     -( event.clientY / window.innerHeight ) * 2 + 1,  //y
+                                     0.5 );                                            //z
+    
+    //    var vector = new THREE.Vector3();
+    //    vector.unproject(camera);
+
+    var mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; 
+
+    var raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects( objects );        
+    // Change color if hit block
+    if ( intersects.length > 0 ) {
+	if (intersects[0].object.name != "movementplane") 
+	    intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+    }
+    var closest = false;
+    if (intersects.length > 0) {
+        closest = intersects[0];
+    }
+
+    return closest;
+}
+
+// Function that returns a raycaster to use to find intersecting objects
+// in a scene given screen pos and a camera, and a projector
+function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
+    var mouse3D = new THREE.Vector3();
+    // Get 3D point form the client x y
+    mouse3D.x = (screenX / window.innerWidth) * 2 - 1;
+    mouse3D.y = -(screenY / window.innerHeight) * 2 + 1;
+    mouse3D.z = 0.5;
+    return projector.pickingRay(mouse3D, camera);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    //controls.handleResize();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    SCREEN_WIDTH = window.innerWidth;
+    SCREEN_HEIGHT = window.innerHeight;
+
+    //        controls.screen.width = SCREEN_WIDTH;
+    //        controls.screen.height = SCREEN_HEIGHT;
+
+    camera.radius = ( SCREEN_WIDTH + SCREEN_HEIGHT ) / 4;
+}
+
+function animate() {
+    requestAnimationFrame( animate );
+    //    controls.update();
+    updatePhysics();
+    render();
+}
+
+var cylinderMesh = function( pointX, pointY )
+{
+    // edge from X to Y
+    var direction = new THREE.Vector3().subVectors( pointY, pointX );
+    var arrow = new THREE.ArrowHelper( direction, pointX );
+
+    // cylinder: radiusAtTop, radiusAtBottom, 
+    //     height, radiusSegments, heightSegments
+    var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
+
+    var edge = new THREE.Mesh( edgeGeometry, 
+			       new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
+    edge.rotation = arrow.rotation.clone();
+    edge.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
+    return edge;
+}
+
+// orientMesh from X to Y at Midpoint
+function orientMesh( mesh, pointX, pointY )
+{
+    // edge from X to Y
+    var direction = new THREE.Vector3().subVectors( pointY, pointX );
+    var arrow = new THREE.ArrowHelper( direction, pointX );
+
+    // cylinder: radiusAtTop, radiusAtBottom, 
+    //     height, radiusSegments, heightSegments
+    var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
+
+    //     var edge = new THREE.Mesh( edgeGeometry, 
+    //        new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
+    mesh.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
+    mesh.rotation = arrow.rotation.clone();
+    return mesh;
+}
+function clear_text() {
+    $("p").remove();
+}
+
+function updatePhysics(){
+    world.step(dt);
+    var color_scale = d3_scale.scalePlasma();
+    var mem_cnt = 0;
+    var controls = new function () {
+            this.size = 100;
+            this.sprite = 0;
+            this.transparent = true;
+            this.opacity = 0.6;
+        this.colorize = 0xffffff;
+	this.textcolor = "yellow";
+            this.rotateSystem = true;
+
+
+        this.redraw = function (x,y) {
+                sceneOrtho.children.forEach(function (child) {
+                    if (child instanceof THREE.Sprite) sceneOrtho.remove(child);
+                })
+
+	    createSpriteText(x,y,controls.size, controls.transparent, controls.opacity, controls.textcolor,controls.colorize);
+            };
+        }
+    controls.redraw(1000,1000);
+    
+    for(var i=0; i !== bodies.length; i++){
+	var mesh = meshes[i];
+	var body = bodies[i];
+	if (bodies[i].structureKind == "member") {
+	    mem_cnt++;
+	    var a = body.link_a;
+	    var b = body.link_z;
+	    var ap = a.position;
+	    var bp = b.position;
+	    var ap3 = new THREE.Vector3(ap.x,ap.y,ap.z);
+	    var bp3 = new THREE.Vector3(bp.x,bp.y,bp.z);
+	    var mid = new THREE.Vector3().addVectors(ap3,bp3);
+	    mid = mid.multiplyScalar(0.5);
+	    mesh.up = new THREE.Vector3(0,0,1);//Z axis up
+	    var vector = new THREE.Vector3().subVectors(ap3,bp3);
+	    var axis = new THREE.Vector3(0, 1, 0);
+	    mesh.position.copy(mid);
+
+	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
+
+	    var len = ap.distanceTo(bp);
+	    var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
+
+	    // TODO: This needs to be computed from the real min and max, which I haven't set up yet.
+	    var d = len/(2*edge_length);
+	    var geometry = mesh.geometry;
+	    
+	    for(var j = 0; j < geometry.faces.length; j++) {
+		geometry.faces[j].color.setStyle( color_scale(d) );
+	    }
+
+	    mesh.geometry.verticesNeedUpdate = true;
+	    mesh.geometry.elementsNeedUpdate = true;        
+	    mesh.geometry.colorsNeedUpdate = true;
+
+	} else {
+            mesh.position.copy(bodies[i].position);
+	    mesh.quaternion.copy(bodies[i].quaternion);
+	}
+
+	
+	mesh.geometry.verticesNeedUpdate = true;
+	mesh.geometry.elementsNeedUpdate = true;        
+	mesh.geometry.colorsNeedUpdate = true;    
+    }
+}
+function render() {
+    //    controls.update();
+    //    update_three_js_from_bodies(scene,bodies);
+    
+    renderer.render(scene, camera);
+
+    //    stats.update();
+
+    //    camera.position.y = Math.sin(step += 0.01) * 20;
+
+    sceneOrtho.children.forEach(function (e) {
+        if (e instanceof THREE.Sprite) {
+            // move the sprite along the bottom
+//            e.position.x = e.position.x + e.velocityX;
+            if (e.position.x > window.innerWidth) {
+                e.velocityX = -1;
+                //controls.sprite=(controls.sprite++)%5;
+ //               console.log(controls.sprite++);
+		//                e.material.uvOffset.set(1 / 5 * (controls.sprite % 4), 0);
+              }
+            if (e.position.x < 0) {
+                e.velocityX = 1;
+            }
+        }
+    });
+
+    requestAnimationFrame(render);
+    renderer.autoClear = false;
+    renderer.render(sceneOrtho, cameraOrtho);
+    
+}
+
+// our goal here is to make sure that we are adding both the THREE and
+// the CANNON objects simultaneously, which is really the only
+// clean way to do this....
+// It is imperative that meshes and bodies be kept in sync,
+// so we return a pair...
+// if you want an object that has no physical existence,
+// create a null body
+
+function add_tet_model(world,scene) {
+    create_boxes(world,scene);
+    add_tetrahedral_springs(world,scene);
+}
+
+function add_ground_plane(world,scene) {
+
+    // Create a plane
+    var groundShape = new CANNON.Plane();
+    var floor_position = -50;
+    groundShape.position = new CANNON.Vec3(0,0,floor_position);
+    var groundBody = new CANNON.Body({ mass: 0 });
+    groundBody.addShape(groundShape);
+    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+    world.add(groundBody);
+    
+    // floor
+    geometry = new THREE.PlaneGeometry( 100, 100, 1, 1 );
+    geometry.postion = new THREE.Vector3(0,0,floor_position);
+    //geometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+    material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
+    markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+    //THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
+    mesh = new THREE.Mesh( geometry, material );
+    // Note that we don't acutally add this to the bodies,meshes molecule because
+    // you can't select the floor.
+    return [groundBody,mesh];
+}
+
+function create_box_and_mesh(world,scene,mass,size,v,scale_by) {
+    var mass = 1;
+    var body = new CANNON.Body({
+        mass: mass
+    });
+    var    boxShape = new CANNON.Sphere(0.01);
+    var cubeGeo = new THREE.BoxGeometry( size,size,size );
+    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
+    var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+    
+    var boxBody = new CANNON.Body({ mass: mass });
+    boxBody.addShape(boxShape);
+    boxBody.position.set(v.x,v.y,v.z);
+    boxBody.mass = 1;
+    boxBody.angularDamping = 0.9;
+    boxBody.linearDamping = 0.9;
+    
+    world.add(boxBody);
+    
+    //    var bbox = geometry.boundingBox;
+
+    
+    mesh.castShadow = true;
+    mesh.scale.set(scale_by, scale_by, scale_by );
+    
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+    return [boxBody,mesh];
+}
+var spring = [];
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+};
+
+
+function vectorToString(v) {
+    return "["+v.x+","+v.y+","+v.z+"]";
+}
+// toString override added to prototype of Foo class
+/* Link.prototype.toString = function()
+{
+    
+    return "{ a: "+vectorToString(this.a)+","+
+	"b: "+vectorToString(this.b)+"}";
+}
+
+*/
+
+// This basically needs to take the bodies, read their positions,
+// and update the geometry in the same way. Every Body has both
+// an "id" and "index" field, but I don't know how to keep the
+// association...
+function update_three_js_from_bodies(scene,bodies)
+{
+    // at this point, the meshes and the bodies must match....
+    for(var i = 0; i < bodies.length; i++) {
+	var b = bodies[i];
+	var m = meshes[i];
+
+	// Not sure about this, but will try removing the mesh and
+	// regenerating...
+	scene.remove(m);
+	var nm = generate_mesh_from_body(b);
+	scene.add(b);
+    }
+}
+
+function generate_mesh_pairings_from_world(world,scene)
+{
+    var results = [];
+    
+    var vindex = 0;
+    var mass = 1;
+    var index_map = {};
+
+    var vertex_index = 0;
+
+    var body_cnt = 0;
+    var mem_cnt = 0;
+    // This is not yet physically modeling our system.
+    var size = 2.0;
+    function process_vertex(joint,v,results) {
+	var cubeGeo = new THREE.BoxGeometry( size,size,size );
+	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
+	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	//	scene.add(mesh);
+	results.unshift([joint,mesh]);
+	body_cnt++;
+    };
+
+    var links_map = new Map();
+    var links = [];
+
+    // To add the springs we want to have the links_map computed
+    // This should really be computed from the robot somehow...
+    // So we iterate over the world, looking for the
+    // objects which are robot joints.
+
+    for(var i = 0; i < robot_joints.length; i++) {
+	var joint = robot_joints[i];
+	process_vertex(joint,joint.position,results);
+    }
+
+
+    // This in fact needs to be a lot more complicated...but one step at a time.
+    var w = 1.0;
+    for(var lin in robot_members) {
+	var link = robot_members[lin];
+	var a = link.a;
+	var b = link.b;
+	var h = link.a.position.distanceTo(b.position);
+	var cubeGeo = new THREE.BoxGeometry( w,h,w );
+	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+
+
+	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+	mesh.position.set(a.position.x,a.position.y+20,a.position.z);
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	results.unshift([link.body,mesh]);
+	mem_cnt++;
+    }
+    console.log("body_cnt "+body_cnt);
+    console.log("mem_cnt "+mem_cnt);    
+    return results;
+}
+
+
+function ccw_tetrahelix_vertex(n,edge_length) {
+    // TODO: memoize these functions.
+    var r = (3 * Math.sqrt(3) / 10) * edge_length;
+    var h = (1/Math.sqrt(10)) *edge_length;
+    var theta = Math.acos(-2/3);
+    return new CANNON.Vec3( r * Math.cos(n*theta),  r * Math.sin(n*theta), n*h );
+}
+
+function add_member_spring(a,b,world) {
+    var stiffness = 10;
+    var damping = 0.3;
+    restlength = a.position.distanceTo(b.position);
+    // var spring = new CANNON.Spring(a,b,{
+    // 	localAnchorA: new CANNON.Vec3(0,0,0),
+    //     localAnchorB: new CANNON.Vec3(0,0,0),
+    //     restLength : restlength,
+    //     stiffness : stiffness,
+    // 	damping : damping
+    // });
+
+    var c = new CANNON.DistanceConstraint(a,b,restlength);
+    world.addConstraint(c);
+
+    // Compute the force after each step
+    // world.addEventListener("postStep",function(event){
+    // 	spring.applyForce();
+    // });
+
+}
+
+// TODO: can't be so cavalier with this when I set the physical geometry
+var edge_length = 10;
+
+function load_NTetGlussBot(world,tets) {
+
+    // Okay, so here we need to create the geometry of the tetrahelix.
+    // This could be done in a variety of ways.
+    // Probably the most mathematical is to first define a vector
+    // representing the center axis, and then use a formula the nth vertex.
+    // Looks like some math as been worked out by R. W. Gray:
+    // http://www.rwgrayprojects.com/rbfnotes/helix/helix01.html
+    // I guess I will use a CounterClockWise (ccw) tetrahelix:
+    // Vn = (r cos(n*theta), r sin(n*theta), n*h)
+
+    var n = tets+3;
+    var member_radius = edge_length/ 20;
+    var mass = 1.0;
+    for(var i = 0; i < n; i++) {
+	var v = ccw_tetrahelix_vertex(i,edge_length);
+	var boxBody = new CANNON.Body({ mass: mass });
+	var    boxShape = new CANNON.Sphere(0.01);
+	boxBody.addShape(boxShape);
+	boxBody.position.set(v.x,v.y,v.z);
+	boxBody.mass = 1;
+	boxBody.angularDamping = 0.9;
+	boxBody.linearDamping = 0.9;
+	robot_joints.push(boxBody);
+	world.add(boxBody);
+
+	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
+	    var h = i-(k+1);
+	    console.log(i+" to "+h);
+	    add_member_spring(robot_joints[h],robot_joints[i],world);
+
+	    // Okay, here I also want to add a new body to represent the actuator
+	    // This may require some roation math, but for now let me just put it
+	    // in the cetner
+	    var memBody = new CANNON.Body({ mass: mass });
+	    var b_z = robot_joints[i];
+	    var b_a = robot_joints[h];
+	    var v_z = b_z.position;
+	    var v_avg = v_z.vadd(b_a.position);
+	    v_avg.scale(0.5);
+	    memBody.position = v_avg;
+	    memBody.mass = 1;
+	    memBody.angularDamping = 0.9;
+	    memBody.linearDamping = 0.9;
+	    var link = { a: b_a, b: b_z, body: memBody};
+	    robot_members.push(link);
+	    memBody.structureKind = "member";
+	    memBody.link_a = b_a;
+	    memBody.link_z = b_z;
+	    world.add(memBody);
+	}
+    }
+}
+
+function add_robot(world,scene) {
+
+    var scale_by = 0.1;
+    load_NTetGlussBot(world,3);
+    var pairings = generate_mesh_pairings_from_world(world,scene);
+    for(var i = 0; i < pairings.length; i++) {
+	scene.add(pairings[i][1]);
+    }
+    
+    // The timing here is making this asynchronous, which is not ideal...
+    pairings.forEach(function (item) {
+	push_body_mesh_pair(item[0],item[1]);
+    });
+}
+
+function initCannon(){
+    // Setup our world
+    world = new CANNON.World();
+    world.quatNormalizeSkip = 0;
+    world.quatNormalizeFast = false;
+
+    world.gravity.set(0,0,0);
+    world.broadphase = new CANNON.NaiveBroadphase();
+
+    var item = add_ground_plane(world,scene)
+    scene.add(item[1]);
+    push_body_mesh_pair(item[0],item[1]);
+    
+    // This would be better as a function that
+    // returns a robot, but I am dependent on some sort of
+    // geometry for the construction of the robot..
+    add_robot(world,scene);
+
+    // Joint body
+    var shape = new CANNON.Sphere(0.1);
+    jointBody = new CANNON.Body({ mass: 0 });
+    jointBody.addShape(shape);
+    jointBody.collisionFilterGroup = 0;
+    jointBody.collisionFilterMask = 0;
+    world.add(jointBody)
+}
+
+function addMouseConstraint(x,y,z,body) {
+    // The cannon body constrained by the mouse joint
+    constrainedBody = body;
+
+    // Vector to the clicked point, relative to the body
+    var v1 = new CANNON.Vec3(x,y,z).vsub(constrainedBody.position);
+
+    // Apply anti-quaternion to vector to tranform it into the local body coordinate system
+    var antiRot = constrainedBody.quaternion.inverse();
+    pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
+
+    // Move the cannon click marker particle to the click position
+    jointBody.position.set(x,y,z);
+
+    // Now we want to disable all attached length constraints (and actually add others)
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	c.disable();
+    }
+
+    // Create a new constraint
+    // The pivot for the jointBody is zero
+    mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, jointBody, new CANNON.Vec3(0,0,0));
+    mouseConstraint.attachedBody = body;
+
+    // Add the constriant to world
+    world.addConstraint(mouseConstraint);
+}
+
+// This functions moves the transparent joint body to a new postion in space
+function moveJointToPoint(x,y,z) {
+    // Move the joint body to a new position
+    jointBody.position.set(x,y,z);
+
+
+    var body = mouseConstraint.attachedBody;
+    
+    var w = 1.0;
+
+    var color_scale = d3_scale.scalePlasma();    
+    
+    for(var i = 0; i < bodies.length; i++) {
+	var bx = bodies[i];
+	var mx = meshes[i];
+	if (bx.structureKind == "member") {
+	    var a = bx.link_a;
+	    var b = bx.link_z;
+
+	    if ((a == body) || ( b == body)) {
+		// HERE is where we must deal with the mesh changing sizes, not in update physics.
+		var ap = a.position;
+		var bp = b.position;
+		var len = ap.distanceTo(bp);
+		
+		var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
+		
+		// TODO: This needs to be computed from the real min and max, which I haven't set up yet.
+		var d = len/(2*edge_length);
+		
+		var h = a.position.distanceTo(b.position);
+		var cubeGeo = new THREE.BoxGeometry( w,h,w );
+		var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+
+		var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+
+		scene.remove(meshes[i]);
+		scene.add(mesh);
+		meshes[i] = mesh;
+		
+		mesh.position.set(a.position.x,a.position.y,a.position.z);
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+	    }
+	}
+    }	
+    
+    for(var j = 0; j < mesh.geometry.faces.length; j++) {
+	mesh.geometry.faces[j].color.setStyle( color_scale(d) );
+    }
+
+    mesh.geometry.verticesNeedUpdate = true;
+    mesh.geometry.elementsNeedUpdate = true;        
+    mesh.geometry.colorsNeedUpdate = true;
+
+    // Could we here change the member lengths appropriately?
+    mouseConstraint.update();
+}
+
+function removeJointConstraint() {
+    // Remove constriant from world
+    world.removeConstraint(mouseConstraint);
+    // Now we want to disable all attached length constraints (and actually add others)
+    var body = mouseConstraint.attachedBody;
+    
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	c.enable();
+	if ((c.bodyA == body) || (c.bodyB == body)) {
+	    world.removeConstraint(c);
+	    var restlength = c.bodyA.position.distanceTo(c.bodyB.position);
+	    var nc = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,restlength);
+	    //	    world.addConstraint(nc);
+	}
+    }
+    
+    mouseConstraint = false;
+}
+
+
+function createSpriteText(x,y,size, transparent, opacity, textcolor, colorize) {
+    var fontsize = 128;
+    var message = "spudalicious!";
+
+    var ctx, texture, sprite, spriteMaterial, 
+        canvas = document.createElement('canvas');
+    ctx = canvas.getContext('2d');
+    ctx.font = fontsize + "px Arial";
+
+        // setting canvas width/height before ctx draw, else canvas is empty
+    canvas.width = ctx.measureText(message).width;
+    canvas.height = fontsize * 2; // fontsize * 1.5
+
+        // after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
+    ctx.font = fontsize + "px Arial";        
+    //    ctx.fillStyle = "rgba(255,0,255,1)";
+    //    ctx.fillStyle = "rgb(255,0,255)";
+    ctx.fillStyle = textcolor;        
+    ctx.fillText(message, 0, fontsize);
+
+    texture = new THREE.Texture(canvas);
+    texture.minFilter = THREE.LinearFilter; // NearestFilter;
+    texture.needsUpdate = true;
+
+    var spriteMaterial = new THREE.SpriteMaterial({
+	opacity: opacity,
+	color: colorize,
+        transparent: transparent,
+	map : texture});
+    
+    spriteMaterial.scaleByViewport = true;
+    spriteMaterial.blending = THREE.AdditiveBlending;
+
+    var sprite = new THREE.Sprite(spriteMaterial);
+    
+    sprite.scale.set(size, size, size);
+    sprite.position.set(x, y, 0);
+//    sprite.velocityX = 1;
+
+    sceneOrtho.add(sprite);
+}
+
+
+
+
+// Initialize Three.js
+if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+var scene = init_scene();
+initCannon(scene);
+finish_scene_preparation(scene);
+animate();
+
+        </script>
+    </body>
+</html>
