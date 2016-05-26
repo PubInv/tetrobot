@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>cannon.js mouse pick demo</title>
+        <title>gluss playground</title>
         <style>
             html, body {
                 width: 100%;
@@ -122,28 +122,6 @@ function create_boxes(world,scene) {
     }
 }
 
-
-
-function render_label_in_dom(text,x,y) {
-    var child = container.appendChild(document.createElement('p'));    
-    child.innerHTML = text;
-    child.setAttribute("style", "z-index: 100; position: absolute; color: yellow; left: "+x+"px; top: "+y+"py;");
-    //    child.setAttribute("style", "z-index: 100; position: absolute; color: yellow; left: "+200+"px; top: "+300+"py;");    
-}
-
-function render_labels_in_dom(labels) {
-    for(var i = 0; i < labels.length; i++) {
-	render_label_in_dom(labels[i][0],labels[i][1],labels[i][2]);
-    }
-}
-function render_example_labels_in_dom() {
-    var labels = [["AAA",100,100],
-		  ["BBB",200,200],
-		  ["CCC",300,300]
-		 ];
-    render_labels_in_dom(labels);
-}
-
 function establish_controls(camera,container) {
     controls = new THREE.OrbitControls( camera, container );
     //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
@@ -164,11 +142,6 @@ function init_scene() {
 
     container.style.backgroundColor = "blue";
 
-    //    render_label_in_dom("hello",200,200);    
-    //    clear_text();
-
-    
-    
     // scene
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
@@ -338,10 +311,7 @@ function onMouseDown(e){
 				     0.5 );                                            //z
     mouse3D.unproject( camera );
     mouse3D.sub(camera.position);
-    console.log(mouse3D);
     mouse3D.project( camera );
-    console.log("projected");
-    console.log(mouse3D);
     
     var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
     var pos = entity.point;
@@ -365,13 +335,13 @@ function setScreenPerpCenter(point, camera) {
     // If it does not exist, create a new one
     if(!gplane) {
 	// We need to be precese about what these coordinates are!
-        var planeGeo = new THREE.PlaneGeometry(400,400);
+        var planeGeo = new THREE.PlaneGeometry(4000,4000);
 	// Something has change in three.js, apparently ray casting only
 	// works with visible objects.  Since we are creating a plan to
 	// move the joint in, I am going to try to create an object here that makes since.
-	var plane_material = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+	var plane_material = new THREE.MeshLambertMaterial( { color: 0x110000 } );
 	plane_material.transparent = true;
-	plane_material.opacity = 0.3;
+	plane_material.opacity = 0.0;
 	
         var plane = gplane = new THREE.Mesh(planeGeo,plane_material);
 	//        plane.visible = false; // Hide it..
@@ -627,7 +597,7 @@ function updatePhysics(){
 	    var p3 = p3.project(camera);
 	    var x = (p3.x*window.innerWidth/2.0)+window.innerWidth/2;
 	    var y = (p3.y *window.innerHeight/2.0)+window.innerHeight/2;	    
-	    controls.draw(x,y,""+bodies[i].id);
+	    controls.draw(x,y,""+bodies[i].name);
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
 	}
@@ -638,44 +608,13 @@ function updatePhysics(){
     }
 }
 function render() {
-    //    controls.update();
-    //    update_three_js_from_bodies(scene,bodies);
     
     renderer.render(scene, camera);
-
-    //    stats.update();
-
-    //    camera.position.y = Math.sin(step += 0.01) * 20;
-
-    sceneOrtho.children.forEach(function (e) {
-        if (e instanceof THREE.Sprite) {
-            // move the sprite along the bottom
-//            e.position.x = e.position.x + e.velocityX;
-            if (e.position.x > window.innerWidth) {
-                e.velocityX = -1;
-                //controls.sprite=(controls.sprite++)%5;
- //               console.log(controls.sprite++);
-		//                e.material.uvOffset.set(1 / 5 * (controls.sprite % 4), 0);
-              }
-            if (e.position.x < 0) {
-                e.velocityX = 1;
-            }
-        }
-    });
-
-    requestAnimationFrame(render);
     renderer.autoClear = false;
+    // This is for the sprites....
     renderer.render(sceneOrtho, cameraOrtho);
     
 }
-
-// our goal here is to make sure that we are adding both the THREE and
-// the CANNON objects simultaneously, which is really the only
-// clean way to do this....
-// It is imperative that meshes and bodies be kept in sync,
-// so we return a pair...
-// if you want an object that has no physical existence,
-// create a null body
 
 function add_tet_model(world,scene) {
     create_boxes(world,scene);
@@ -686,23 +625,26 @@ function add_ground_plane(world,scene) {
 
     // Create a plane
     var groundShape = new CANNON.Plane();
-    var floor_position = -50;
-    groundShape.position = new CANNON.Vec3(0,0,floor_position);
+    var floor_position = 0;
+
     var groundBody = new CANNON.Body({ mass: 0 });
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+    groundShape.position = new CANNON.Vec3(0,0,0);
+    groundBody.name = "floor";
     world.add(groundBody);
     
     // floor
-    geometry = new THREE.PlaneGeometry( 100, 100, 1, 1 );
-    geometry.postion = new THREE.Vector3(0,0,floor_position);
-    //geometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
-    material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
-    markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
-    //THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
-    mesh = new THREE.Mesh( geometry, material );
-    // Note that we don't acutally add this to the bodies,meshes molecule because
-    // you can't select the floor.
+
+    var floorTexture = new THREE.ImageUtils.loadTexture( 'images/logo-white-background.png' );
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+    floorTexture.repeat.set( 10, 10 );
+    var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+    floorGeometry.position = new THREE.Vector3(0,0,0);
+    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    mesh = floor;
+
     return [groundBody,mesh];
 }
 
@@ -872,10 +814,24 @@ function add_member_spring(a,b,world) {
 
 }
 
+// To do a great job with this, we really need to know the
+// range of possible values, but I'll fake it..
+function alphabetic_name(n) {
+    if (n < 26) {
+	return String.fromCharCode(65+n);
+    } else {
+	if (n < 26*26) {
+	    return alphabetic_name(Math.floor(n/26))+alphabetic_name(n % 26);
+	} else {
+	    return ""+n;
+	}
+    }
+}
+
 // TODO: can't be so cavalier with this when I set the physical geometry
 var edge_length = 10;
 
-function load_NTetGlussBot(world,tets) {
+function load_NTetGlussBot(world,tets,pvec) {
 
     // Okay, so here we need to create the geometry of the tetrahelix.
     // This could be done in a variety of ways.
@@ -891,6 +847,7 @@ function load_NTetGlussBot(world,tets) {
     var mass = 1.0;
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,edge_length);
+	v = v.vadd(pvec);
 	var boxBody = new CANNON.Body({ mass: mass });
 	var    boxShape = new CANNON.Sphere(0.01);
 	boxBody.addShape(boxShape);
@@ -898,6 +855,7 @@ function load_NTetGlussBot(world,tets) {
 	boxBody.mass = 1;
 	boxBody.angularDamping = 0.9;
 	boxBody.linearDamping = 0.9;
+	boxBody.name = alphabetic_name(i);
 	robot_joints.push(boxBody);
 	world.add(boxBody);
 
@@ -932,7 +890,8 @@ function load_NTetGlussBot(world,tets) {
 function add_robot(world,scene) {
 
     var scale_by = 0.1;
-    load_NTetGlussBot(world,3);
+    var pvec = new CANNON.Vec3(0,20,0);
+    load_NTetGlussBot(world,3,pvec);
     var pairings = generate_mesh_pairings_from_world(world,scene);
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
@@ -950,7 +909,7 @@ function initCannon(){
     world.quatNormalizeSkip = 0;
     world.quatNormalizeFast = false;
 
-    world.gravity.set(0,0,0);
+    world.gravity.set(0,-5,0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
     var item = add_ground_plane(world,scene)
@@ -988,7 +947,9 @@ function addMouseConstraint(x,y,z,body) {
     // Now we want to disable all attached length constraints (and actually add others)
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	c.disable();
+	if ((c.bodyA == body) || (c.bodyB == body)) {
+	    c.disable();
+	}
     }
 
     // Create a new constraint
@@ -1000,7 +961,14 @@ function addMouseConstraint(x,y,z,body) {
     world.addConstraint(mouseConstraint);
 }
 
+var color_scale = d3_scale.scalePlasma();    
+
+var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+
+
 // This functions moves the transparent joint body to a new postion in space
+
+var moveCnt = 0;
 function moveJointToPoint(x,y,z) {
     // Move the joint body to a new position
     jointBody.position.set(x,y,z);
@@ -1009,74 +977,91 @@ function moveJointToPoint(x,y,z) {
     var body = mouseConstraint.attachedBody;
     
     var w = 1.0;
+    moveCnt++;
+//    if ((moveCnt % 10) == 0) {
+//	console.log(moveCnt);
+	for(var i = 0; i < bodies.length; i++) {
+	    var bx = bodies[i];
+	    var mx = meshes[i];
+	    if (bx.structureKind == "member") {
+		var a = bx.link_a;
+		var b = bx.link_z;
 
-    var color_scale = d3_scale.scalePlasma();    
-    
-    for(var i = 0; i < bodies.length; i++) {
-	var bx = bodies[i];
-	var mx = meshes[i];
-	if (bx.structureKind == "member") {
-	    var a = bx.link_a;
-	    var b = bx.link_z;
+		if ((a == body) || ( b == body)) {
+		    // HERE is where we must deal with the mesh changing sizes, not in update physics.
+		    var ap = a.position;
+		    var bp = b.position;
+		    var len = ap.distanceTo(bp);
+		    
+		    var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
+		    
+		    // TODO: This needs to be computed from the real min and max, which I haven't set up yet.
+		    var d = len/(2*edge_length);
+		    
+		    var h = a.position.distanceTo(b.position);
+		    var cubeGeo = new THREE.BoxGeometry( w,h,w );
 
-	    if ((a == body) || ( b == body)) {
-		// HERE is where we must deal with the mesh changing sizes, not in update physics.
-		var ap = a.position;
-		var bp = b.position;
-		var len = ap.distanceTo(bp);
-		
-		var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
-		
-		// TODO: This needs to be computed from the real min and max, which I haven't set up yet.
-		var d = len/(2*edge_length);
-		
-		var h = a.position.distanceTo(b.position);
-		var cubeGeo = new THREE.BoxGeometry( w,h,w );
-		var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+		    var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
 
-		var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+		    scene.remove(meshes[i]);
+		    scene.add(mesh);
+		    meshes[i] = mesh;
+		    for(var j = 0; j < mesh.geometry.faces.length; j++) {
+    			mesh.geometry.faces[j].color.setStyle( color_scale(d) );
+		    }
+		    
+		    mesh.position.set(a.position.x,a.position.y,a.position.z);
+		    mesh.castShadow = true;
+		    mesh.receiveShadow = true;
+		    
+		    mesh.geometry.verticesNeedUpdate = true;
+		    mesh.geometry.elementsNeedUpdate = true;        
+		    mesh.geometry.colorsNeedUpdate = true;
 
-		scene.remove(meshes[i]);
-		scene.add(mesh);
-		meshes[i] = mesh;
-		
-		mesh.position.set(a.position.x,a.position.y,a.position.z);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
+		}
 	    }
-	}
-    }	
-    
-    for(var j = 0; j < mesh.geometry.faces.length; j++) {
-	mesh.geometry.faces[j].color.setStyle( color_scale(d) );
+//	}	
+	
     }
 
-    mesh.geometry.verticesNeedUpdate = true;
-    mesh.geometry.elementsNeedUpdate = true;        
-    mesh.geometry.colorsNeedUpdate = true;
 
     // Could we here change the member lengths appropriately?
     mouseConstraint.update();
 }
 
+function render_constraints() {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	console.log("("+c.bodyA.name+","+c.bodyB.name+") = "+c.distance);	    	
+    }
+}
+
 function removeJointConstraint() {
     // Remove constriant from world
+    if (!mouseConstraint) {
+	return;
+    }
     world.removeConstraint(mouseConstraint);
     // Now we want to disable all attached length constraints (and actually add others)
+
     var body = mouseConstraint.attachedBody;
+    if (body) {
     
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	c.enable();
 	if ((c.bodyA == body) || (c.bodyB == body)) {
-	    world.removeConstraint(c);
-	    var restlength = c.bodyA.position.distanceTo(c.bodyB.position);
-	    var nc = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,restlength);
-	    //	    world.addConstraint(nc);
+	    var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
+	    c.distance = newrestlength;
+	    c.update();
+	    c.enable();	    
+	} else {
+	    	c.enable();
 	}
     }
-    
+    }
+    render_constraints();
     mouseConstraint = false;
+    moveCnt = 0;
 }
 
 
