@@ -622,8 +622,6 @@ function updatePhysics(){
 	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
 
 	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
-	    console.log("("+p3.x+","+p3.y+")");		    
-	    console.log("("+x+","+y+")");
 	    controls.draw(x,y,""+bodies[i].name);
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
