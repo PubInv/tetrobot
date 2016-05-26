@@ -12,8 +12,22 @@
                 overflow: hidden;
             }
         </style>
-    </head>
+
+  </head>
     <body>
+    <h1> Welcome to the Gluss Playground, where you can you can program real glussbots through simulation. </h1>
+    <div id="world"></div>
+    <div id="control">
+    <textarea id="cli" rows="8" cols="80">
+    Imagine enterring a command here.
+    </textarea>
+    <button type="button" onclick="execute_code(this)">
+    Execute
+    </button>
+    
+
+    </div>
+    
         <script src="./js/three.js"></script>
         <script src="./js/Detector.js"></script>
     <script src="./js/cannon.js"></script>
@@ -29,13 +43,13 @@
 var dt = 1 / 60;
 
 var constraintDown = false;
-var camera, scene, renderer, gplane=false, clickMarker=false;
+var camera, cameraOrtho, scene, renderer, gplane=false, clickMarker=false;
 var geometry, material, mesh;
 var controls,time = Date.now();
 
 var MARGIN = 0;
 var SCREEN_WIDTH = window.innerWidth;
-var SCREEN_HEIGHT = window.innerHeight - 2 * MARGIN;
+var SCREEN_HEIGHT = 2*window.innerHeight/3.0;
 
 var jointBody, constrainedBody, mouseConstraint;
 
@@ -50,7 +64,7 @@ var meshes=[], bodies=[];
 var global_computed_mesh;
 
 var sceneOrtho = new THREE.Scene();
-var cameraOrtho = new THREE.OrthographicCamera( 0, window.innerWidth, window.innerHeight, 0, - 10, 10 );
+
 
 // This file is a significant departure from the
 // one that I create it from, which operated on
@@ -133,12 +147,13 @@ function establish_controls(camera,container) {
 }
 function init_scene() {
     projector = new THREE.Projector();
-
+    var world_container = $("#world");
+    
     container = document.createElement( 'div' );
-    document.body.appendChild( container );
+    
+    world_container.append( container );
 
-    container.style.position = 'absolute';
-    container.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+    container.style["max-height"] = 800;
 
     container.style.backgroundColor = "blue";
 
@@ -146,13 +161,20 @@ function init_scene() {
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
 
+    //
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setClearColor( scene.fog.color );
+    // After we do this, we want to start using renderer.getSize.
+    renderer.setSize( window.innerWidth,  window.innerHeight*2/3  );    
+
     // camera
-    camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.5, 10000 );
+    camera = new THREE.PerspectiveCamera( 35, renderer.getSize().width / (renderer.getSize().height), 0.5, 10000 );
     camera.position.set(150, 10, 0);
     var origin = new THREE.Vector3(0,0,0);
     camera.lookAt(origin);
     camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
 
+    cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
 
     establish_controls(camera,container);
     
@@ -244,9 +266,6 @@ function finish_scene_preparation(schen) {
     //    mesh.receiveShadow = true;
     //    scene.add(mesh);
 
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.setClearColor( scene.fog.color );
 
 
     container.appendChild( renderer.domElement );
@@ -282,8 +301,8 @@ function onMouseMove(e){
     // Move and project on the plane
     if (gplane && mouseConstraint) {
 
-	var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   //x
-					 -( event.clientY / window.innerHeight ) * 2 + 1,  //y
+	var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
 	
 	mouse3D.unproject( camera );
@@ -306,8 +325,8 @@ function onMouseDown(e){
     //        alert("right click");
     //    }
 
-    var mouse3D = new THREE.Vector3( ( e.clientX / window.innerWidth ) * 2 - 1,   //x
-				     -( e.clientY / window.innerHeight ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( e.clientX / renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
     mouse3D.unproject( camera );
     mouse3D.sub(camera.position);
@@ -396,16 +415,16 @@ function projectOntoPlane(screenX,screenY,thePlane,camera) {
     return false;
 }
 function findNearestIntersectingObject(clientX,clientY,camera,objects) {
-    var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   //x
-                                     -( event.clientY / window.innerHeight ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
+                                     -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
                                      0.5 );                                            //z
     
     //    var vector = new THREE.Vector3();
     //    vector.unproject(camera);
 
     var mouse = new THREE.Vector2();
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; 
+    mouse.x = (event.clientX / renderer.getSize().width) * 2 - 1;
+    mouse.y = -(event.clientY / (renderer.getSize().height)) * 2 + 1; 
 
     var raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
@@ -428,22 +447,27 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
 function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
     var mouse3D = new THREE.Vector3();
     // Get 3D point form the client x y
-    mouse3D.x = (screenX / window.innerWidth) * 2 - 1;
-    mouse3D.y = -(screenY / window.innerHeight) * 2 + 1;
+    mouse3D.x = (screenX / renderer.getSize().width) * 2 - 1;
+    mouse3D.y = -(screenY / renderer.getSize().height) * 2 + 1;
     mouse3D.z = 0.5;
     return projector.pickingRay(mouse3D, camera);
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    //controls.handleResize();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( window.innerWidth, (2*window.innerHeight)/3 );
 
-    SCREEN_WIDTH = window.innerWidth;
-    SCREEN_HEIGHT = window.innerHeight;
+
+    console.log(renderer.getSize().width+" "+renderer.getSize().height);
+    
+    camera.updateProjectionMatrix();
+
+
+    SCREEN_WIDTH = renderer.getSize().width;
+    SCREEN_HEIGHT = renderer.getSize().height;
 
     camera.radius = ( SCREEN_WIDTH + SCREEN_HEIGHT ) / 4;
+
+    cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
 }
 
 function animate() {
@@ -595,8 +619,11 @@ function updatePhysics(){
 	    var p = bodies[i].position;
 	    var p3 = new THREE.Vector3(p.x,p.y,p.z);
 	    var p3 = p3.project(camera);
-	    var x = (p3.x*window.innerWidth/2.0)+window.innerWidth/2;
-	    var y = (p3.y *window.innerHeight/2.0)+window.innerHeight/2;	    
+	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
+
+	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
+	    console.log("("+p3.x+","+p3.y+")");		    
+	    console.log("("+x+","+y+")");
 	    controls.draw(x,y,""+bodies[i].name);
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
@@ -1064,10 +1091,12 @@ function removeJointConstraint() {
     moveCnt = 0;
 }
 
-
-
-
-
+function execute_code(id) {
+    var command = $("#cli").val();
+    var result = eval(command);
+    console.log(command);
+    console.log(result);    
+}
 
 // Initialize Three.js
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -1076,6 +1105,9 @@ var scene = init_scene();
 initCannon(scene);
 finish_scene_preparation(scene);
 animate();
+
+
+
 
         </script>
     </body>
