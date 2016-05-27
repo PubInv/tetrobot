@@ -15,7 +15,6 @@
 
   </head>
     <body>
-    <h1> Welcome to the Gluss Playground, where you can you can program real glussbots through simulation. </h1>
     <div id="world"></div>
     <div id="control">
     <textarea id="cli" rows="8" cols="80">
@@ -43,7 +42,7 @@
 var dt = 1 / 60;
 
 var constraintDown = false;
-var camera, cameraOrtho, scene, renderer, gplane=false, clickMarker=false;
+var camera, cameraOrtho, scene, sceneOrtho, renderer, gplane=false, clickMarker=false;
 var geometry, material, mesh;
 var controls,time = Date.now();
 
@@ -53,30 +52,10 @@ var SCREEN_HEIGHT = 2*window.innerHeight/3.0;
 
 var jointBody, constrainedBody, mouseConstraint;
 
-var N = 4;
-
-var highest,lowest;
-
 var container, camera, scene, renderer, projector;
 
 var meshes=[], bodies=[];
 
-var global_computed_mesh;
-
-var sceneOrtho = new THREE.Scene();
-
-
-// This file is a significant departure from the
-// one that I create it from, which operated on
-// aribtrary STL files.  This developes a robot
-// itself.  However, it remains the case that
-// we keep a tight correlations between the
-// Bodies in the world the meshes (or other three.js objects)
-// in the scne.
-// In the STL world, it made sense to generate the bodies from the scene...
-// but in the case of modeling the robot it make more sense to
-// generate the bodies and then generate the scene from the bodies.
-var big_geo;
 
 // A "robot" is really a graph of vertices with connections.
 // In physical realization, the connections are actuators with length limits.
@@ -94,7 +73,7 @@ var robot_joints = [];
 // This is the cannon.js robot members.
 var robot_members = [];
 // This is a map of the robot links.
-var links_map = [];
+// var links_map = [];
 
 var getTexture = function () {
     var texture = new THREE.TextureLoader("./logo-tight.png");
@@ -160,6 +139,8 @@ function init_scene() {
     // scene
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+
+    sceneOrtho = new THREE.Scene();
 
     //
     renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -254,22 +235,9 @@ function addShadowedLight( x, y, z, color, intensity ) {
 
 // This needs to be changed to init the floor and ground together...
 function finish_scene_preparation(schen) {
-    // floor
-    //    geometry = new THREE.PlaneGeometry( 200, 200, 1, 1 );
-    //    geometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
     material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
-    //    THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
-    //    mesh = new THREE.Mesh( geometry, material );
-    //    mesh.castShadow = true;
-    //    mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
-    //    mesh.receiveShadow = true;
-    //    scene.add(mesh);
-
-
-
     container.appendChild( renderer.domElement );
-
     
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
@@ -280,7 +248,6 @@ function finish_scene_preparation(schen) {
     window.addEventListener("mousemove", onMouseMove, false );
     window.addEventListener("mousedown", onMouseDown, false );
     window.addEventListener("mouseup", onMouseUp, false );
-
 }
 
 function setClickMarker(x,y,z) {
@@ -306,8 +273,6 @@ function onMouseMove(e){
 					 0.5 );                                            //z
 	
 	mouse3D.unproject( camera );
-	//        mouse3D.sub( camera.position );                
-	//        mouse3D.normalize();
 
         var pos = projectOntoPlane(e.clientX,e.clientY,gplane,camera);
         if(pos){
@@ -419,9 +384,6 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
                                      -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
                                      0.5 );                                            //z
     
-    //    var vector = new THREE.Vector3();
-    //    vector.unproject(camera);
-
     var mouse = new THREE.Vector2();
     mouse.x = (event.clientX / renderer.getSize().width) * 2 - 1;
     mouse.y = -(event.clientY / (renderer.getSize().height)) * 2 + 1; 
@@ -455,16 +417,11 @@ function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
 
 function onWindowResize() {
     renderer.setSize( window.innerWidth, (2*window.innerHeight)/3 );
-
-
-    console.log(renderer.getSize().width+" "+renderer.getSize().height);
     
     camera.updateProjectionMatrix();
 
-
     SCREEN_WIDTH = renderer.getSize().width;
     SCREEN_HEIGHT = renderer.getSize().height;
-
     camera.radius = ( SCREEN_WIDTH + SCREEN_HEIGHT ) / 4;
 
     cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
@@ -483,8 +440,6 @@ var cylinderMesh = function( pointX, pointY )
     var direction = new THREE.Vector3().subVectors( pointY, pointX );
     var arrow = new THREE.ArrowHelper( direction, pointX );
 
-    // cylinder: radiusAtTop, radiusAtBottom, 
-    //     height, radiusSegments, heightSegments
     var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
 
     var edge = new THREE.Mesh( edgeGeometry, 
@@ -514,11 +469,6 @@ function orientMesh( mesh, pointX, pointY )
 function clear_text() {
     $("p").remove();
 }
-
-function updatePhysics(){
-    world.step(dt);
-    var color_scale = d3_scale.scalePlasma();
-    var mem_cnt = 0;
     var controls = new function () {
         this.size = 50;
         this.sprite = 0;
@@ -577,9 +527,13 @@ function updatePhysics(){
 			     controls.textcolor,controls.colorize);
         };
     };
+
+function updatePhysics(){
+    world.step(dt);
+    var color_scale = d3_scale.scalePlasma();
+    var mem_cnt = 0;
     controls.clear();
 
-    
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
 	var body = bodies[i];
@@ -633,12 +587,10 @@ function updatePhysics(){
     }
 }
 function render() {
-    
     renderer.render(scene, camera);
     renderer.autoClear = false;
     // This is for the sprites....
     renderer.render(sceneOrtho, cameraOrtho);
-    
 }
 
 function add_tet_model(world,scene) {
@@ -694,7 +646,6 @@ function create_box_and_mesh(world,scene,mass,size,v,scale_by) {
     
     //    var bbox = geometry.boundingBox;
 
-    
     mesh.castShadow = true;
     mesh.scale.set(scale_by, scale_by, scale_by );
     
@@ -717,15 +668,6 @@ Object.size = function(obj) {
 function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
-// toString override added to prototype of Foo class
-/* Link.prototype.toString = function()
-{
-    
-    return "{ a: "+vectorToString(this.a)+","+
-	"b: "+vectorToString(this.b)+"}";
-}
-
-*/
 
 // This basically needs to take the bodies, read their positions,
 // and update the geometry in the same way. Every Body has both
@@ -771,13 +713,8 @@ function generate_mesh_pairings_from_world(world,scene)
 	body_cnt++;
     };
 
-    var links_map = new Map();
+//    var links_map = new Map();
     var links = [];
-
-    // To add the springs we want to have the links_map computed
-    // This should really be computed from the robot somehow...
-    // So we iterate over the world, looking for the
-    // objects which are robot joints.
 
     for(var i = 0; i < robot_joints.length; i++) {
 	var joint = robot_joints[i];
@@ -828,15 +765,14 @@ function add_member_spring(a,b,world) {
     //     stiffness : stiffness,
     // 	damping : damping
     // });
-
-    var c = new CANNON.DistanceConstraint(a,b,restlength);
-    world.addConstraint(c);
-
     // Compute the force after each step
     // world.addEventListener("postStep",function(event){
     // 	spring.applyForce();
     // });
-
+    
+    var c = new CANNON.DistanceConstraint(a,b,restlength);
+    world.addConstraint(c);
+    
 }
 
 // To do a great job with this, we really need to know the
@@ -913,10 +849,8 @@ function load_NTetGlussBot(world,tets,pvec) {
 }
 
 function add_robot(world,scene) {
-
-    var scale_by = 0.1;
     var pvec = new CANNON.Vec3(0,20,0);
-    load_NTetGlussBot(world,3,pvec);
+    load_NTetGlussBot(world,5,pvec);
     var pairings = generate_mesh_pairings_from_world(world,scene);
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
@@ -1103,10 +1037,6 @@ var scene = init_scene();
 initCannon(scene);
 finish_scene_preparation(scene);
 animate();
-
-
-
-
         </script>
     </body>
 </html>
