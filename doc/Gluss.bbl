@@ -21,6 +21,14 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
+\bibitem{liljebäck2012snake}
+\BIBentryALTinterwordspacing
+P.~Liljeb{\"a}ck, K.~Pettersen, O.~Stavdahl, and J.~Gravdahl, \emph{Snake
+  Robots: Modelling, Mechatronics, and Control}, ser. Advances in Industrial
+  Control.\hskip 1em plus 0.5em minus 0.4em\relax Springer London, 2012.
+  [Online]. Available: \url{https://books.google.com/books?id=9knheIFml3IC}
+\BIBentrySTDinterwordspacing
+
 \bibitem{song2003spherical}
 \BIBentryALTinterwordspacing
 S.~Song, D.~Kwon, and W.~Kim, ``Spherical joint for coupling three or more
@@ -28,11 +36,53 @@ S.~Song, D.~Kwon, and W.~Kim, ``Spherical joint for coupling three or more
   Available: \url{http://www.google.com/patents/US6568871}
 \BIBentrySTDinterwordspacing
 
+\bibitem{ambrose1993building}
+\BIBentryALTinterwordspacing
+J.~Ambrose, \emph{Building Structures}.\hskip 1em plus 0.5em minus 0.4em\relax
+  Wiley, 1993. [Online]. Available:
+  \url{https://books.google.com/books?id=5Wjxjpedi4sC}
+\BIBentrySTDinterwordspacing
+
 \bibitem{richard1961synergetic}
 \BIBentryALTinterwordspacing
-B.~Richard, ``Synergetic building construction,'' May~30 1961, uS Patent
+R.~Fuller, ``Synergetic building construction,'' May~30 1961, uS Patent
   2,986,241. [Online]. Available:
   \url{https://www.google.com/patents/US2986241}
+\BIBentrySTDinterwordspacing
+
+\bibitem{fuller1982synergetics}
+\BIBentryALTinterwordspacing
+R.~Fuller and E.~Applewhite, \emph{Synergetics: explorations in the geometry of
+  thinking}.\hskip 1em plus 0.5em minus 0.4em\relax Macmillan, 1982. [Online].
+  Available: \url{https://books.google.com/books?id=G8baAAAAMAAJ}
+\BIBentrySTDinterwordspacing
+
+\bibitem{hirose1993biologically}
+\BIBentryALTinterwordspacing
+S.~Hirose, \emph{Biologically inspired robots: snake-like locomotors and
+  manipulators}, ser. Oxford science publications.\hskip 1em plus 0.5em minus
+  0.4em\relax Oxford University Press, 1993. [Online]. Available:
+  \url{https://books.google.com/books?id=TaIQAQAAMAAJ}
+\BIBentrySTDinterwordspacing
+
+\bibitem{paul2006}
+C.~Paul, F.~J. Valero-Cuevas, and H.~Lipson, ``Design and control of tensegrity
+  robots for locomotion,'' \emph{IEEE Transactions on Robotics}, vol.~22,
+  no.~5, pp. 944--957, 10 2006.
+
+\bibitem{géradin2001flexible}
+\BIBentryALTinterwordspacing
+M.~G{\'e}radin and A.~Cardona, \emph{Flexible multibody dynamics: a finite
+  element approach}.\hskip 1em plus 0.5em minus 0.4em\relax John Wiley, 2001.
+  [Online]. Available: \url{https://books.google.com/books?id=tEZSAAAAMAAJ}
+\BIBentrySTDinterwordspacing
+
+\bibitem{wildberger2005}
+\BIBentryALTinterwordspacing
+N.~J. Wildberger, \emph{Divine Proportions: Rational Trigonometry to Universal
+  Geometry}.\hskip 1em plus 0.5em minus 0.4em\relax Wild Egg Books, Sydney,
+  Australia, 2005. [Online]. Available:
+  \url{http://www.amazon.com/Divine-Proportions-Rational-Trigonometry-Universal/dp/097574920X/ref=sr_1_1?ie=UTF8&s=books&qid=1268101484&sr=1-1}
 \BIBentrySTDinterwordspacing
 
 \end{thebibliography}
