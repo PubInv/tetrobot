@@ -469,7 +469,7 @@ function orientMesh( mesh, pointX, pointY )
 function clear_text() {
     $("p").remove();
 }
-    var controls = new function () {
+    var sprite_controls = new function () {
         this.size = 50;
         this.sprite = 0;
         this.transparent = true;
@@ -523,8 +523,8 @@ function clear_text() {
 	};
 
         this.draw = function (x,y,message) {
-	    this.create(x,y,message,controls.size, controls.transparent, controls.opacity,
-			     controls.textcolor,controls.colorize);
+	    this.create(x,y,message,sprite_controls.size, sprite_controls.transparent, sprite_controls.opacity,
+			     sprite_controls.textcolor,sprite_controls.colorize);
         };
     };
 
@@ -532,7 +532,7 @@ function updatePhysics(){
     world.step(dt);
     var color_scale = d3_scale.scalePlasma();
     var mem_cnt = 0;
-    controls.clear();
+    sprite_controls.clear();
 
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
@@ -576,7 +576,7 @@ function updatePhysics(){
 	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
 
 	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
-	    controls.draw(x,y,""+bodies[i].name);
+	    sprite_controls.draw(x,y,""+bodies[i].name);
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
 	}
