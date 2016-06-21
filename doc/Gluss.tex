@@ -39,11 +39,23 @@
 The best introduction to this paper is to watch the 3:00 minute video of the
 walking robot, or \emph{glussbot}, which this paper describes:\\
 \indent \href{https://www.youtube.com/watch?v=1T8XSMhwKUE}{https://www.youtube.com/watch?v=1T8XSMhwKUE}.\\
-This paper introduces the concept of \emph{gluss}, explains how to build it,
+
+Between 14 and 21 years ago, Arthur C. Sanderson and his colleagues published a series of
+papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robots.
+The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished but the change
+in length of linear actuators, connected in a modular geometry based on the tetrahedron and octahedron.  Such a system
+requires a special joint which allows the actuators to remain aimed at the center of joints while supporting
+a certain amount of rotation about this center.  The TETROBOT used a joint called the CMS joint.
+
+This paper builds upon that work by introducing the concept of \emph{gluss}. It explains how to build it,
 introduces 3D-printable embodiments of
 a recently invented sperical joint, 
 and gives some results results related to the underlying geometry and math, as well as providing
-references to all of the open-source materials needed to duplicate and expand on this work.
+references to all of the open-source materials needed to duplicate and expand on this work. This is an
+open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
+hobbyist or researcher with a limited budget.  The devlopment of 3D printers, Bluetooth, microprocessors
+such as the Arduino, and inexpensive commercial actuators has made this possible.
+
 
 \subsection{Motivation}
 
