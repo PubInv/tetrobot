@@ -8,7 +8,7 @@ title: Gluss Pusher Main Page
 
 ## Premise 
 
-The Gluss Project seeks to build Gluss, a robotic material that moves like a slug but is strong like a truss. We are exploring using networks of linear acutators connected in triangular shapes to build strong spaceframes that can ooze into position.
+The Gluss Project seeks to build Gluss, a robotic material that moves like a slug but is strong like a truss. We are exploring using networks of linear actuators connected in triangular shapes to build strong space frames that can ooze into position. This a version of the TETROBOT concept from 20 years ago made accessible to hobbyist.
 
 The Gluss Project is a part of <a href="https://github.com/PubInv/PIFAH">Public Invention</a>, which seeks to invent things directly beneficial to all humanity without seeking profit or patents. The project was started in August, 2015.
 	  
