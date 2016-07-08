@@ -21,8 +21,17 @@
     Imagine enterring a command here.
     </textarea>
     <button type="button" onclick="execute_code(this)">
-    Execute
+    Execute    
+</button>
+    
+    <textarea id="pmodel" rows="8" cols="80">
+    The physcial model positions as JSON object will be rendered here.
+    </textarea>
+    <button type="button" onclick="render_physical_model(this)">
+    Execute    
     </button>
+
+
     
 
     </div>
@@ -78,6 +87,8 @@ var container, camera, scene, renderer, projector;
 
 var meshes=[], bodies=[];
 
+
+var NUMBER_OF_TETRAHEDRA = 3;
 
 // This is where the cannon.js joints are storied
 var robot_joints = [];
@@ -495,6 +506,7 @@ var sprite_controls = new function () {
         })
     };
 
+    /*
     this.create = function(x,y,message,size, transparent, opacity, textcolor, colorize) {
 	var fontsize = 128;
 	var ctx, texture, sprite, spriteMaterial, 
@@ -530,12 +542,51 @@ var sprite_controls = new function () {
 	sprite.position.set(x, y, 0);
 	//    sprite.velocityX = 1;
 
+	
 	sceneOrtho.add(sprite);
+	return sprite;
     };
+*/
+    
+    this.draw_and_create = function (sprite,x,y,message) {
+	var fontsize = 128;
+	var ctx, texture,
+	    spriteMaterial, 
+	    canvas = document.createElement('canvas');
+	ctx = canvas.getContext('2d');
+	ctx.font = fontsize + "px Arial";
 
-    this.draw = function (x,y,message) {
-	this.create(x,y,message,sprite_controls.size, sprite_controls.transparent, sprite_controls.opacity,
-		    sprite_controls.textcolor,sprite_controls.colorize);
+	// setting canvas width/height before ctx draw, else canvas is empty
+	canvas.width = ctx.measureText(message).width;
+	canvas.height = fontsize * 2; // fontsize * 1.5
+
+	// after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
+	ctx.font = fontsize + "px Arial";        
+	ctx.fillStyle = this.textcolor;        
+	ctx.fillText(message, 0, fontsize);
+
+	texture = new THREE.Texture(canvas);
+	texture.minFilter = THREE.LinearFilter; // NearestFilter;
+	texture.needsUpdate = true;
+
+	var spriteMaterial = new THREE.SpriteMaterial({
+	    opacity: this.opacity,
+	    color: this.colorize,
+	    transparent: this.transparent,
+	    map : texture});
+	
+	spriteMaterial.scaleByViewport = true;
+	spriteMaterial.blending = THREE.AdditiveBlending;
+
+        if (!sprite) {
+	    sprite = new THREE.Sprite(spriteMaterial);
+	}
+	
+	sprite.scale.set(this.size, this.size, this.size);
+	sprite.position.set(x, y, 0);
+	
+	sceneOrtho.add(sprite);
+	return sprite;
     };
 };
 
@@ -544,7 +595,7 @@ function updatePhysics(){
     var color_scale = d3_scale.scalePlasma();
     var mem_cnt = 0;
 
-    sprite_controls.clear();
+//    sprite_controls.clear();
 
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
@@ -582,13 +633,15 @@ function updatePhysics(){
 	    mesh.geometry.colorsNeedUpdate = true;
 
 	} else {
-	    var p = bodies[i].position;
+	    var p = body.position;
 	    var p3 = new THREE.Vector3(p.x,p.y,p.z);
 	    var p3 = p3.project(camera);
 	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
 
 	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
-	    sprite_controls.draw(x,y,""+bodies[i].name);
+	    
+	    body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
+
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
 	}
@@ -602,6 +655,7 @@ function render() {
     renderer.render(scene, camera);
     renderer.autoClear = false;
     // This is for the sprites....
+    // WARNING! Calling this is someohow causing a massive memorey leak and poor performance!
     renderer.render(sceneOrtho, cameraOrtho);
 }
 
@@ -862,7 +916,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 
 function add_robot(world,scene) {
     var pvec = new CANNON.Vec3(0,20,0);
-    load_NTetGlussBot(world,5,pvec);
+    load_NTetGlussBot(world,NUMBER_OF_TETRAHEDRA,pvec);
     var pairings = generate_mesh_pairings_from_world(world,scene);
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
@@ -1040,6 +1094,23 @@ function execute_code(id) {
     var result = eval(command);
     console.log(command);
     console.log(result);    
+}
+
+function render_physical_model(id) {
+    var pmodel = { x : 4, y : 5, z : 6};
+    var command = $("#pmodel").val(JSON.stringify(pmodel));
+}
+
+
+function extract_physical_node_model() {
+    var nodes = [];
+    for(var i = 0; i < bodies.length; i++) {
+	var bx = bodies[i];
+	if (bx.structureKind != "member") {
+	    nodes.push(new CANNON.Vec3(bx.position));
+	}
+	return nodes;
+	}
 }
 
 // Initialize Three.js
