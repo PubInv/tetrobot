@@ -42,7 +42,19 @@
     	<script src="./js/Projector.js"></script>	
     <script src="./js/STLLoader.js"></script>
     <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>    
-    <script src="./js/d3-scale.min.js"></script>
+ //   <script src="./js/d3-scale.min.js"></script>
+ //   <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-collection.v1.min.js"></script>
+<script src="https://d3js.org/d3-color.v1.min.js"></script>
+<script src="https://d3js.org/d3-format.v1.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-time.v1.min.js"></script>
+<script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale.v1.min.js"></script>
+
+    
     <script src="./js/OrbitControls.js"></script>
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
@@ -81,6 +93,16 @@ var MARGIN = 0;
 var SCREEN_WIDTH = window.innerWidth;
 var SCREEN_HEIGHT = 2*window.innerHeight/3.0;
 
+
+// These are in meters, measured joint-center to joint-center
+var MAX_EDGE_LENGTH = 0.460;
+var MIN_EDGE_LENGTH = 0.340;
+var MEDIAN_EDGE_LENGTH = (MAX_EDGE_LENGTH + MIN_EDGE_LENGTH)/2;
+var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
+
+var INITIAL_HEIGHT = 0.5;
+
+
 var jointBody, constrainedBody, mouseConstraint;
 
 var container, camera, scene, renderer, projector;
@@ -109,7 +131,7 @@ function push_body_mesh_pair(body,mesh) {
 
 function create_box(world,scene,i) {
     var mass = 5, radius = 1.3;
-    boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
+    boxShape = new CANNON.Sphere(JOINT_RADIUS);
     boxBody = new CANNON.Body({ mass: mass });
     boxBody.addShape(boxShape);
     boxBody.position.set(0,N,0);
@@ -118,7 +140,7 @@ function create_box(world,scene,i) {
     world.add(boxBody);
 
     // The mesh stuff
-    var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    var sphereGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32, 32 );
     var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
     
     var cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
@@ -128,7 +150,7 @@ function create_box(world,scene,i) {
 }
 
 function create_boxes(world,scene) {
-    var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    var cubeGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32, 32 );
     var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
 
     for(var i=0; i<N; i++){
@@ -172,7 +194,7 @@ function init_scene() {
 
     // camera
     camera = new THREE.PerspectiveCamera( 35, renderer.getSize().width / (renderer.getSize().height), 0.5, 10000 );
-    camera.position.set(150, 10, 0);
+    camera.position.set(3, 1, 0);
     var origin = new THREE.Vector3(0,0,0);
     camera.lookAt(origin);
     camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
@@ -274,7 +296,7 @@ function finish_scene_preparation(schen) {
 
 function setClickMarker(x,y,z) {
     if(!clickMarker){
-        var shape = new THREE.SphereGeometry(0.2, 8, 8);
+        var shape = new THREE.SphereGeometry(JOINT_RADIUS/4, 8, 8);
         clickMarker = new THREE.Mesh(shape, markerMaterial);
         scene.add(clickMarker);
     }
@@ -321,7 +343,7 @@ function onMouseDown(e){
     
     var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
     var pos = entity.point;
-    if(pos && entity.object.geometry instanceof THREE.BoxGeometry){
+    if(pos && entity.object.geometry instanceof THREE.SphereGeometry){
         constraintDown = true;
         // Set marker on contact point
         setClickMarker(pos.x,pos.y,pos.z,scene);
@@ -452,7 +474,7 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame( animate );
     //    controls.update();
-    updatePhysics();
+    updatePhysics();    
     render();
 }
 
@@ -506,48 +528,6 @@ var sprite_controls = new function () {
         })
     };
 
-    /*
-    this.create = function(x,y,message,size, transparent, opacity, textcolor, colorize) {
-	var fontsize = 128;
-	var ctx, texture, sprite, spriteMaterial, 
-	    canvas = document.createElement('canvas');
-	ctx = canvas.getContext('2d');
-	ctx.font = fontsize + "px Arial";
-
-	// setting canvas width/height before ctx draw, else canvas is empty
-	canvas.width = ctx.measureText(message).width;
-	canvas.height = fontsize * 2; // fontsize * 1.5
-
-	// after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
-	ctx.font = fontsize + "px Arial";        
-	ctx.fillStyle = textcolor;        
-	ctx.fillText(message, 0, fontsize);
-
-	texture = new THREE.Texture(canvas);
-	texture.minFilter = THREE.LinearFilter; // NearestFilter;
-	texture.needsUpdate = true;
-
-	var spriteMaterial = new THREE.SpriteMaterial({
-	    opacity: opacity,
-	    color: colorize,
-	    transparent: transparent,
-	    map : texture});
-	
-	spriteMaterial.scaleByViewport = true;
-	spriteMaterial.blending = THREE.AdditiveBlending;
-
-	var sprite = new THREE.Sprite(spriteMaterial);
-	
-	sprite.scale.set(size, size, size);
-	sprite.position.set(x, y, 0);
-	//    sprite.velocityX = 1;
-
-	
-	sceneOrtho.add(sprite);
-	return sprite;
-    };
-*/
-    
     this.draw_and_create = function (sprite,x,y,message) {
 	var fontsize = 128;
 	var ctx, texture,
@@ -590,9 +570,27 @@ var sprite_controls = new function () {
     };
 };
 
+// var color_scale = d3_scale.scaleRainbow().domain([MIN_EDGE_LENGTH, MAX_EDGE_LENGTH]);
+// var color_scale = d3_scale.scalePlasma();
+
+var color_scale = d3.scale.quantile().domain([MIN_EDGE_LENGTH, MAX_EDGE_LENGTH])
+    .range(['violet', 'indigo', 'blue-violet', 'blue', 'green', 'yellow', 'yellow-orange', 'orange', 'red-orange']);
+
+
+
+function get_member_color(len) {
+    if (len < MIN_EDGE_LENGTH)
+	return d3.rgb("red");
+    else if (len > MAX_EDGE_LENGTH)
+	return d3.rgb("red");
+    else {
+	var p = (len - MIN_EDGE_LENGTH) / (MAX_EDGE_LENGTH - MIN_EDGE_LENGTH);
+	return d3.rgb(color_scale(len));
+    }
+}
+
 function updatePhysics(){
     world.step(mirroredWorld.dt);
-    var color_scale = d3_scale.scalePlasma();
     var mem_cnt = 0;
 
 //    sprite_controls.clear();
@@ -618,14 +616,13 @@ function updatePhysics(){
 	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
 
 	    var len = ap.distanceTo(bp);
-	    var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
+	    var cd3 = get_member_color(len);
 
-	    // TODO: This needs to be computed from the real min and max, which I haven't set up yet.
-	    var d = len/(2*edge_length);
+
 	    var geometry = mesh.geometry;
 	    
 	    for(var j = 0; j < geometry.faces.length; j++) {
-		geometry.faces[j].color.setStyle( color_scale(d) );
+		geometry.faces[j].color.setStyle( cd3 );
 	    }
 
 	    mesh.geometry.verticesNeedUpdate = true;
@@ -659,11 +656,6 @@ function render() {
     renderer.render(sceneOrtho, cameraOrtho);
 }
 
-function add_tet_model(world,scene) {
-    create_boxes(world,scene);
-    add_tetrahedral_springs(world,scene);
-}
-
 function add_ground_plane(world,scene) {
 
     // Create a plane
@@ -690,7 +682,7 @@ function add_ground_plane(world,scene) {
 
     return [groundBody,mesh];
 }
-
+/*
 function create_box_and_mesh(world,scene,mass,size,v,scale_by) {
     var mass = 1;
     var body = new CANNON.Body({
@@ -720,6 +712,7 @@ function create_box_and_mesh(world,scene,mass,size,v,scale_by) {
     scene.add(mesh);
     return [boxBody,mesh];
 }
+*/
 var spring = [];
 
 Object.size = function(obj) {
@@ -767,14 +760,13 @@ function generate_mesh_pairings_from_world(world,scene)
     var body_cnt = 0;
     var mem_cnt = 0;
     // This is not yet physically modeling our system.
-    var size = 2.0;
+    var size = JOINT_RADIUS;
     function process_vertex(joint,v,results) {
-	var cubeGeo = new THREE.BoxGeometry( size,size,size );
+	var cubeGeo = new THREE.SphereGeometry( size,32,32 );
 	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
 	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
-	//	scene.add(mesh);
 	results.unshift([joint,mesh]);
 	body_cnt++;
     };
@@ -789,7 +781,7 @@ function generate_mesh_pairings_from_world(world,scene)
 
 
     // This in fact needs to be a lot more complicated...but one step at a time.
-    var w = 1.0;
+    var w = MEDIAN_EDGE_LENGTH / 20;
     for(var lin in robot_members) {
 	var link = robot_members[lin];
 	var a = link.a;
@@ -855,8 +847,6 @@ function alphabetic_name(n) {
     }
 }
 
-// TODO: can't be so cavalier with this when I set the physical geometry
-var edge_length = 10;
 
 function load_NTetGlussBot(world,tets,pvec) {
 
@@ -870,13 +860,13 @@ function load_NTetGlussBot(world,tets,pvec) {
     // Vn = (r cos(n*theta), r sin(n*theta), n*h)
 
     var n = tets+3;
-    var member_radius = edge_length/ 20;
+    var member_radius = MEDIAN_EDGE_LENGTH/ 20;
     var mass = 1.0;
     for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,edge_length);
+	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
 	var boxBody = new CANNON.Body({ mass: mass });
-	var    boxShape = new CANNON.Sphere(0.01);
+	var    boxShape = new CANNON.Sphere(JOINT_RADIUS);
 	boxBody.addShape(boxShape);
 	boxBody.position.set(v.x,v.y,v.z);
 	boxBody.mass = 1;
@@ -915,7 +905,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 }
 
 function add_robot(world,scene) {
-    var pvec = new CANNON.Vec3(0,20,0);
+    var pvec = new CANNON.Vec3(0,INITIAL_HEIGHT,0);
     load_NTetGlussBot(world,NUMBER_OF_TETRAHEDRA,pvec);
     var pairings = generate_mesh_pairings_from_world(world,scene);
     for(var i = 0; i < pairings.length; i++) {
@@ -947,7 +937,7 @@ function initCannon(){
     add_robot(world,scene);
 
     // Joint body
-    var shape = new CANNON.Sphere(0.1);
+    var shape = new CANNON.Sphere(JOINT_RADIUS);
     jointBody = new CANNON.Body({ mass: 0 });
     jointBody.addShape(shape);
     jointBody.collisionFilterGroup = 0;
@@ -986,7 +976,6 @@ function addMouseConstraint(x,y,z,body) {
     world.addConstraint(mouseConstraint);
 }
 
-var color_scale = d3_scale.scalePlasma();    
 
 var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
@@ -1001,7 +990,7 @@ function moveJointToPoint(x,y,z) {
 
     var body = mouseConstraint.attachedBody;
     
-    var w = 1.0;
+    var w = MEDIAN_EDGE_LENGTH / 20;
     moveCnt++;
     //    if ((moveCnt % 10) == 0) {
     //	console.log(moveCnt);
@@ -1018,10 +1007,10 @@ function moveJointToPoint(x,y,z) {
 		var bp = b.position;
 		var len = ap.distanceTo(bp);
 		
-		var cd3 = d3.rgb(color_scale(len/(2*edge_length)));
+		var cd3 = d3.rgb(color_scale(len));
 		
 		// TODO: This needs to be computed from the real min and max, which I haven't set up yet.
-		var d = len/(2*edge_length);
+		var d = len;
 		
 		var h = a.position.distanceTo(b.position);
 		var cubeGeo = new THREE.BoxGeometry( w,h,w );
@@ -1097,8 +1086,8 @@ function execute_code(id) {
 }
 
 function render_physical_model(id) {
-    var pmodel = { x : 4, y : 5, z : 6};
-    var command = $("#pmodel").val(JSON.stringify(pmodel));
+    var pmodel = extract_physical_node_model();
+    var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
 
@@ -1106,11 +1095,12 @@ function extract_physical_node_model() {
     var nodes = [];
     for(var i = 0; i < bodies.length; i++) {
 	var bx = bodies[i];
-	if (bx.structureKind != "member") {
-	    nodes.push(new CANNON.Vec3(bx.position));
+	if ((bx.structureKind != "member") && (bx.name != "floor")) {
+	    nodes.push({ name: bx.name,
+			 position: new CANNON.Vec3(bx.position.x,bx.position.y,bx.position.z) });
 	}
-	return nodes;
-	}
+    }
+    return nodes;
 }
 
 // Initialize Three.js
