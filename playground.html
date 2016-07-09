@@ -27,9 +27,19 @@
     <textarea id="pmodel" rows="8" cols="80">
     The physcial model positions as JSON object will be rendered here.
     </textarea>
+        
     <button type="button" onclick="render_physical_model(this)">
-    Execute    
-    </button>
+    Render Physical    
+</button>
+        <textarea id="amodel" rows="8" cols="80">
+    The physcial model positions as JSON object will be rendered here.
+    </textarea>
+    <button type="button" onclick="render_actuator_model()">
+    Render Actual
+</button>
+    
+</button>
+
 <div>
     <button type="button" onclick="double_size()">
     Double size
@@ -1062,6 +1072,14 @@ function render_physical_model(id) {
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
+function render_actuator_model(id) {
+    var pmodel = extract_physical_node_model();
+    
+    var am = model_to_actuator_space(pmodel);
+    
+    var command = $("#amodel").val(JSON.stringify(am,null,2));
+}
+
 
 function extract_physical_node_model() {
     var nodes = [];
@@ -1093,6 +1111,45 @@ function flat() {
     assume_pose(flat_pose);
 }
 
+function invert_actuator_map(am) {
+    var inversion = {};
+
+    for (var key in am) {
+	if (am.hasOwnProperty(key)) {
+	// key: the name of the object key
+	    // index: the ordinal position of the key within the object
+	    for(var k in am[key]) {
+		inversion[am[key][k]] = [key,k];
+	    }
+	}
+    };
+    return inversion;
+}
+
+function model_to_actuator_space(bodies) {
+    
+//    var pose = { A0: 0, A1: 100+mid, A2: 100+mid, A3: 300+lo, A4: mid, A5: mid,
+    //		 B0: 0, B1: 100+mid, B2: 100+mid, B3: 300+lo, B4: mid, B5: mid};
+    var pose = {};
+
+    for(var lin in robot_members) {
+	var mem = robot_members[lin];  
+	var a = mem.a;
+	var b = mem.b;
+	var d = actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0);
+	for (var key in inversion_actuator_map) {
+	    if (inversion_actuator_map.hasOwnProperty(key)) {
+		var link = inversion_actuator_map[key];
+		if ((link[0] == a.name) && (link[1] == b.name) ||
+		    (link[1] == a.name) && (link[0] == b.name)) {
+		    pose[key] = d;
+		}
+	    }
+	}
+    }
+
+    return pose;
+}
 
 function half_size() {
     factor_size(0.5);
@@ -1140,6 +1197,7 @@ function assume_pose(pose) {
     }
 }
 
+
 // To support bigger robots, I will have to allow numbering of these things.
 var actuator_map = { "A": { "B": "A3", "C": "A5", "D": "A4" },
 		     "B": { "C": "A0", "D": "A2", "E": "A1" },
@@ -1147,6 +1205,9 @@ var actuator_map = { "A": { "B": "A3", "C": "A5", "D": "A4" },
 		     "D": { "E": "B1", "F": "B4" },
 		     "E": {  "F":  "B3"}
 		   };
+
+var inversion_actuator_map = invert_actuator_map(actuator_map);
+        
 
 // Compute the actuator name between the two 
 function actuator(b1,b2) {
