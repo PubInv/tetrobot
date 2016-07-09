@@ -30,6 +30,21 @@
     <button type="button" onclick="render_physical_model(this)">
     Execute    
     </button>
+<div>
+    <button type="button" onclick="double_size()">
+    Double size
+</button>
+    <button type="button" onclick="half_size()">
+Half size
+</button>
+    <button type="button" onclick="flat()">
+Flat Pose
+</button>
+
+    <button type="button" onclick="regenerate()">
+    Regenerate
+</button>
+</div>
 
 
     
@@ -330,10 +345,6 @@ function onMouseDown(e){
     // Find mesh from a ray
     console.log(e); // you can inspect the click event
 
-    //    if (e.which === 3) { // right click = 3, left click = 1
-    //        alert("right click");
-    //    }
-
     var mouse3D = new THREE.Vector3( ( e.clientX / renderer.getSize().width ) * 2 - 1,   //x
 				     -( e.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
@@ -574,7 +585,7 @@ var sprite_controls = new function () {
 // var color_scale = d3_scale.scalePlasma();
 
 var color_scale = d3.scale.quantile().domain([MIN_EDGE_LENGTH, MAX_EDGE_LENGTH])
-    .range(['violet', 'indigo', 'blue-violet', 'blue', 'green', 'yellow', 'yellow-orange', 'orange', 'red-orange']);
+    .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
 
 
 
@@ -682,37 +693,7 @@ function add_ground_plane(world,scene) {
 
     return [groundBody,mesh];
 }
-/*
-function create_box_and_mesh(world,scene,mass,size,v,scale_by) {
-    var mass = 1;
-    var body = new CANNON.Body({
-        mass: mass
-    });
-    var    boxShape = new CANNON.Sphere(0.01);
-    var cubeGeo = new THREE.BoxGeometry( size,size,size );
-    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
-    var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
-    
-    var boxBody = new CANNON.Body({ mass: mass });
-    boxBody.addShape(boxShape);
-    boxBody.position.set(v.x,v.y,v.z);
-    boxBody.mass = 1;
-    boxBody.angularDamping = 0.9;
-    boxBody.linearDamping = 0.9;
-    
-    world.add(boxBody);
-    
-    //    var bbox = geometry.boundingBox;
 
-    mesh.castShadow = true;
-    mesh.scale.set(scale_by, scale_by, scale_by );
-    
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    return [boxBody,mesh];
-}
-*/
 var spring = [];
 
 Object.size = function(obj) {
@@ -728,6 +709,7 @@ function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
 
+/*
 // This basically needs to take the bodies, read their positions,
 // and update the geometry in the same way. Every Body has both
 // an "id" and "index" field, but I don't know how to keep the
@@ -746,6 +728,7 @@ function update_three_js_from_bodies(scene,bodies)
 	scene.add(b);
     }
 }
+*/
 
 function generate_mesh_pairings_from_world(world,scene)
 {
@@ -816,17 +799,6 @@ function add_member_spring(a,b,world) {
     var stiffness = 10;
     var damping = 0.3;
     restlength = a.position.distanceTo(b.position);
-    // var spring = new CANNON.Spring(a,b,{
-    // 	localAnchorA: new CANNON.Vec3(0,0,0),
-    //     localAnchorB: new CANNON.Vec3(0,0,0),
-    //     restLength : restlength,
-    //     stiffness : stiffness,
-    // 	damping : damping
-    // });
-    // Compute the force after each step
-    // world.addEventListener("postStep",function(event){
-    // 	spring.applyForce();
-    // });
     
     var c = new CANNON.DistanceConstraint(a,b,restlength);
     world.addConstraint(c);
@@ -1101,6 +1073,111 @@ function extract_physical_node_model() {
 	}
     }
     return nodes;
+}
+
+// Here I am developing some "poses" for fun.
+// This may allow us to simulate a gait.
+// This will require us to cross-reference the emacs-ctl.el file and
+// begin integration with that.
+// A pose exists in Actuator space rather than in cartesian space.
+var lo = 0;
+var mid = 450;
+var hi = 900;
+
+var flat_pose = { A0: 0, A1: 100+mid, A2: 100+mid, A3: 300+lo, A4: mid, A5: mid,
+		  B0: 0, B1: 100+mid, B2: 100+mid, B3: 300+lo, B4: mid, B5: mid};
+
+var actuator_to_length = d3.scale.linear().domain([0,1023]).range([MIN_EDGE_LENGTH,MAX_EDGE_LENGTH]);
+
+function flat() {
+    assume_pose(flat_pose);
+}
+
+
+function half_size() {
+    factor_size(0.5);
+}
+
+function double_size() {
+    factor_size(2.0);
+}
+
+function factor_size(f) {
+    
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    
+    for(var lin in robot_members) {
+	var link = robot_members[lin];  
+	var a = link.a;
+	var b = link.b;
+	var d = a.position.distanceTo(b.position);
+	var c = new CANNON.DistanceConstraint(a,b,d*f);
+	world.addConstraint(c);
+    }
+}
+
+function assume_pose(pose) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    
+    for(var lin in robot_members) {
+	var link = robot_members[lin];
+	var a = link.a;
+	var b = link.b;
+	var act = actuator(a.name,b.name);
+	var d = actuator_to_length(pose[act]);
+	var c = new CANNON.DistanceConstraint(a,b,d);
+	world.addConstraint(c);
+    }
+    var STEPS_TO_TAKE = 3;
+    for(var j = 0; j < STEPS_TO_TAKE; j++) {
+	updatePhysics();
+    }
+}
+
+// To support bigger robots, I will have to allow numbering of these things.
+var actuator_map = { "A": { "B": "A3", "C": "A5", "D": "A4" },
+		     "B": { "C": "A0", "D": "A2", "E": "A1" },
+		     "C": { "D": "B0", "E": "B2", "F": "B5"},
+		     "D": { "E": "B1", "F": "B4" },
+		     "E": {  "F":  "B3"}
+		   };
+
+// Compute the actuator name between the two 
+function actuator(b1,b2) {
+    return (b1 < b2) ?
+	actuator_map[b1][b2] : actuator_map[b2][b1];
+}
+
+// Compute the actuator name between the two 
+function regenerate() {
+    for(var i = 0; i < bodies.length; i++) {
+	var bx = bodies[i];
+	var mx = meshes[i];
+	if (bx.structureKind == "member") {
+	    scene.remove(meshes[i]);	    
+	}
+    }
+
+    var pairings = generate_mesh_pairings_from_world(world,scene);
+    for(var i = 0; i < pairings.length; i++) {
+	scene.add(pairings[i][1]);
+    }
+
+    // The timing here is making this asynchronous, which is not ideal...
+    pairings.forEach(function (item) {
+	push_body_mesh_pair(item[0],item[1]);
+    });
+
+    var STEPS_TO_TAKE = 3;
+    for(var j = 0; j < STEPS_TO_TAKE; j++) {
+	updatePhysics();
+    }
 }
 
 // Initialize Three.js
