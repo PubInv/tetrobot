@@ -35,12 +35,16 @@
     The physcial model positions as JSON object will be rendered here.
     </textarea>
     <button type="button" onclick="render_actuator_model()">
-    Render Actual
+    Render Actuators
 </button>
-    
+    <button type="button" onclick="rectify()">
+    Rectify
 </button>
 
 <div>
+    <button id="gravity_ctl" otype="button" onclick="toggle_gravity()" >
+Turn Gravity Off    
+</button>
     <button type="button" onclick="double_size()">
     Double size
 </button>
@@ -135,7 +139,7 @@ var container, camera, scene, renderer, projector;
 var meshes=[], bodies=[];
 
 
-var NUMBER_OF_TETRAHEDRA = 3;
+var NUMBER_OF_TETRAHEDRA = 5;
 
 // This is where the cannon.js joints are storied
 var robot_joints = [];
@@ -1079,6 +1083,48 @@ function render_actuator_model(id) {
     
     var command = $("#amodel").val(JSON.stringify(am,null,2));
 }
+function get_body_by_name(name) {
+    for(var i = 0; i < bodies.length; i++) {
+	var bx = bodies[i];
+	if ((bx.structureKind != "member") && (bx.name != "floor")) {
+	    if (bx.name == name) {
+		return bx;
+	    }
+	}
+    }
+}
+function set_constraints(am) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    for (var key in am) {
+	if (am.hasOwnProperty(key)) {
+	  var link = inversion_actuator_map[key];
+	    var a = get_body_by_name(link[0]);
+	    var b = get_body_by_name(link[1]);
+	    var d = a.position.distanceTo(b.position);
+	    var e = actuator_to_length(am[key]);
+	    console.log("am[key]" + am[key] + e);
+	    var c = new CANNON.DistanceConstraint(a,b,e);
+	    world.addConstraint(c);
+	}
+    }
+}
+
+function rectify(id) {
+    var pmodel = extract_physical_node_model();
+    
+    var am = model_to_actuator_space(pmodel);
+
+    for (var key in am) {
+	if (am.hasOwnProperty(key)) {
+	    am[key] = Math.min(Math.max(am[key],0),1023);
+	    console.log(key + " -> " + am[key]);	    
+	}
+    }
+    set_constraints(am);
+}
 
 
 function extract_physical_node_model() {
@@ -1125,11 +1171,9 @@ function invert_actuator_map(am) {
     };
     return inversion;
 }
-
-function model_to_actuator_space(bodies) {
     
-//    var pose = { A0: 0, A1: 100+mid, A2: 100+mid, A3: 300+lo, A4: mid, A5: mid,
-    //		 B0: 0, B1: 100+mid, B2: 100+mid, B3: 300+lo, B4: mid, B5: mid};
+    
+function model_to_actuator_space(bodies) {
     var pose = {};
 
     for(var lin in robot_members) {
@@ -1159,6 +1203,20 @@ function double_size() {
     factor_size(2.0);
 }
 
+var gravity_on = true;
+function toggle_gravity() {
+    if (gravity_on) {
+	gravity_on = false;
+	world.gravity.set(0,0,0);	
+	$("#gravity_ctl").html("Turn Gravity On");
+    } else {
+	gravity_on = true;
+	world.gravity.set(0,-5,0);
+	$("#gravity_ctl").html("Turn Gravity Off");
+    }
+}
+
+		       
 function factor_size(f) {
     
     for(var i = 0; i < world.constraints.length; i++) {
