@@ -42,8 +42,11 @@
 </button>
 
 <div>
-    <button id="gravity_ctl" otype="button" onclick="toggle_gravity()" >
+    <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
 Turn Gravity Off    
+</button>
+    <button id="auto_rectify_ctl" type="button" onclick="auto_rectify_toggle()" >
+Turn Auto Rectify Off
 </button>
     <button type="button" onclick="double_size()">
     Double size
@@ -109,6 +112,8 @@ var MirroredWorld = function() {
     this.dt = 1/60;
 };
 
+var BASIC_BODY_MASS = 1; // This is kilograms.
+
 var mirroredWorld = new MirroredWorld();
 var world;
 // var dt = 1 / 60;
@@ -148,6 +153,19 @@ var robot_members = [];
 // This is a map of the robot links.
 // var links_map = [];
 
+// An array of joints declared to be fixed in space,
+// accomplished with a constraint to a massless body, I guess.
+
+/*
+TODO: I need to increase the friction interactions somehow.
+
+Need a way to control the constraint force, in some time we want it to be much weaker than it currently is.
+
+*/
+
+
+var CONSTRAINT_FORCE_SMALL = 1.0;
+
 var getTexture = function () {
     var texture = new THREE.TextureLoader("./logo-tight.png");
     return texture;
@@ -156,36 +174,6 @@ var getTexture = function () {
 function push_body_mesh_pair(body,mesh) {
     meshes.push(mesh);
     bodies.push(body);
-}
-
-function create_box(world,scene,i) {
-    var mass = 5, radius = 1.3;
-    boxShape = new CANNON.Sphere(JOINT_RADIUS);
-    boxBody = new CANNON.Body({ mass: mass });
-    boxBody.addShape(boxShape);
-    boxBody.position.set(0,N,0);
-    boxBody.angularDamping = 0.9;
-    boxBody.linearDamping = 0.9;
-    world.add(boxBody);
-
-    // The mesh stuff
-    var sphereGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32, 32 );
-    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
-    
-    var cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
-    cubeMesh.castShadow = true;
-    scene.add(cubeMesh);
-    return [boxBody,cubeMesh];
-}
-
-function create_boxes(world,scene) {
-    var cubeGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32, 32 );
-    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888 } );
-
-    for(var i=0; i<N; i++){
-	var pair = create_box(world,scene,i);
-	push_body_mesh_pair(pair[0],pair[1]);
-    }
 }
 
 function establish_controls(camera,container) {
@@ -369,17 +357,35 @@ function onMouseDown(e){
     var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
     var pos = entity.point;
     if(pos && entity.object.geometry instanceof THREE.SphereGeometry){
-        constraintDown = true;
-        // Set marker on contact point
-        setClickMarker(pos.x,pos.y,pos.z,scene);
-
-        // Set the movement plane
-        setScreenPerpCenter(pos,camera);
-
         var idx = meshes.indexOf(entity.object);
-        if(idx !== -1){
-            addMouseConstraint(pos.x,pos.y,pos.z,bodies[idx]);
-        }
+
+	if (e.shiftKey) {
+	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
+	    // and we will visually represent that by turning the joint red, I guess.
+	    console.log(bodies[idx]);
+	    var b = bodies[idx];
+	    b.fixed_in_world = !b.fixed_in_world;
+	    if (b.fixed_in_world) {
+		b.mass = 0;
+		entity.object.material.color.setHex( 0xff0000 );		
+	    } else {
+		b.mass = BASIC_BODY_MASS;
+		entity.object.material.color.setHex( 0x0000ff );				
+	    }
+		b.updateMassProperties();	    
+	} else {
+            constraintDown = true;
+            // Set marker on contact point
+            setClickMarker(pos.x,pos.y,pos.z,scene);
+
+            // Set the movement plane
+            setScreenPerpCenter(pos,camera);
+
+
+            if(idx !== -1){
+		addMouseConstraint(pos.x,pos.y,pos.z,bodies[idx]);
+            }
+	}
     }
 }
 
@@ -414,6 +420,18 @@ function setScreenPerpCenter(point, camera) {
 }
 
 function onMouseUp(e) {
+	var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
+					 0.5 );                                            //z
+	
+	mouse3D.unproject( camera );
+
+        var pos = projectOntoPlane(e.clientX,e.clientY,gplane,camera);
+        if(pos){
+            setClickMarker(pos.x,pos.y,pos.z,scene);
+            moveJointToPoint(pos.x,pos.y,pos.z);
+        }
+    
     constraintDown = false;
     // remove the marker
     removeClickMarker();
@@ -605,9 +623,9 @@ var color_scale = d3.scale.quantile().domain([MIN_EDGE_LENGTH, MAX_EDGE_LENGTH])
 
 function get_member_color(len) {
     if (len < MIN_EDGE_LENGTH)
-	return d3.rgb("red");
+	return d3.rgb("black");
     else if (len > MAX_EDGE_LENGTH)
-	return d3.rgb("red");
+	return d3.rgb("black");
     else {
 	var p = (len - MIN_EDGE_LENGTH) / (MAX_EDGE_LENGTH - MIN_EDGE_LENGTH);
 	return d3.rgb(color_scale(len));
@@ -698,7 +716,7 @@ function add_ground_plane(world,scene) {
 
     var floorTexture = new THREE.ImageUtils.loadTexture( 'images/logo-white-background.png' );
     floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
-    floorTexture.repeat.set( 10, 10 );
+    floorTexture.repeat.set( 500, 500 );
     var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
     var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
     floorGeometry.position = new THREE.Vector3(0,0,0);
@@ -749,7 +767,7 @@ function generate_mesh_pairings_from_world(world,scene)
     var results = [];
     
     var vindex = 0;
-    var mass = 1;
+    var mass = BASIC_BODY_MASS;
     var index_map = {};
 
     var vertex_index = 0;
@@ -814,7 +832,7 @@ function add_member_spring(a,b,world) {
     var damping = 0.3;
     restlength = a.position.distanceTo(b.position);
     
-    var c = new CANNON.DistanceConstraint(a,b,restlength);
+    var c = new CANNON.DistanceConstraint(a,b,restlength,CONSTRAINT_FORCE_SMALL);
     world.addConstraint(c);
     
 }
@@ -847,7 +865,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 
     var n = tets+3;
     var member_radius = MEDIAN_EDGE_LENGTH/ 20;
-    var mass = 1.0;
+    var mass = BASIC_BODY_MASS;
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
@@ -931,6 +949,44 @@ function initCannon(){
     world.add(jointBody)
 }
 
+var FORCE_REGIME = "DISABLE";
+
+function updateConstraints(body) {
+        // Now we want to disable all attached length constraints (and actually add others)
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	if (c.name != "mouseConstraint"){
+	// Possibly we don't want to really disable these, but weaken them.
+	if (FORCE_REGIME == "STEP") {
+	    var d = c.bodyA.position.distanceTo(c.bodyB.position);
+
+	    var dp = Math.max(Math.min(d,MAX_EDGE_LENGTH),MIN_EDGE_LENGTH);
+	    var f;
+	    // r should be 1.0 when at the edge.
+
+	    // NOTE: This approach is fundamentally limited, and probably conceptually wrong!
+	    // The string of the spring should not increase as we exceed the length!!!
+	    // THIS IS FUNDAMENTALLY WRONG.
+	    var r = (d - MEDIAN_EDGE_LENGTH)/ ((MAX_EDGE_LENGTH - MIN_EDGE_LENGTH)/ 2);
+//	    if ((d < MAX_EDGE_LENGTH) && (d > MIN_EDGE_LENGTH)) {
+//		f = 0;
+//	    } else {
+//		f = CONSTRAINT_FORCE_SMALL*10;
+	    //	    }
+	    r = Math.max(r,0.4);
+	    var f = CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
+	    world.removeConstraint(c);
+	    var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
+	    world.addConstraint(n);
+
+	} else if (FORCE_REGIME == "DISABLE") {
+	    if ((c.bodyA == body) || (c.bodyB == body)) {
+		c.disable();
+	    } else if (FORCE_REGIME == "NONE") {
+	    }
+	}
+	}}
+}
 function addMouseConstraint(x,y,z,body) {
     // The cannon body constrained by the mouse joint
     constrainedBody = body;
@@ -945,18 +1001,14 @@ function addMouseConstraint(x,y,z,body) {
     // Move the cannon click marker particle to the click position
     jointBody.position.set(x,y,z);
 
-    // Now we want to disable all attached length constraints (and actually add others)
-    for(var i = 0; i < world.constraints.length; i++) {
-	var c = world.constraints[i];
-	if ((c.bodyA == body) || (c.bodyB == body)) {
-	    c.disable();
-	}
-    }
+    updateConstraints(body);
 
     // Create a new constraint
     // The pivot for the jointBody is zero
     mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, jointBody, new CANNON.Vec3(0,0,0));
+    mouseConstraint.name = "mouseConstraint";
     mouseConstraint.attachedBody = body;
+
 
     // Add the constriant to world
     world.addConstraint(mouseConstraint);
@@ -995,7 +1047,6 @@ function moveJointToPoint(x,y,z) {
 		
 		var cd3 = d3.rgb(color_scale(len));
 		
-		// TODO: This needs to be computed from the real min and max, which I haven't set up yet.
 		var d = len;
 		
 		var h = a.position.distanceTo(b.position);
@@ -1024,8 +1075,7 @@ function moveJointToPoint(x,y,z) {
 	
     }
 
-
-    // Could we here change the member lengths appropriately?
+    updateConstraints(null);
     mouseConstraint.update();
 }
 
@@ -1049,14 +1099,18 @@ function removeJointConstraint() {
 	
 	for(var i = 0; i < world.constraints.length; i++) {
 	    var c = world.constraints[i];
-	    if ((c.bodyA == body) || (c.bodyB == body)) {
+//	    if ((c.bodyA == body) || (c.bodyB == body)) {
 		var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
+		// HACK: This is an experiment...
+		if (auto_rectify_on) {
+		    newrestlength = Math.max(Math.min(newrestlength,MAX_EDGE_LENGTH),MIN_EDGE_LENGTH);
+		}
 		c.distance = newrestlength;
 		c.update();
 		c.enable();	    
-	    } else {
-	    	c.enable();
-	    }
+//	    } else {
+//	    	c.enable();
+//	    }
 	}
     }
     render_constraints();
@@ -1106,7 +1160,7 @@ function set_constraints(am) {
 	    var d = a.position.distanceTo(b.position);
 	    var e = actuator_to_length(am[key]);
 	    console.log("am[key]" + am[key] + e);
-	    var c = new CANNON.DistanceConstraint(a,b,e);
+	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_SMALL);
 	    world.addConstraint(c);
 	}
     }
@@ -1216,6 +1270,17 @@ function toggle_gravity() {
     }
 }
 
+var auto_rectify_on = true;
+function auto_rectify_toggle() {
+    if (auto_rectify_on) {
+	auto_rectify_on = false;
+	$("#auto_rectify_ctl").html("Turn Auto Rectify On");	
+    } else {
+	auto_rectify_on = true;
+	$("#auto_rectify_ctl").html("Turn Auto Rectify Off");	
+    }
+}
+
 		       
 function factor_size(f) {
     
@@ -1229,7 +1294,7 @@ function factor_size(f) {
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
-	var c = new CANNON.DistanceConstraint(a,b,d*f);
+	var c = new CANNON.DistanceConstraint(a,b,d*f,CONSTRAINT_FORCE_SMALL);
 	world.addConstraint(c);
     }
 }
@@ -1246,7 +1311,7 @@ function assume_pose(pose) {
 	var b = link.b;
 	var act = actuator(a.name,b.name);
 	var d = actuator_to_length(pose[act]);
-	var c = new CANNON.DistanceConstraint(a,b,d);
+	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_SMALL);
 	world.addConstraint(c);
     }
     var STEPS_TO_TAKE = 3;
