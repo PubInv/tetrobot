@@ -1322,20 +1322,155 @@ function assume_pose(pose) {
 
 
 // To support bigger robots, I will have to allow numbering of these things.
-var actuator_map = { "A": { "B": "A3", "C": "A5", "D": "A4" },
-		     "B": { "C": "A0", "D": "A2", "E": "A1" },
-		     "C": { "D": "B0", "E": "B2", "F": "B5"},
-		     "D": { "E": "B1", "F": "B4" },
-		     "E": {  "F":  "B3"}
+// This patten can be repeated.  Basically we order the links in the order in
+// which we fill in the nodes...
+// Not that this CANNOT be fully regular, since we must adjust at the
+// terminus based on the length, where we must break the patterns.
+// An alternative pattern would be to make the first tetradra irregular.
+// That is perhaps more sensible than what we have here.  Then each
+// additional controller can be added in a completely regular way.
+var actuator_map = { "A": { "B": "A0", "C": "A1", "D": "A2" },
+		     "B": { "C": "A3", "D": "A4", "E": "A5" },
+		     "C": { "D": "B0", "E": "B1", "F": "B2"},
+		     "D": { "E": "B3", "F": "B4", "G": "B5" },
+		     "E": { "F":  "C0", "G": "C1", "H": "C2"  },
+		     "F": { "G":  "C3", "H": "C4"  },
+		     "G": { "H": "C5"  },		     		     
 		   };
 
+
+
 var inversion_actuator_map = invert_actuator_map(actuator_map);
-        
+var ACTUATORS_PER_CONTROLLER = 6;
+function actuator_name_from_number(n) {
+    var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
+    var controller_name = alphabetic_name(controller);
+    var digit = n % ACTUATORS_PER_CONTROLLER;
+    return controller_name + digit;
+}
+function compute_body_number(name) {
+    if (name.length > 1) {
+	debugger;
+    }
+    return name.charCodeAt(0) - 65;
+}
+
+// return a pair of body names
+function find_bodies_from_actuator(name) {
+    var c = name.charCodeAt(0) - 65;
+    var d = name.charCodeAt(1) - "0".charCodeAt(0);
+    var n = ACTUATORS_PER_CONTROLLER * c + d;
+    if (n < 6) {
+	if (n == 0) {
+	    return [alphabetic_name(0),alphabetic_name(1)];	    
+	} else if (n == 1) {
+	    return [alphabetic_name(0),alphabetic_name(2)];	    
+	} else if (n == 2) {
+	    return [alphabetic_name(0),alphabetic_name(3)];	    
+	} else if (n == 3) {
+	    return [alphabetic_name(1),alphabetic_name(2)];	    
+	} else if (n == 4) {
+	    return [alphabetic_name(2),alphabetic_name(3)];	    
+	} else if (n == 5) {
+	    return [alphabetic_name(3),alphabetic_name(1)];	    
+	}
+    } else {
+	var hi = Math.floor((n - 6) / 3)+4;
+	var lo = hi - (3 -  (n % 3));
+	console.log("n,lo,hi = "+n+","+","+lo+","+hi);
+    return [alphabetic_name(lo),alphabetic_name(hi)];
+}
+
+}
+function test_find_bodies_from_actuator() {
+    
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "A"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+    
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "B"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "G"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+
+}
+
+// a and b are node names.
+function find_actuator(a,b) {
+    if (a == b)
+	debugger;
+
+    if (b < a) {
+	var t = a;
+	a = b;
+	b = t;
+    }
+    
+    // Without loss of generality, a < b.
+    var n;
+    if (b <= "D") {
+	if ((a == "A") && (b == "B")) {
+	    n = 0; 
+	} else if ((a == "A") && (b == "C")) {
+	    n = 1;
+	} else if ((a == "A") && (b == "D")) {
+	    n = 2;
+	} else if ((a == "B") && (b == "C")) {
+	    n = 3;
+	} else if ((a == "C") && (b == "D")) {
+	    n = 4;
+	} else if ((a == "B") && (b == "D")) {
+	    n = 5;
+	}
+    } else {
+	var k = compute_body_number(a);
+	var h = compute_body_number(b);
+	if ((h - k) > 3) {
+	    debugger;
+	}
+	n = 3 * ( h - 2 ) + (3 - (h - k));
+    }
+    return actuator_name_from_number(n);
+}
+
+function test_find_actuator() {
+    var x0 = find_actuator("A","B");
+    if (x0 != "A0")
+    {
+	debugger;
+    }
+    var x1 = find_actuator("E","B");
+    if (x1 != "B0") {
+	debugger;
+    }
+    var x2 = find_actuator("E","C");
+    if (x2 != "B1") {
+	debugger;
+    }
+    var x3 = find_actuator("F","E");
+    if (x3 != "B5") {
+	debugger;
+    }
+}
+
 
 // Compute the actuator name between the two 
 function actuator(b1,b2) {
-    return (b1 < b2) ?
-	actuator_map[b1][b2] : actuator_map[b2][b1];
+    return find_actuator(b1,b2);
+//    return (b1 < b2) ?
+//	actuator_map[b1][b2] : actuator_map[b2][b1];
 }
 
 // Compute the actuator name between the two 
