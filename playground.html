@@ -40,6 +40,9 @@
     <button type="button" onclick="rectify()">
     Rectify
 </button>
+    <button type="button" onclick="load_pose()">
+    Load Pose from JSON
+</button>
 
 <div>
     <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
@@ -66,6 +69,17 @@ Flat Pose
 
     
 
+</div>
+    <div>
+    <button type="button" onclick="disable_con()">
+    Disable Constraints On Manipulation
+</button>
+    <button type="button" onclick="allow_con()">
+    Allow Constraints On Manipulatin
+</button>
+    <button type="button" onclick="step_con()">
+    Use STEP MODE
+</button>
     </div>
     
         <script src="./js/three.js"></script>
@@ -951,6 +965,19 @@ function initCannon(){
 
 var FORCE_REGIME = "DISABLE";
 
+function disable_con() {
+    FORCE_REGIME = "DISABLE";
+}
+function allow_con() {
+    FORCE_REGIME = "NONE";    
+}
+function step_con() {
+    FORCE_REGIME = "STEP";    
+}
+
+function step_con() {
+}
+
 function updateConstraints(body) {
         // Now we want to disable all attached length constraints (and actually add others)
     for(var i = 0; i < world.constraints.length; i++) {
@@ -982,11 +1009,13 @@ function updateConstraints(body) {
 	} else if (FORCE_REGIME == "DISABLE") {
 	    if ((c.bodyA == body) || (c.bodyB == body)) {
 		c.disable();
-	    } else if (FORCE_REGIME == "NONE") {
 	    }
+	} else if (FORCE_REGIME == "NONE") {
 	}
-	}}
+	}
+    }
 }
+
 function addMouseConstraint(x,y,z,body) {
     // The cannon body constrained by the mouse joint
     constrainedBody = body;
@@ -1178,6 +1207,13 @@ function rectify(id) {
 	}
     }
     set_constraints(am);
+}
+
+function load_pose(id) {
+    var pose_string = $("#amodel").val();
+    var actuator_model = JSON.parse(pose_string);
+    
+    set_constraints(actuator_model);
 }
 
 
