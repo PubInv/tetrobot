@@ -2,7 +2,9 @@
 
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
-(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB)))
+(setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
+
+(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC)))
 (setq BAUD_RATE 19200)
 
 ;; This could be done automatically, but the benefit of that is small untill we have
@@ -20,7 +22,14 @@
 		     (B2 (B 2))
 		     (B3 (B 3))
 		     (B4 (B 4))
-		     (B5 (B 5))))
+		     (B5 (B 5))
+		     (C0 (C 0))
+		     (C1 (C 1))
+		     (C2 (C 2))
+		     (C3 (C 3))
+		     (C4 (C 4))
+		     (C5 (C 5))
+		     ))
 
 (setq LEFT-RIGHT-SYMMETRY
       '((A1 . A2) (B1 . B2) (A4 . A5) (B4 . B5)))
@@ -177,6 +186,13 @@
 (setq hi 900)
 (setq mid 450)
 
+;; It is probably that my magnetic joint changed this geometry in a way that
+;; I haven't measured...I need to create an adjustment.  It is unclear if this needs to be done in driver.
+
+(setq lo 0)
+(setq hi 900)
+(setq mid 450)
+
 ;; These are poses which are symmetric and have not mirror poses.
 ;; (But the could have opposites---are inversions a thing?
 (setq long-pose
@@ -191,6 +207,13 @@
       	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 300 lo)) (A4 ,mid) (A5 ,mid)
 	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,(+ 300 lo)) (B4 ,mid) (B5 ,mid)))
 
+;; This is with the magentic joints, that require a slightly different lengths due to the
+;; joint geometry.
+(setq flat-pose
+      `(
+      	   (A0 ,lo) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,(+ 200 lo)) (A4 ,mid) (A5 ,mid)
+	   (B0 ,mid) (B1 ,(+ 100 mid)) (B2 ,(+ 100 mid)) (B3 ,(+ 200 lo)) (B4 ,mid) (B5 ,mid)))
+
 (setq hunker-pose
       `(
       	   (A0 ,hi) (A1 ,(+ 100 mid)) (A2 ,(+ 100 mid)) (A3 ,lo) (A4 ,hi) (A5 ,hi)
@@ -204,6 +227,12 @@
 	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,hi)
 	   ))
 
+(setq lean-forward-pose
+      `(
+      	   (A0 ,lo) (A1 ,hi) (A2 ,hi) (A3 ,lo)
+	   (B0 ,mid) (B1 ,hi) (B2 ,hi) (B3 ,(+ hi 100))
+	   ))
+
 (setq lean-back-pose
       (mirror-back-front lean-forward-pose))
 
@@ -212,10 +241,15 @@
       	   (A0 ,(+ lo 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
 	   (B2 ,hi) (B1 ,lo) (B3 ,hi)))
 
+(setq lean-right-ppose-orig
+      `(
+      	   (A0 ,(+ mid -100)) (A2 ,hi) (A1 ,lo) (A3 ,mid) 
+	   (B2 ,hi) (B1 ,lo) (B3 ,mid)))
+
 (setq lean-right-ppose
       `(
-      	   (A0 ,(+ mid 100)) (A2 ,hi) (A1 ,lo) (A3 ,lo)
-	   (B2 ,hi) (B1 ,lo) (A3 ,lo)))
+      	   (A0 ,(+ lo 0 )) (A2 ,hi) (A1 ,(+ lo 150)) (A3 ,lo) (A4 ,lo) (A5 ,mid)
+	   (B0 ,mid)  (B1 ,(+ lo 150)) (B2 ,hi) (B3 ,lo) (B4 ,lo) (B5 ,mid)))
 
 (setq lean-left-ppose
       (mirror-left-right lean-right-ppose))
@@ -307,6 +341,12 @@
 	(B3 ,mid)
 	))
 
+(setq front-left-down-ppose
+      `(
+	(A1 ,hi) (A2 ,(+ 100 lo)) (A3 ,mid) (A4 ,hi) (A5 ,lo)
+	 (B3 ,(+ mid -100))
+	))
+
 (setq back-right-down-ppose
       (mirror-back-front front-left-down-ppose))
 
@@ -319,8 +359,8 @@
 
 (setq left-dn-back-ppose
       `(
-	(A0 ,lo) (A1 ,mid) (A2 ,mid) (A5 ,hi)
-	(B0 ,hi) (B2, mid) (B3 ,lo) (B5 ,lo)
+	(A0 ,lo) (A1 ,mid) (A2 ,(+ mid 200)) (A5 ,hi)
+	(B0 ,hi) (B2 ,(+ mid 200)) (B3 ,lo) (B5 ,lo)
 	))
 
 
@@ -328,8 +368,8 @@
 
 (setq front-out-ppose
       `(
-	(A0 ,mid) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
-	(B3 ,mid)
+	(A0 ,(+ mid -100)) (A1 ,lo) (A2 ,lo) (A3 ,lo) (A4 ,hi) (A5 ,hi)
+	(B3 ,(+ mid -200))
 	))
 
 (setq front-out-short-ppose
@@ -468,8 +508,27 @@
     (dance move-forward-poses)
     )
 
+;; This sequence works pretty well.
+(setq scoot-forward-steps
+      '(
+	(flat) (lean-back) (front-up) (front-out)
+	(lean-forward)
+	(back-in)
+	(lean-right)
+	(left-f)
+	(left-down-f)
+	(lean-left)
+	(right-f)
+	(right-down-f)
+	(lean-forward)
+	(back-in)
+	(lean-back)
+	(flat)
+	))
 
-
+(defun scoot-forward (&optional sym)
+  (fdance scoot-forward-steps)
+  )
 
 (defun move-forward-3 (&optional sym)
   (let ((com move-forward-steps))
@@ -515,7 +574,7 @@
       )
 
 
-(defun test-turn-rightUntitled event ()
+(defun test-turn-right ()
   "Test by making the gluss bot step forward and then back"
   (dance
    (mapcar #'mirror-left-right
@@ -957,6 +1016,14 @@ Return the results of all forms as a list."
   (p '((B5 500) (A4 400 ) (B3 200)))
   )
 
+(defun test-a2 ()
+  (p '((A2 900)))
+  )
+
+(defun test-a3 ()
+  (p '((A3 900)))
+  )
+
 (defun number-controllers-affected (ps)
   (let ((found))
     (mapcar (lambda (p)
@@ -1249,4 +1316,69 @@ Return the results of all forms as a list."
    (equal (mirror-back-front reach-f-ppose)
 	  reach-b-ppose))
   ))
+
+;; Demo sketch (in scratch)
+;; (load "~/PubInv/gluss-demo/emacs-ctl.el")
+;; (init)
+;; (turn-left)
+;; (small)
+;; (big)
+;; (long)
+;; (move-forward)
+;; (test-step-backward)
+
+
+;; Here begins my attempt to deal with the 5-tet glussbot
+;; In thoery this pose puts 5 feet on the ground!
+;; {
+;;   "A0": "442",
+;;   "A1": "640",
+;;   "A2": "81",
+;;   "A3": "615",
+;;   "A4": "853",
+;;   "A5": "540",
+;;   "B0": "50",
+;;   "B1": "843",
+;;   "B2": "612",
+;;   "B3": "423",
+;;   "B4": "997",
+;;   "B5": "928",
+;;   "C0": "420",
+;;   "C1": "856",
+;;   "C2": "267"
+;;   "C3": "488",
+;;   "C4": "760",
+;;   "C5": "65",
+;; }
+
+;; This transliteration did not lay flat, which suggests that I
+;; have some measurement wrong or am miscalculationg, but it is
+;; close enough that I can try to adjust it by hand below.
+(setq tet5-flat5
+      `(
+	(A0 442) (A1 640) (A2 81) (A3 615) (A4 853) (A5 540)
+	(B0 50) (B1 843) (B2 612) (B3 423) (B4 997) (B5 928)
+	(C0 420) (C1 856) (C2 267) (C3 488) (C4 760) (C5 65)	
+	))
+
+;; This actually lays everything flat!  I am prety happy with this!
+;; This means that we can probably have a stable basis for
+;; various modes of locomotion!
+;; We can probably produce a modified hexa-pod like gait
+;; that posssibly reaquires three distinct steps.
+(setq tet5-flat5
+      `(
+	(A0 300) (A1 640) (A2 440) (A3 615) (A4 1000) (A5 540)
+	(B0 150) (B1 600) (B2 612) (B3 223) (B4 900) (B5 1000)
+	(C0 520) (C1 856) (C2 267) (C3 330) (C4 1000) (C5 65)	
+	))
+
+(defun flat5 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-flat5 msym)
+  ))
+
+
+
 
