@@ -34,8 +34,12 @@
         <textarea id="amodel" rows="8" cols="80">
     The physcial model positions as JSON object will be rendered here.
     </textarea>
+<div>    
     <button type="button" onclick="render_actuator_model()">
     Render Actuators
+</button>
+    <button type="button" onclick="render_actuator_model('escaped')">
+    Render Actuators Esacped
 </button>
     <button type="button" onclick="rectify()">
     Rectify
@@ -43,14 +47,41 @@
     <button type="button" onclick="load_pose()">
     Load Pose from JSON
 </button>
+    
+    <span>
+    <button type="button" onclick="name_pose()">
+    Name Pose
+</button>
+    Pose Name:
+    <input id="posename" type="text" name="pose"><br>
+    </span>
+    <p id="poslist"></p>
+    </div>
 
+    <div>
+
+    <span>
+    <button type="button" onclick="execute_gait()">
+    Execute Gait
+</button>
+    Gait:
+    <textarea id="gait" rows="8" cols="80">
+    </textarea>
+
+    </span>
+
+
+    </div>
 <div>
     <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
 Turn Gravity Off    
 </button>
     <button id="auto_rectify_ctl" type="button" onclick="auto_rectify_toggle()" >
-Turn Auto Rectify Off
+Turn Auto Rectify On
 </button>
+
+</div>
+    <div>
     <button type="button" onclick="double_size()">
     Double size
 </button>
@@ -60,15 +91,10 @@ Half size
     <button type="button" onclick="flat()">
 Flat Pose
 </button>
-
     <button type="button" onclick="regenerate()">
     Regenerate
 </button>
-</div>
-
-
-    
-
+    </div>
 </div>
     <div>
     <button type="button" onclick="disable_con()">
@@ -150,6 +176,8 @@ var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
 var INITIAL_HEIGHT = 0.5;
 
+var Y_GRAVITY_FORCE = -5;
+
 
 var jointBody, constrainedBody, mouseConstraint;
 
@@ -179,6 +207,7 @@ Need a way to control the constraint force, in some time we want it to be much w
 
 
 var CONSTRAINT_FORCE_SMALL = 1.0;
+var CONSTRAINT_FORCE_LARGE = 1000.0;
 
 var getTexture = function () {
     var texture = new THREE.TextureLoader("./logo-tight.png");
@@ -942,7 +971,7 @@ function initCannon(){
     world.quatNormalizeSkip = 0;
     world.quatNormalizeFast = false;
 
-    world.gravity.set(0,-5,0);
+    world.gravity.set(0,Y_GRAVITY_FORCE,0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
     var item = add_ground_plane(world,scene)
@@ -1041,6 +1070,8 @@ function addMouseConstraint(x,y,z,body) {
 
     // Add the constriant to world
     world.addConstraint(mouseConstraint);
+    // We want to turn gravity offf while we are editing....
+    world.gravity.set(0,0,0);
 }
 
 
@@ -1142,9 +1173,14 @@ function removeJointConstraint() {
 //	    }
 	}
     }
-    render_constraints();
+//    render_constraints();
     mouseConstraint = false;
     moveCnt = 0;
+
+    // Turn gravity back on...
+        // We want to turn gravity offf while we are editing....
+    world.gravity.set(0,Y_GRAVITY_FORCE,0);
+
 }
 
 function execute_code(id) {
@@ -1161,12 +1197,14 @@ function render_physical_model(id) {
 
 // This is now rendering in an "emacs-ready" way --- that needs to be
 // made clear.
-function render_actuator_model(id) {
+function render_actuator_model(form) {
     var pmodel = extract_physical_node_model();
     
     var am = model_to_actuator_space(pmodel);
     var x = JSON.stringify(am,null,2);
-    var command = $("#amodel").val('"'+x.replace(/"/gi,'\\"')+'"');
+    if (form === 'escaped')
+	x = '"'+x.replace(/"/gi,'\\"')+'"';
+    var command = $("#amodel").val(x);
 }
 function get_body_by_name(name) {
     for(var i = 0; i < bodies.length; i++) {
@@ -1191,8 +1229,7 @@ function set_constraints(am) {
 	    var b = get_body_by_name(link[1]);
 	    var d = a.position.distanceTo(b.position);
 	    var e = actuator_to_length(am[key]);
-	    console.log("am[key]" + am[key] + e);
-	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_SMALL);
+	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_LARGE);
 	    world.addConstraint(c);
 	}
     }
@@ -1206,7 +1243,6 @@ function rectify(id) {
     for (var key in am) {
 	if (am.hasOwnProperty(key)) {
 	    am[key] = Math.min(Math.max(am[key],0),1023);
-	    console.log(key + " -> " + am[key]);	    
 	}
     }
     set_constraints(am);
@@ -1222,6 +1258,33 @@ function load_pose(id) {
     set_constraints(actuator_model);
 }
 
+function name_pose(id) {
+    var pmodel = extract_physical_node_model();
+    var am = model_to_actuator_space(pmodel);
+    var name = $("#posename").val();
+    localStorage.setItem(name, JSON.stringify(am));
+    update_poses();
+}
+
+function update_poses() {
+    var names = "";
+    for (var i = 0; i < localStorage.length; i++){
+	names += localStorage.key(i) + " ";
+    }
+    $("#poslist").text(names);
+}
+var TIME_BETWEEN_POSES_MS = 1000;
+function execute_gait() {
+    var gait = $("#gait").val();
+    var pose_names = gait.split(" ");
+    for(var i = 0; i < pose_names.length; i++) {
+	var am = pose_names[i];
+	var pose = JSON.parse(localStorage.getItem(am));
+	setTimeout(function(model){ set_constraints(model); regenerate(); },
+		   i*TIME_BETWEEN_POSES_MS,
+		   pose);
+    }
+}
 
 function extract_physical_node_model() {
     var nodes = [];
@@ -1253,24 +1316,6 @@ function flat() {
     assume_pose(flat_pose);
 }
 
-/*
-function invert_actuator_map(am) {
-    var inversion = {};
-
-    for (var key in am) {
-	if (am.hasOwnProperty(key)) {
-	// key: the name of the object key
-	    // index: the ordinal position of the key within the object
-	    for(var k in am[key]) {
-		inversion[am[key][k]] = [key,k];
-	    }
-	}
-    };
-    return inversion;
-}
-*/
-    
-    
 function model_to_actuator_space(bodies) {
     var pose = {};
 
@@ -1307,7 +1352,7 @@ function toggle_gravity() {
     }
 }
 
-var auto_rectify_on = true;
+var auto_rectify_on = false;
 function auto_rectify_toggle() {
     if (auto_rectify_on) {
 	auto_rectify_on = false;
@@ -1351,7 +1396,7 @@ function assume_pose(pose) {
 	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_SMALL);
 	world.addConstraint(c);
     }
-    var STEPS_TO_TAKE = 3;
+    var STEPS_TO_TAKE = 30;
     for(var j = 0; j < STEPS_TO_TAKE; j++) {
 	updatePhysics();
     }
@@ -1370,21 +1415,6 @@ function assume_pose(pose) {
 
 // These are now obsolete and must be removed!!
 
-/*
-var actuator_map = { "A": { "B": "A0", "C": "A1", "D": "A2" },
-		     "B": { "C": "A3", "D": "A4", "E": "A5" },
-		     "C": { "D": "B0", "E": "B1", "F": "B2"},
-		     "D": { "E": "B3", "F": "B4", "G": "B5" },
-		     "E": { "F":  "C0", "G": "C1", "H": "C2"  },
-		     "F": { "G":  "C3", "H": "C4"  },
-		     "G": { "H": "C5"  },		     		     
-		   };
-
-
-
-var inversion_actuator_map = invert_actuator_map(actuator_map);
-
-*/
 var ACTUATORS_PER_CONTROLLER = 6;
 function actuator_name_from_number(n) {
     var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
@@ -1421,7 +1451,6 @@ function find_bodies_from_actuator(name) {
     } else {
 	var hi = Math.floor((n - 6) / 3)+4;
 	var lo = hi - (3 -  (n % 3));
-	console.log("n,lo,hi = "+n+","+","+lo+","+hi);
     return [alphabetic_name(lo),alphabetic_name(hi)];
 }
 
