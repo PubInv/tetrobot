@@ -143,7 +143,7 @@ var SCREEN_HEIGHT = 2*window.innerHeight/3.0;
 
 
 // These are in meters, measured joint-center to joint-center
-var MAX_EDGE_LENGTH = 0.460;
+var MAX_EDGE_LENGTH = 0.470;
 var MIN_EDGE_LENGTH = 0.340;
 var MEDIAN_EDGE_LENGTH = (MAX_EDGE_LENGTH + MIN_EDGE_LENGTH)/2;
 var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
@@ -1159,12 +1159,14 @@ function render_physical_model(id) {
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
+// This is now rendering in an "emacs-ready" way --- that needs to be
+// made clear.
 function render_actuator_model(id) {
     var pmodel = extract_physical_node_model();
     
     var am = model_to_actuator_space(pmodel);
-    
-    var command = $("#amodel").val(JSON.stringify(am,null,2));
+    var x = JSON.stringify(am,null,2);
+    var command = $("#amodel").val('"'+x.replace(/"/gi,'\\"')+'"');
 }
 function get_body_by_name(name) {
     for(var i = 0; i < bodies.length; i++) {
@@ -1183,7 +1185,8 @@ function set_constraints(am) {
     }
     for (var key in am) {
 	if (am.hasOwnProperty(key)) {
-	  var link = inversion_actuator_map[key];
+	    //	  var link = inversion_actuator_map[key];
+	    var link  = find_bodies_from_actuator(key);
 	    var a = get_body_by_name(link[0]);
 	    var b = get_body_by_name(link[1]);
 	    var d = a.position.distanceTo(b.position);
@@ -1211,7 +1214,10 @@ function rectify(id) {
 
 function load_pose(id) {
     var pose_string = $("#amodel").val();
-    var actuator_model = JSON.parse(pose_string);
+
+    var unescaped = pose_string.replace(/\\\"/g,"\"");
+    
+    var actuator_model = JSON.parse(unescaped);
     
     set_constraints(actuator_model);
 }
@@ -1247,6 +1253,7 @@ function flat() {
     assume_pose(flat_pose);
 }
 
+/*
 function invert_actuator_map(am) {
     var inversion = {};
 
@@ -1261,6 +1268,7 @@ function invert_actuator_map(am) {
     };
     return inversion;
 }
+*/
     
     
 function model_to_actuator_space(bodies) {
@@ -1271,15 +1279,8 @@ function model_to_actuator_space(bodies) {
 	var a = mem.a;
 	var b = mem.b;
 	var d = actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0);
-	for (var key in inversion_actuator_map) {
-	    if (inversion_actuator_map.hasOwnProperty(key)) {
-		var link = inversion_actuator_map[key];
-		if ((link[0] == a.name) && (link[1] == b.name) ||
-		    (link[1] == a.name) && (link[0] == b.name)) {
-		    pose[key] = d;
-		}
-	    }
-	}
+	var actuator_name = find_actuator(a.name,b.name);
+	pose[actuator_name] = d;
     }
 
     return pose;
@@ -1365,6 +1366,11 @@ function assume_pose(pose) {
 // An alternative pattern would be to make the first tetradra irregular.
 // That is perhaps more sensible than what we have here.  Then each
 // additional controller can be added in a completely regular way.
+
+
+// These are now obsolete and must be removed!!
+
+/*
 var actuator_map = { "A": { "B": "A0", "C": "A1", "D": "A2" },
 		     "B": { "C": "A3", "D": "A4", "E": "A5" },
 		     "C": { "D": "B0", "E": "B1", "F": "B2"},
@@ -1377,6 +1383,8 @@ var actuator_map = { "A": { "B": "A0", "C": "A1", "D": "A2" },
 
 
 var inversion_actuator_map = invert_actuator_map(actuator_map);
+
+*/
 var ACTUATORS_PER_CONTROLLER = 6;
 function actuator_name_from_number(n) {
     var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
