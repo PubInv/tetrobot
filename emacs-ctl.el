@@ -1,4 +1,5 @@
 (require 'cl)
+(require 'rdp)
 
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
@@ -1351,6 +1352,29 @@ Return the results of all forms as a list."
 ;;   "C5": "65",
 ;; }
 
+
+;; Another geometry which is flat in the theory of playground:
+;; {
+;;   "A0": "747",
+;;   "A1": "764",
+;;   "A2": "818",
+;;   "A3": "747",
+;;   "A4": "318",
+;;   "A5": "989",
+;;   "B0": "326",
+;;   "B1": "965",
+;;   "B2": "292",
+;;   "B3": "557",
+;;   "B4": "972",
+;;   "B5": "716",
+;;   "C0": "48",
+;;   "C1": "373",
+;;   "C2": "330",
+;;   "C3": "991"
+;;   "C4": "973",
+;;   "C5": "318",
+;; }
+
 ;; This transliteration did not lay flat, which suggests that I
 ;; have some measurement wrong or am miscalculationg, but it is
 ;; close enough that I can try to adjust it by hand below.
@@ -1368,17 +1392,312 @@ Return the results of all forms as a list."
 ;; that posssibly reaquires three distinct steps.
 (setq tet5-flat5
       `(
-	(A0 300) (A1 640) (A2 440) (A3 615) (A4 1000) (A5 540)
-	(B0 150) (B1 600) (B2 612) (B3 223) (B4 900) (B5 1000)
-	(C0 520) (C1 856) (C2 267) (C3 330) (C4 1000) (C5 65)	
+	(A0 747) (A1 764) (A2 818) (A3 747) (A4 318) (A5 1023)
+	(B0 326) (B1 965) (B2 292) (B3 557) (B4 972) (B5 716)
+	(C0 48) (C1 373) (C2 330) (C3 330) (C4 973) (C5 318)	
+	))
+
+
+;; THIS DOES NOT MATCH THE PLAYGROUND, AND  DON'T KNOW WHY!!!
+(setq tet5-flat5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 595) (A4 800) (A5 672)
+	(B0 302) (B1 991) (B2 584) (B3 301) (B4 1018) (B5 516)
+	(C0 437) (C1 473) (C2 669) (C3 669) (C4 636) (C5 242)	
 	))
 
 (defun flat5 (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
      (p tet5-flat5 msym)
+     ))
+
+(setq test
+      `((A4 750)))
+
+(defun test5 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p test msym)
   ))
 
 
+(defun json (pose)
+  (if (atom pose)
+      (format "\"%s\"" pose)
+    (if (consp (car pose))
+	(format "{ %s }" (mapconcat 'identity (mapcar 'json  pose) ","))
+	(if (and (= (length pose) 2) (symbolp (car pose)))
+	    (let ((a (json (car pose)))
+		  (b (json (cadr pose)))
+		  )
+	      (format "%s : %s" a b)
+	      )
+	  )
+	)
+    )
+  )
+
+;; This is a "Reach up" pose"
+;; {
+;;   "A0": "806",
+;;   "A1": "1023",
+;;   "A2": "21",
+;;   "A3": "441",
+;;   "A4": "355",
+;;   "A5": "807",
+;;   "B0": "319",
+;;   "B1": "633",
+;;   "B2": "883",
+;;   "B3": "1023",
+;;   "B4": "645",
+;;   "B5": "84",
+;;   "C0": "97",
+;;   "C1": "924",
+;;   "C2": "51"
+;;   "C3": "961",
+;;   "C4": "226",
+;;   "C5": "17",
+;; }
+
+(setq tet5-rup
+      `(
+	(A0 806) (A1 1023) (A2 21) (A3 441) (A4 355) (A5 807)
+	(B0 319) (B1 633) (B2 883) (B3 1023) (B4 645) (B5 84)
+	(C0 97) (C1 924) (C2 51) (C3 961) (C4 226) (C5 17)	
+	))
+
+(defun rup5 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-rup msym)
+     ))
 
 
+;; Triangle test for calibration with playground.html
+;; 
+
+(setq tet5-calibrate
+      `((A1 0) (A2 1023) (A5 0))
+	)
+
+(defun calib5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-calibrate msym)
+     ))
+
+;; Middle legs up:
+;; {
+;;   "A0": "747",
+;;   "A1": "764",
+;;   "A2": "542",
+;;   "A3": "747",
+;;   "A4": "359",
+;;   "A5": "964",
+;;   "B0": "295",
+;;   "B1": "922",
+;;   "B2": "47",
+;;   "B3": "581",
+;;   "B4": "998",
+;;   "B5": "788",
+;;   "C0": "355",
+;;   "C1": "60",
+;;   "C2": "51",
+;;   "C3": "967"
+;;   "C4": "715",
+;;   "C5": "201",
+;; }
+;; Flat, bc, down:
+;; {
+;;   "A0": "775",
+;;   "A3": "595",
+;;   "A1": "683",
+;;   "A4": "386",
+;;   "A5": "1020",
+;;   "A2": "640",
+;;   "B2": "658",
+;;   "B1": "1016",
+;;   "B0": "349",
+;;   "B5": "657",
+;;   "B4": "946",
+;;   "B3": "403",
+;;   "C2": "509",
+;;   "C1": "362",
+;;   "C0": "261",
+;;   "C5": "201",
+;;   "C4": "970",
+;;   "C3": "669"
+;; }
+
+(setq tet5-midup
+      `(
+	(A0 747) (A1 764) (A2 542) (A3 747) (A4 359) (A5 964)
+	(B0 295) (B1 922) (B2 47) (B3 581) (B4 998) (B5 788)
+	(C0 355) (C1 60) (C2 51) (C3 967) (C4 715) (C5 201)	
+	))
+
+(defun midup5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-midup msym)
+     ))
+
+
+(defun flat5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-flat msym)
+     ))
+
+(setq tet5-chf
+      `(
+	(A0 973) (A1 788) (A2 848) (A3 485) (A4 750) (A5 948)
+	(B0 302) (B1 977) (B2 685) (B3 398) (B4 1001) (B5 516)
+	(C0 177) (C1 995) (C2 926) (C3 284) (C4 107) (C5 304)
+	))
+
+(defun ch5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-chf msym)
+     ))
+
+
+(setq tet5-eff
+      `(
+	(A0 337) (A1 836) (A2 39) (A3 485) (A4 422) (A5 440)
+	(B0 72) (B1 595) (B2 781) (B3 54) (B4 1023) (B5 329)
+	(C0 423) (C1 503) (C2 1107) (C3 436) (C4 430) (C5 884)
+	))
+
+(defun eff5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-eff msym)
+     ))
+
+
+(setq tet5-cf
+      `(
+	(A0 931) (A1 647) (A2 668) (A3 76) (A4 471) (A5 692)
+	(B0 276) (B1 986) (B2 575) (B3 690) (B4 844) (B5 265)
+	(C0 450) (C1 462) (C2 504) (C3 669) (C4 554) (C5 251)
+	))
+
+(defun cf5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-cf msym)
+     ))
+
+
+(setq tet5-hf
+      `(
+	(A0 931) (A1 647) (A2 113) (A3 76) (A4 15) (A5 244)
+	(B0 276) (B1 986) (B2 642) (B3 25) (B4 630) (B5 34)
+	(C0 37) (C1 823) (C2 297) (C3 57) (C4 86) (C5 607)
+	))
+
+(defun hf5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p tet5-hf msym)
+     ))
+
+
+(defun json-to-sexpr (json)
+  ;; Strategy: We only have quoted strings, colons and commas, and braces.
+  ;; it should be possible to do a lexer and recursive descent parsing...sigh..
+  
+  )
+
+;; My attempt to create a grammer for JSON
+;; ((json obj "{" expr "}")
+;;  (expr [symbol num])
+;;  (num     . "-?[0-9]+\\(\\.[0-9]*\\)?")
+;;  (symbol . "\"[a-Z]+\"))
+
+(setq json-tokens
+      '(
+	(object "{" pair-list "}")
+	(pair-list pair [("," pair-list) no-pair])
+	(pair symbol ":" value)
+	(value [symbol num object])
+	(no-pair . "")
+	(num     . "\"-?[0-9]+\\(\\.[0-9]*\\)?\"")    
+	(symbol . "\"[a-zA-Z][a-zA-Z0-9]*\"")
+	))
+
+(defun process-json-attrib-tokens (e)
+  (let ((ce (car e)))
+    (if (null (cadr e))
+	ce
+      (if (equal (car (cadr e)) ",")
+	  (let ((f (cdr (cadr e))))
+	    (progn
+	      (if (atom (caar f))
+		  (list (car e) (car f))
+		(cons (car e) (car f))
+		)
+	      )
+	    )
+	(progn
+	  (print "yikes")
+	  (print e)
+	  (error "ill-formed")
+	  e
+	  )
+	)
+      )
+    ))
+
+(setq json-funcs
+      `((json . ,(lambda (e)  (car e)))
+	(object . ,(lambda (e)   (cadr (butlast e))))
+	(num . ,(lambda (e)
+		  (string-to-number (substring e 1 -1))
+		  ))
+	(pair . ,(lambda (e)
+		   (if (listp (caddr e))
+		       (list (car e) (caddr e))
+		     (cons (car e)
+			   (caddr e)))
+		   ))
+	(pair-list . ,#'process-json-attrib-tokens)    
+	(no-pair . ,(lambda (e) nil))        
+	(value   . ,#'car)
+	(symbol   . ,(lambda (e)
+		       (intern (substring e 1 -1))
+		       ))
+	))
+
+;; This parser is not very efficient, so we need this...
+(setq max-lisp-eval-depth 800)
+(defun json-parse (string)
+  (rdp-parse-string string json-tokens json-funcs))
+
+(defun test-json-parse ()
+  (let ((q
+	 "{
+  \"A0\": \"973\",
+  \"A3\": \"595\",
+  \"A1\": \"936\",
+  \"A4\": \"620\",
+  \"A5\": \"756\",
+  \"A2\": \"394\",
+  \"B2\": \"790\",
+  \"B1\": \"991\",
+  \"B0\": \"302\",
+  \"B5\": \"516\",
+  \"B4\": \"969\",
+  \"B3\": \"303\",
+  \"C2\": \"913\",
+  \"C1\": \"1013\",
+  \"C0\": \"21\",
+  \"C5\": \"1012\",
+  \"C4\": \"96\",
+  \"C3\": \"15\"
+}"
+	 ))
+    (json-parse q)
+    ))
+
+(defun move-from-json (j)
+  (mapcar (lambda (e) (list (car e) (cdr e)))
+	  (json-parse j)
+	  )
+  )
