@@ -1744,10 +1744,84 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 636) (A2 236) (A3 0) (A4 1000) (A5 0)
 	(B0 500) (B1 0) (B2 250) (B3 301) (B4 600) (B5 0)
-	(C0 300) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 900) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
 	))
 
 (defun Q65 (&optional sym)
     (let ((msym (get-symbol-for-com-use sym)))
      (p Q6 msym)
      ))
+
+(setq Q7
+      `(
+	(A0 973) (A1 1000) (A2 236) (A3 0) (A4 1000) (A5 300)
+	(B0 500) (B1 0) (B2 450) (B3 301) (B4 1000) (B5 0)
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	))
+
+(defun Q75 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q7 msym)
+     ))
+
+(setq Q8
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 0)
+	(B0 500) (B1 500) (B2 450) (B3 301) (B4 1000) (B5 0)
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	))
+
+(defun Q85 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q8 msym)
+     ))
+
+(setq Q9
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 500)
+	(B0 500) (B1 500) (B2 450) (B3 301) (B4 1000) (B5 0)
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	))
+
+(defun Q95 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q9 msym)
+     ))
+
+(setq QA
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 500)
+	(B0 500) (B1 500) (B2 450) (B3 0) (B4 600) (B5 500)
+	(C0 300) (C1 200) (C2 200) (C3 969) (C4 500) (C5 200)	
+	))
+
+(defun QA5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p QA msym)
+     ))
+
+(setq QB
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 0)
+	(B0 500) (B1 500) (B2 1000) (B3 0) (B4 600) (B5 1000)
+	(C0 200) (C1 1000) (C2 500) (C3 969) (C4 500) (C5 200)	
+	))
+
+(defun QB5 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p QB msym)
+     ))
+
+
+;; Note: The final step here is a "drag" which is probably unwise.
+;; We should be able to do a leg lift of some kind to get the next parts done more
+;; efficiently on rough terrain.  I will develop that and turning tomorrow.
+(defun broadwalk5 (&optional sym)
+  (fdance '((Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75))))
+
+
+(defun broadwalk-3-5 (&optional sym)
+  (fdance '((Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
+	    (Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
+	    (Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
+	    )))
