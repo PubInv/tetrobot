@@ -1375,35 +1375,12 @@ Return the results of all forms as a list."
 ;;   "C5": "318",
 ;; }
 
-;; This transliteration did not lay flat, which suggests that I
-;; have some measurement wrong or am miscalculationg, but it is
-;; close enough that I can try to adjust it by hand below.
-(setq tet5-flat5
-      `(
-	(A0 442) (A1 640) (A2 81) (A3 615) (A4 853) (A5 540)
-	(B0 50) (B1 843) (B2 612) (B3 423) (B4 997) (B5 928)
-	(C0 420) (C1 856) (C2 267) (C3 488) (C4 760) (C5 65)	
-	))
-
-;; This actually lays everything flat!  I am prety happy with this!
-;; This means that we can probably have a stable basis for
-;; various modes of locomotion!
-;; We can probably produce a modified hexa-pod like gait
-;; that posssibly reaquires three distinct steps.
-(setq tet5-flat5
-      `(
-	(A0 747) (A1 764) (A2 818) (A3 747) (A4 318) (A5 1023)
-	(B0 326) (B1 965) (B2 292) (B3 557) (B4 972) (B5 716)
-	(C0 48) (C1 373) (C2 330) (C3 330) (C4 973) (C5 318)	
-	))
-
-
 ;; THIS DOES NOT MATCH THE PLAYGROUND, AND  DON'T KNOW WHY!!!
 (setq tet5-flat5
       `(
-	(A0 973) (A1 936) (A2 636) (A3 595) (A4 800) (A5 672)
-	(B0 302) (B1 991) (B2 584) (B3 301) (B4 1018) (B5 516)
-	(C0 437) (C1 473) (C2 669) (C3 669) (C4 636) (C5 242)	
+	(A0 973) (A1 936) (A2 636) (A3 595) (A4 800) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 437) (C1 573) (C2 769) (C3 669) (C4 636) (C5 242)	
 	))
 
 (defun flat5 (&optional sym)
@@ -1542,10 +1519,6 @@ Return the results of all forms as a list."
      ))
 
 
-(defun flat5 (&optional sym)
-    (let ((msym (get-symbol-for-com-use sym)))
-     (p tet5-flat msym)
-     ))
 
 (setq tet5-chf
       `(
@@ -1697,7 +1670,84 @@ Return the results of all forms as a list."
     ))
 
 (defun move-from-json (j)
+  (p 
   (mapcar (lambda (e) (list (car e) (cdr e)))
 	  (json-parse j)
 	  )
+  nil)
   )
+
+
+
+(setq Q1
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 595) (A4 400) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 200) (C1 573) (C2 769) (C3 669) (C4 400) (C5 0)	
+	))
+
+(defun Q15 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q1 msym)
+     ))
+
+(setq Q2
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 400) (A5 472)
+	(B0 1000) (B1 991) (B2 800) (B3 301) (B4 900) (B5 516)
+	(C0 200) (C1 573) (C2 769) (C3 969) (C4 0) (C5 0)	
+	))
+
+(defun Q25 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q2 msym)
+     ))
+
+(setq Q3
+      `(
+	(A0 973) (A1 936) (A2 436) (A3 0) (A4 1000) (A5 272)
+	(B0 1000) (B1 991) (B2 800) (B3 301) (B4 1000) (B5 516)
+	(C0 500) (C1 573) (C2 1000) (C3 969) (C4 0) (C5 800)	
+	))
+
+(defun Q35 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q3 msym)
+     ))
+
+(setq Q4
+      `(
+	(A0 973) (A1 936) (A2 436) (A3 0) (A4 1000) (A5 272)
+	(B0 1000) (B1 991) (B2 500) (B3 301) (B4 1000) (B5 516)
+	(C0 500) (C1 273) (C2 1000) (C3 969) (C4 0) (C5 800)	
+	))
+
+(defun Q45 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q4 msym)
+     ))
+
+(setq Q5
+      `(
+	(A0 973) (A1 936) (A2 236) (A3 0) (A4 1000) (A5 0)
+	(B0 1000) (B1 991) (B2 250) (B3 301) (B4 600) (B5 516)
+	(C0 300) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
+	))
+
+(defun Q55 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q5 msym)
+     ))
+
+(setq Q6
+      `(
+	(A0 973) (A1 636) (A2 236) (A3 0) (A4 1000) (A5 0)
+	(B0 500) (B1 0) (B2 250) (B3 301) (B4 600) (B5 0)
+	(C0 300) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
+	))
+
+(defun Q65 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p Q6 msym)
+     ))
