@@ -1817,11 +1817,86 @@ Return the results of all forms as a list."
 ;; We should be able to do a leg lift of some kind to get the next parts done more
 ;; efficiently on rough terrain.  I will develop that and turning tomorrow.
 (defun broadwalk5 (&optional sym)
-  (fdance '((Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75))))
+  (fdance '((Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
+	    )))
 
 
 (defun broadwalk-3-5 (&optional sym)
   (fdance '((Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
 	    (Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
 	    (Q15) (Q25) (Q35) (Q45) (Q55) (Q65) (Q75) (Q85) (Q95) (QA5) (QB5)
+	    )))
+
+;; I will now attempt to execute a turn CCW
+;; Strategy
+(setq L1
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 0)
+	(B0 0) (B1 500) (B2 1000) (B3 0) (B4 600) (B5 1000)
+	(C0 0) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun L15 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p L1 msym)
+     ))
+
+
+(setq L2
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 300)
+	(B0 0) (B1 500) (B2 500) (B3 0) (B4 1000) (B5 1000)
+	(C0 800) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun L25 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p L2 msym)
+     ))
+
+(setq L3
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 0)
+	(B0 0) (B1 500) (B2 500) (B3 0) (B4 1000) (B5 1000)
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun L35 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p L3 msym)
+     ))
+
+;; There is a major inefficiency in the foot lifting here.
+(setq L4
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 0)
+	(B0 0) (B1 500) (B2 500) (B3 1000) (B4 1000) (B5 1000)
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun L45 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p L4 msym)
+     ))
+
+(setq L5
+      `(
+	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 200)
+	(B0 0) (B1 500) (B2 800) (B3 0) (B4 600) (B5 1000)
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun L55 (&optional sym)
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p L5 msym)
+     ))
+
+(defun ccw-5 (&optional sym)
+  (fdance '((flat5) (L15) (L25) (L35) (L45) (L55)
+	    )))
+
+(defun ccw-3-5 (&optional sym)
+  (fdance '((flat5) (L15) (L25) (L35) (L45) (L55)
+	    (flat5) (L15) (L25) (L35) (L45) (L55)
+	    (flat5) (L15) (L25) (L35) (L45) (L55)
 	    )))
