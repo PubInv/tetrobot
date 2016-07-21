@@ -1900,3 +1900,52 @@ Return the results of all forms as a list."
 	    (flat5) (L15) (L25) (L35) (L45) (L55)
 	    (flat5) (L15) (L25) (L35) (L45) (L55)
 	    )))
+
+;; Now I will attempt to climb up a 9" step, assuming the step
+;; is very broad and the 5-tet bot is positioned with B and C
+;; place exactly one inch away.
+;; My plan is to lift D as high as possible, then
+;; to put A on the step, then move forward as much as
+;; possible and try to get a differnt foot up.
+;; I will designate this SU.
+
+(setq long-pose
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 0)
+	(B0 1000) (B1 200) (B2 0) (B3 1000) (B4 900) (B5 516)
+	(C0 437) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 0)	
+	))
+
+(defun long5 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p long-pose msym)
+     ))
+
+(setq reachdown-pose
+      `(
+	(A0 0) (A1 0) (A2 1000) (A3 0) (A4 1000) (A5 0)
+	(B0 1000) (B1 200) (B2 0) (B3 0) (B4 0) (B5 516)
+	(C0 1000) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 1000)	
+	))
+
+(defun reachdown5 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p reachdown-pose msym)
+     ))
+
+;; This is experimental
+
+(setq scoot1
+      `(
+	(A0 0) (A1 0) (A2 1000) (A3 0) (A4 1000) (A5 0)
+	(B0 1000) (B1 200) (B2 0) (B3 0) (B4 0) (B5 516)
+	(C0 1000) (C1 573) (C2 0) (C3 400) (C4 0) (C5 1000)	
+	))
+
+(defun scoot15 (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p scoot1 msym)
+     ))
