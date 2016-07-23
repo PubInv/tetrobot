@@ -1949,3 +1949,147 @@ Return the results of all forms as a list."
     (let ((msym (get-symbol-for-com-use sym)))
      (p scoot1 msym)
      ))
+
+;; Now beginning skilly walk
+(setq skinA5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)	
+	))
+
+(defun skinA (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinA5 msym)
+     ))
+
+(setq skinB5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 237) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)	
+	))
+
+(defun skinB (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinB5 msym)
+     ))
+
+(setq skinC5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 500) (B5 516)
+	(C0 237) (C1 573) (C2 700) (C3 0) (C4 0) (C5 0)	
+	))
+
+(defun skinC (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinC5 msym)
+     ))
+
+(setq skinD5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 0) (B5 516)
+	(C0 237) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
+	))
+
+(defun skinD (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinD5 msym)
+     ))
+
+(setq skinE5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 1000) (B5 0)
+	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 500)	
+	))
+
+(defun skinE (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinE5 msym)
+     ))
+
+(setq skinF5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(B0 302) (B1 991) (B2 0) (B3 0) (B4 1000) (B5 0)
+	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 800)	
+	))
+
+(defun skinF (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinF5 msym)
+     ))
+
+(setq skinG5
+      `(
+	(A0 1000) (A1 1000) (A2 1000) (A3 595) (A4 600) (A5 0)
+	(B0 0) (B1 0) (B2 0) (B3 0) (B4 1000) (B5 0)
+	(C0 0) (C1 573) (C2 700) (C3 0) (C4 1000) (C5 600)	
+	))
+
+(defun skinG (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinG5 msym)
+     ))
+
+(setq skinH5
+      `(
+	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 1000) (A5 1000)
+	(B0 0) (B1 0) (B2 0) (B3 1000) (B4 1000) (B5 0)
+	(C0 400) (C1 573) (C2 700) (C3 0) (C4 1000) (C5 0)	
+	))
+
+(defun skinH (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinH5 msym)
+     ))
+
+(setq skinI5
+      `(
+	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 0) (A5 500)
+	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 0) (B5 0)
+	(C0 400) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
+	))
+
+(defun skinI (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinI5 msym)
+     ))
+
+(setq skinJ5
+      `(
+	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 0) (A5 200)
+	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 500) (B5 0)
+	(C0 400) (C1 0) (C2 0) (C3 0) (C4 0) (C5 0)	
+	))
+
+(defun skinJ (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinJ5 msym)
+     ))
+
+(defun skinwalk (&optional sym)
+  (fdance '((flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+	    )))
+
+
+(defun skinwalk3 (&optional sym)
+  (fdance '((flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+	    (flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+	    (flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+	    )))
+
+
