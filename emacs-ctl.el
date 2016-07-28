@@ -1953,7 +1953,7 @@ Return the results of all forms as a list."
 ;; Now beginning skilly walk
 (setq skinA5
       `(
-	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
+	(A0 500) (A1 500) (A2 500) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
 	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)	
 	))
@@ -2005,7 +2005,7 @@ Return the results of all forms as a list."
 
 (setq skinE5
       `(
-	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(A0 0) (A1 0) (A2 0) (A3 795) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 1000) (B5 0)
 	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 500)	
 	))
@@ -2018,7 +2018,7 @@ Return the results of all forms as a list."
 
 (setq skinF5
       `(
-	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(A0 0) (A1 0) (A2 0) (A3 895) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 0) (B3 0) (B4 1000) (B5 0)
 	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 800)	
 	))
@@ -2031,9 +2031,9 @@ Return the results of all forms as a list."
 
 (setq skinG5
       `(
-	(A0 1000) (A1 1000) (A2 1000) (A3 595) (A4 600) (A5 0)
+	(A0 0) (A1 0) (A2 0) (A3 100) (A4 600) (A5 0)
 	(B0 0) (B1 0) (B2 0) (B3 0) (B4 1000) (B5 0)
-	(C0 0) (C1 573) (C2 700) (C3 0) (C4 1000) (C5 600)	
+	(C0 0) (C1 573) (C2 700) (C3 400) (C4 1000) (C5 900)	
 	))
 
 (defun skinG (&optional sym)
@@ -2044,15 +2044,28 @@ Return the results of all forms as a list."
 
 (setq skinH5
       `(
-	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 1000) (A5 1000)
-	(B0 0) (B1 0) (B2 0) (B3 1000) (B4 1000) (B5 0)
-	(C0 400) (C1 573) (C2 700) (C3 0) (C4 1000) (C5 0)	
+	(A0 0) (A1 0) (A2 0) (A3 100) (A4 600) (A5 0)
+	(B0 0) (B1 0) (B2 0) (B3 0) (B4 1000) (B5 0)
+	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)	
 	))
 
 (defun skinH (&optional sym)
   "Put feet down as flat as possible in a an otherwise relaxed pose"
     (let ((msym (get-symbol-for-com-use sym)))
      (p skinH5 msym)
+     ))
+
+(setq skinHA5
+      `(
+	(A0 0) (A1 0) (A2 0) (A3 595) (A4 600) (A5 0)
+	(B0 0) (B1 450) (B2 0) (B3 700) (B4 1000) (B5 0)
+	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)	
+	))
+
+(defun skinHA (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinHA5 msym)
      ))
 
 (setq skinI5
@@ -2070,9 +2083,9 @@ Return the results of all forms as a list."
 
 (setq skinJ5
       `(
-	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 0) (A5 200)
+	(A0 0) (A1 1000) (A2 1000) (A3 595) (A4 0) (A5 200)
 	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 500) (B5 0)
-	(C0 400) (C1 0) (C2 0) (C3 0) (C4 0) (C5 0)	
+	(C0 400) (C1 0) (C2 0) (C3 0) (C4 500) (C5 500)	
 	))
 
 (defun skinJ (&optional sym)
@@ -2081,15 +2094,43 @@ Return the results of all forms as a list."
      (p skinJ5 msym)
      ))
 
+(setq skinK5
+      `(
+	(A0 300) (A1 0) (A2 1000) (A3 200) (A4 0) (A5 200)
+	(B0 1000) (B1 300) (B2 0) (B3 500) (B4 500) (B5 0)
+	(C0 400) (C1 0) (C2 500) (C3 500) (C4 500) (C5 600)	
+	))
+
+(defun skinK (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinK5 msym)
+     ))
+
+(setq skinL5
+      `(
+	(A0 300) (A1 500) (A2 1000) (A3 200) (A4 0) (A5 200)
+	(B0 500) (B1 700) (B2 0) (B3 500) (B4 500) (B5 0)
+	(C0 400) (C1 0) (C2 1000) (C3 500) (C4 500) (C5 600)	
+	))
+
+(defun skinL (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p skinL5 msym)
+     ))
+
+
+
 (defun skinwalk (&optional sym)
-  (fdance '((flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+  (fdance '((skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinHA) (skinI) (skinJ) (skinK) (skinL) (skinA)
 	    )))
 
 
 (defun skinwalk3 (&optional sym)
-  (fdance '((flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
-	    (flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
-	    (flat5) (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinI) (skinJ)
+  (fdance '( (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
+	     (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
+	     (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
 	    )))
 
 
