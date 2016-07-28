@@ -735,7 +735,7 @@ module open_box(w,l,h,ww) {
     }
 }
 module battery_box() {
-    bp_width = 30;
+    bp_width = 31;
     bp_length = 53;
     bp_height = 72;
     width = 3;
@@ -756,7 +756,7 @@ module battery_box() {
       firg_mount();
 }
 
-translate([30,50,-38])
+translate([30,50,-38.8])
 rotate([0,270,0])
 rotate([90,0,0])
 battery_box();
