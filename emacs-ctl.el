@@ -1901,6 +1901,8 @@ Return the results of all forms as a list."
 	    (flat5) (L15) (L25) (L35) (L45) (L55)
 	    )))
 
+
+
 ;; Now I will attempt to climb up a 9" step, assuming the step
 ;; is very broad and the 5-tet bot is positioned with B and C
 ;; place exactly one inch away.
@@ -2131,6 +2133,80 @@ Return the results of all forms as a list."
   (fdance '( (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
 	     (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
 	     (skinA) (skinB) (skinC) (skinD) (skinE) (skinF) (skinG) (skinH) (skinH) (skinI) (skinJ) (skinL)
+	    )))
+
+
+(setq cwA5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 595) (A4 0) (A5 472)
+	(B0 302) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)	
+	))
+
+(defun cwA (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p cwA5 msym)
+     ))
+
+(setq cwB5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 0) (A5 472)
+	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 0)	
+	))
+
+(defun cwB (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p cwB5 msym)
+     ))
+
+(setq cwC5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
+	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 1000) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 1000)	
+	))
+
+(defun cwC (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p cwC5 msym)
+     ))
+
+(setq cwD5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
+	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 1000) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 1000)	
+	))
+
+(defun cwD (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p cwD5 msym)
+     ))
+
+(setq cwE5
+      `(
+	(A0 500) (A1 500) (A2 0) (A3 0) (A4 0) (A5 300)
+	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 0)	
+	))
+
+(defun cwE (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p cwE5 msym)
+     ))
+
+(defun cw-5  (&optional sym)
+  (fdance '((cwA) (cwB) (cwC) (cwD) (cwE)
+	    )))
+
+(defun cw-5-3  (&optional sym)
+  (fdance '((cwA) (cwB) (cwC) (cwD) (cwE) (cwA) (cwB) (cwC) (cwD) (cwE) (cwA) (cwB) (cwC) (cwD) (cwE)
 	    )))
 
 
