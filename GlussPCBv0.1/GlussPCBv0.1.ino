@@ -293,7 +293,7 @@ void move_vector(Stream* debug,int n,int *vec) {
   const float STUCK_DISTANCE = 1.0; // 3-Dimensional distance in the "digital voltage space" that we must move to not be "stuck"
   const int DELAY_TIME = 30; // Time to wait before making a move again
   const int MAX_STUCK = 4; // number of iterations to apply force before we give up as "stuck".
-  const int MAX_TIME_MS = 3000;
+  const int MAX_TIME_MS = 4000;
   const int MAX_TURNS = MAX_TIME_MS / DELAY_TIME;
   
   int cval[n];
