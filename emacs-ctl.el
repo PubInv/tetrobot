@@ -1981,9 +1981,9 @@ Return the results of all forms as a list."
 
 (setq skinC5
       `(
-	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
+	(A0 0) (A1 0) (A2 500) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 500) (B5 516)
-	(C0 237) (C1 573) (C2 700) (C3 0) (C4 0) (C5 0)	
+	(C0 800) (C1 573) (C2 700) (C3 0) (C4 0) (C5 0)	
 	))
 
 (defun skinC (&optional sym)
@@ -1994,9 +1994,9 @@ Return the results of all forms as a list."
 
 (setq skinD5
       `(
-	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 700)
+	(A0 0) (A1 0) (A2 500) (A3 595) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 0) (B5 516)
-	(C0 237) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
+	(C0 800) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
 	))
 
 (defun skinD (&optional sym)
@@ -2210,3 +2210,201 @@ Return the results of all forms as a list."
 	    )))
 
 
+;; This is really weird, but it actually walks forward better than it turns counter clock wise
+(defun weird-x-5  (&optional sym)
+  (fdance '((cwA) (cwE) (cwD) (cwC) (cwB) (cwA)
+	    )))
+
+(defun weird-x-5-3  (&optional sym)
+  (fdance '((cwA) (cwE) (cwD) (cwC) (cwB) (cwA)
+	    (cwA) (cwE) (cwD) (cwC) (cwB) (cwA)
+	    (cwA) (cwE) (cwD) (cwC) (cwB) (cwA)
+	    )))
+
+
+
+
+(setq ccwA5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 595) (A4 0) (A5 472)
+	(B0 302) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)	
+	))
+
+(defun ccwA (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p ccwA5 msym)
+     ))
+
+(setq ccwB5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 1000) (A4 0) (A5 472)
+	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 0) (C5 0)	
+	))
+
+(defun ccwB (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p ccwB5 msym)
+     ))
+
+(setq ccwC5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 1000) (A4 1000) (A5 472)
+	(B0 0) (B1 0) (B2 0) (B3 0) (B4 900) (B5 0)
+	(C0 1000) (C1 0) (C2 769) (C3 1000) (C4 0) (C5 1000)	
+	))
+
+
+(defun ccwC (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p ccwC5 msym)
+     ))
+
+(setq ccwD5
+      `(
+	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
+	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 0) (C2 769) (C3 0) (C4 1000) (C5 0)	
+	))
+
+(defun ccwD (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p ccwD5 msym)
+     ))
+
+(setq ccwE5
+      `(
+	(A0 973) (A1 936) (A2 0) (A3 0) (A4 1000) (A5 472)
+	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
+	(C0 0) (C1 500) (C2 500) (C3 0) (C4 0) (C5 0)	
+	))
+
+(defun ccwE (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p ccwE5 msym)
+     ))
+
+(defun ccw-x-5  (&optional sym)
+  (fdance '((ccwA) (ccwB) (ccwC) (ccwD) (ccwE) (ccwA)
+	    )))
+
+(defun ccw-x-5-3  (&optional sym)
+  (fdance '((ccwA) (ccwB) (ccwC) (ccwD) (ccwE) (ccwA)
+	    (ccwA) (ccwB) (ccwC) (ccwD) (ccwE) (ccwA)
+	    (ccwA) (ccwB) (ccwC) (ccwD) (ccwE) (ccwA)
+	    )))
+
+;; Demo stuff
+;; (ccw-x-5-3)
+;; (broadwalk5)
+;; (broadwalk-3-5)
+;; (cw-5-3)
+;; (skinwalk)
+;; (skinwalk3)
+;; (scoot15)
+;; (big)
+;; (small)
+;; (relax)
+;; (flat5)
+;; (reachdown5)
+
+;; I'm now attempting to develop a better walk than the skinwalk above, which
+;; is very inefficient.
+;; My main strategy is to work with the "central triangle" as a working object.
+;; thinB -- is to move extreme joints up and forward.
+;; thinC -- is to move those down.
+
+(setq thinA5
+      `(
+	(A0 500) (A1 500) (A2 500) (A3 595) (A4 900) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)	
+	))
+
+(defun thinA (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinA5 msym)
+     ))
+
+(setq thinB5
+      `(
+	(A0 0) (A1 0) (A2 500) (A3 595) (A4 0) (A5 472)
+	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 0) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 0)	
+	))
+
+(defun thinB (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinB5 msym)
+     ))
+
+(setq thinC5
+      `(
+	(A0 0) (A1 0) (A2 500) (A3 900) (A4 0) (A5 472)
+	(B0 900) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 0) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)	
+	))
+
+(defun thinC (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinC5 msym)
+     ))
+
+(setq thinD5
+      `(
+	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
+	(B0 900) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
+	(C0 1000) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 1000)	
+	))
+
+(defun thinD (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinD5 msym)
+     ))
+
+(setq thinE5
+      `(
+	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
+	(B0 500) (B1 991) (B2 500) (B3 0) (B4 900) (B5 516)
+	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)	
+	))
+
+(defun thinE (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinE5 msym)
+     ))
+
+(setq thinF5
+      `(
+	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
+	(B0 500) (B1 991) (B2 500) (B3 0) (B4 900) (B5 516)
+	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)	
+	))
+
+(defun thinF (&optional sym)
+  "Put feet down as flat as possible in a an otherwise relaxed pose"
+    (let ((msym (get-symbol-for-com-use sym)))
+     (p thinF5 msym)
+     ))
+
+
+(defun thinwalk (&optional sym)
+  (fdance '((thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
+	    )))
+
+(defun thinwalk3 (&optional sym)
+  (fdance '( (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
+	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
+	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
+	    )))
