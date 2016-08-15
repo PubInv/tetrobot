@@ -15,7 +15,7 @@ The Gluss Project is a part of <a href="https://github.com/PubInv/PIFAH">Public 
 ## Status 
 
 Currently the Gluss Project is mostly Robert L. Read, although we welcome your assistance. We have acheived a crawling robot made of three tetrahedra. Technically, this a "3TetGlussbot", but we are seeking a more personal name.
-<iframe width="560" height="315" src="https://www.youtube.com/embed/1T8XSMhwKUE" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/watch?v=zl0AEfxyVMw" frameborder="0" allowfullscreen></iframe>
 
 You may wish to subscribe to our <a href="https://www.youtube.com/watch?v=1T8XSMhwKUE">YouTube Channel</a>, since because motion is so intrinsic to the Gluss Project, videos are good way to show what we are doing.
 
