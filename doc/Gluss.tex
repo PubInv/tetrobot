@@ -36,9 +36,9 @@
 
 \section{Introduction}
 
-The best introduction to this paper is to watch the 3:00 minute video of the
+The best introduction to this paper is to watch the 2:10 minute video of the
 walking robot, or \emph{glussbot}, which this paper describes:\\
-\indent \href{https://www.youtube.com/watch?v=1T8XSMhwKUE}{https://www.youtube.com/watch?v=1T8XSMhwKUE}.\\
+\indent \href{https://www.youtube.com/watch?v=zl0AEfxyVMw}{https://www.youtube.com/watch?v=zl0AEfxyVMw}.\\
 
 Between 14 and 21 years ago, Arthur C. Sanderson and his colleagues published a series of
 papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robots.
@@ -55,7 +55,6 @@ references to all of the open-source materials needed to duplicate and expand on
 open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
 hobbyist or researcher with a limited budget.  The devlopment of 3D printers, Bluetooth, microprocessors
 such as the Arduino, and inexpensive commercial actuators has made this possible.
-
 
 \subsection{Motivation}
 
@@ -82,6 +81,8 @@ further motivate the \emph{gluss} concept.
 
 \subsection{Concept: Gluss = Slug + Truss}
 
+Starting 
+
 Imagine a metamorphic machine that forcefully assumes a variety of shapes. It moves like a mollusc or amoeba,
 oozing into position as commanded. It is technically a ``machine'' because it can exert force reliably, but
 it may be thought of as a material, because unlike most robots its components are not differentiated.
@@ -102,10 +103,11 @@ a relatively new joint \cite{song2003spherical} which allows, for example, as ma
 members to be joined together sturdily at a single point.
 A 3-D printed embodiment presented here, called the \emph{turret joint}, allows the
 change of angle required for the gluss to ooze about. Some gluss consists of some actuators joined together
-with some turret joints and whatever batteries and control microelectronics are needed. In the
+with some turret joints and whatever batteries and control microelectronics are needed. In the first
 working, crawling robot discussed here, the \emph{3TetGlussBot}, there are two controllers and two batteries
 in addition to the 12 actuators and the 6 multi-member turret joints, but 3TetGlussBot is only
-a small amount of gluss comparted to what we hope to build.
+a small amount of gluss compared to what we hope to build. Additionally, we present \emph{5TetGlussBot}, an obvious extension of the
+3Tet geometry implemented with magnetic joints.
 
 \begin{figure}[!ht]
   \centering
@@ -283,7 +285,19 @@ and have in the ``cap'' parts not shown here.
 \end{figure}
 
 
+We have additionally experimented with magnetic joints similar to those use in the Geomag\textsuperscript{TM}.
+These joints use 1/2'' diameter by 1'' long neodymium magnets restrained within small cages such that the circular face
+may contact a 2'' diamter steel ball.  This provides a pull force greater than the 50 Newton force applied by our linear
+actuators. The \emph{5TetGlussBot} (see Figure \ref{5TetGlussBot}) using these
+joints was demoed at the Wichita Mini Maker Faire July 30-31, 2016.
 
+Although this joint functions well and acheives the intetion of making the robot quick to assemble and disassemble for travel,
+it is broken by side forces. Since climbing over obstacles and stairs will necessarily involved side forces on the actuators,
+we intend to move away from the magnetic joints.
+
+Furthermore, it would be very expensive to scale upward (and similarly becomes less expensive when
+scaling downward.) We believe the magnetic joint could be a good engineering solution for glussbots smaller than the current
+general scale of 50 Newton, 400mm-average-length actuators.
 
 
 \section{Linear Actuators}
@@ -298,11 +312,11 @@ and have in the ``cap'' parts not shown here.
 
 We use the term Linear Actuator to refer to any device that is capable of changing its length. When
 used in gluss it might be called a \emph{glussion}, a single particle of gluss. Our current gluss
-uses a commercial linear actuator (the Firgelli L-16-140-35-12-P,
+uses a commercial linear actuator (the Firgelli/Actuonix L-16-140-35-12-P,
 \href{http://www.firgelli.com/L16_Linear_Actuators_p/l16-p.htm}{http://www.firgelli.com/L16\_Linear\_Actuators\_p/l16-p.htm}
-)
+)\footnote{At the time of this writing, Firgelli Technologies Inc. has changed its name to Actuonix Motion Devices.}
 that costs about \$80 and exerts about 50 Newtons of force.
-Turret joints that are 3D printed in ABS plastic have been strong enough for this level of force.
+Turret joints that are 3D printed in plastic have been strong enough for this level of force.
 
 However, in principle there is no reason we could not use the enormous hydraulic cylinders
 used by backhoes, bulldozers, and other earth moving equipment. These would of course require much
@@ -318,7 +332,7 @@ example tubular linear synchronous motors. These would be much faster than the l
 actuators, resulting in a much faster gluss. 
 
 \section{Control and Motion}
-\subsection{Architecture of the 3TetGlussBot}
+\subsection{Architecture of the 3TetGlussBot and 5TetGlussBot}
 
 We have constructed what we believe to be the simplest possible Tetrahelix-based glussbot that is capable of locomotion
 without relying on inertia.
@@ -342,13 +356,20 @@ Using these components, an NTetGlussBot can be constructed for any number of tet
 \item $\lceil \frac{N + 1}{2} \rceil$ 12V battery packs, and
 \item $\lceil \frac{N + 1}{2} \rceil$ controller units,
 \end{itemize}
-for a cost of about \$320 per tetrahedra.
+for a cost of about \$400 per tetrahedra.
 
 \begin{figure}[!ht]
   \centering
     \includegraphics[width=0.8\textwidth]{3TetGlussBotPhotoAnnotated.png}
     \caption[3TetGlussBot Components]{3TetGlussBot Components}
       \label{annotated}
+\end{figure}
+
+\begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.8\textwidth]{5TetGlussBotPictures/DSC_0002.jpg}
+    \caption[5TetGlussBot Components]{5TetGlussBot Components}
+      \label{5TetGlussBot}
 \end{figure}
 
 
@@ -367,7 +388,7 @@ In practice, when lightly loaded by moving only itself, the time is relatively p
 about 2 seconds for the 3TetGlussBot to go from its most compact state to its largest, most expanded state.
 
 The current software has been written in anticipation of a much larger number of controllers and much more gluss.
-Nonetheless as mentioned in future steps the current software is specific to the 3-tetrahedron geometry.
+Nonetheless as mentioned in future steps the current software is specific to either the 3-tetrahedron geometry or the 5-tet geometry.
 
 
 \subsection{Open Source Realizations}
@@ -427,8 +448,8 @@ An Arduino Sketch which implements a device driver for the GlussBot Controller S
 The 3TetGlussBot is capable of ``walking'' and turning. Some might prefer the term ``crawl'' to ``walk'' in
 this case. It can move forward awkwardly at a rate
 of about five inches per minute. It can turn 30 degrees in about 60 seconds.
-We intentionally chose to make the simplest amount of gluss that we thought would be capable of locomtion.
-We believe that by adding more gluss, that is, by connectiong more tetrahedra in the tetrahelix,
+We believe the 3TetGlussBot is the simplest amount of gluss that we thought would be capable of locomtion.
+We believe that by adding even more gluss, that is, by connectiong more tetrahedra in the tetrahelix,
 we will open new and more efficient locomotion gaits.
 
 The present mode of walking avoids dragging the pseudopods by leaning to one side or front or back and
@@ -441,11 +462,33 @@ move to any extent commanded of them. No attempt to model force has thus been ma
 Since the gait was constructed by hand, it does not represent a modelling of the idea of leaning and or
 unweighting a given joint.
 
+The 5TetGlussBot is significantly faster, moving about 7.5 inches per minute in the ``broadwalk'' mode
+and about 11 inches per minute in a walk in the ``thin'' direction using a ``slide'' in its gait.
+
 The current programmed gaits are not optimal.
-We have programmed locomotion of the 3TetGlussBot only to prove that it can be done, not to make
-it fast.
+We are developing a browser-based simulation using the Cannon.js physics engine that should allow for development
+of more efficient gaits without having to actually have a robot.
 
 \section{Related Research}
+
+Between 14 and 21 years ago, Arthur C. Sanderson and his colleagues published a series of
+papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robots.
+The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished but the change
+in length of linear actuators, connected in a modular geometry based on the tetrahedron and octahedron.
+A quadripedal robot was constructed completely out of the tetrahedral/octahedral geometry.
+The TETROBOT robots successfully walked and even rolled. The TETROBOT hardware was significantly
+heavier and more powerful that then hardware used here. The glussbots have so far demonstrated no greater functionality.
+
+The present article has drastically lowered the cost thus making the glussbot/TETROBOT concept
+accessible to hobbyists and researchers on a tight budget. We have demonstrated that a very
+simple robot consisting of 3 tetrahedra can locomote.
+
+The TETROBOT used a joint called the CMS joint. Although
+possibly superior in not allowing an extra degree or rotational freedom, it would be a challenge to use the CMS
+joint with the Actuonix actuators because the pushrod must fully retract, or the length of the pushrod would be
+have to be extended with an attachment. Prof. Sanderson's students used actuators that
+extended from the middle, avoiding this problem. If the Gluss Project ever develops its own actuators, it should
+explore using this joint.
 
 If you read the introduction of the brilliant book by Shigoe Hirose\cite{hirose1993biologically} substituing
 ``even simpler soft squiggly thing that might not be as cylindrical as a snake'' for the word ``snake'', you will have
@@ -503,7 +546,7 @@ difficult.
   and actuators of specific properties? This is primarily in the realm of geometry, and perhaps
   computational geometry.
 \item [Throw a Ball:] (Mechatronics) Develop the dynamic control needed to throw a ball, thereby moving from
-  kinematicst to dynamics.
+  kinematics to dynamics.
 \item [Cheap Actuator:] (Physics, Electrical Engineering) The gluss concept heightens the need for very inexpensive linear
   actuators. The current actuators at \$80 make construcitng a 100-actuator glussbot very expensive.
   It should be possible to build a linear actuator for 1/10th of this cost, although it may require
@@ -525,12 +568,13 @@ It would be be nice to answer the questions such as:
 We have not attempted to analyze gluss in terms of force performance. We believe this would
 be analagous to analysis of static space frames using the dynamic configuration at a point.
 Finite elment analysis is a standard approach to this.
-\item [Quick Joint:] (Mechanical Engineering) If all of the turret joints in the 3TetGlussBot are dissassembled so that
+\item [Quick Joint:] (Mechanical Engineering) If all of the turret joints in a 3TetGlussBot are dissassembled so that
   the linear actators can be stacked together for efficient transport, it takes more than an hour
   to bolt them back together. It would be very convenient to have a joint that could be
-  disassembled and assembled more quickly. We suspect that it is possible to build a magnetic
-  joint similar (but larger) than those used in the Geomag\textsuperscript{TM} toy.
-  Other approaces would be to design a ``bayonet mount'' or a hose coupling connection.
+  disassembled and assembled more quickly. We have found that it is possible to build a magnetic
+  joint similar (but larger) than those used in the Geomag\textsuperscript{TM} toy. However, it does not scale up in size
+  and is weak against side forces. We would like to investigate the turret joint using bolt-free ``bayonet mounts'' which
+  can be easily snapped into place.
 \item [Construction System:] (Mechanical Engineering) If we imagine the members connecting the joints are not actuators but
   simply rods that can be cut to any length, we have a construction system for making spaceframes.
   Explore the possibilities of such a construction system to make organic and interesting shapes
