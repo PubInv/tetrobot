@@ -42,7 +42,7 @@ walking robot, or \emph{glussbot}, which this paper describes:\\
 
 Between 14 and 21 years ago, Arthur C. Sanderson and his colleagues published a series of
 papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robots.
-The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished but the change
+The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished by the change
 in length of linear actuators, connected in a modular geometry based on the tetrahedron and octahedron.  Such a system
 requires a special joint which allows the actuators to remain aimed at the center of joints while supporting
 a certain amount of rotation about this center.  The TETROBOT used a joint called the CMS joint.
@@ -50,10 +50,10 @@ a certain amount of rotation about this center.  The TETROBOT used a joint calle
 This paper builds upon that work by introducing the concept of \emph{gluss}. It explains how to build it,
 introduces 3D-printable embodiments of
 a recently invented sperical joint, 
-and gives some results results related to the underlying geometry and math, as well as providing
+and gives some results related to the underlying geometry and math, as well as providing
 references to all of the open-source materials needed to duplicate and expand on this work. This is an
 open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
-hobbyist or researcher with a limited budget.  The devlopment of 3D printers, Bluetooth, microprocessors
+hobbyist or researcher with a limited budget.  The development of 3D printers, Bluetooth, microprocessors
 such as the Arduino, and inexpensive commercial actuators has made this possible.
 
 \subsection{Motivation}
@@ -73,7 +73,7 @@ with angular joints. In this paper we propose a different, truss-like apporach t
 mobility that uses only linear actuators and spherical joints that support no angular forces. This
 potentially combines the advantages of forceful machines with snake-like mobility.
 
-Additionally, other geometries, such as moving planes, are possibile with the same material.
+Other geometries, such as moving planes, are possibile with the same material.
 
 Other videos at the YouTube channel, Public Invention, reachable from the above link,
 further motivate the \emph{gluss} concept.
@@ -81,9 +81,7 @@ further motivate the \emph{gluss} concept.
 
 \subsection{Concept: Gluss = Slug + Truss}
 
-Starting 
-
-Imagine a metamorphic machine that forcefully assumes a variety of shapes. It moves like a mollusc or amoeba,
+Imagine a metamorphic or polymorphic machine that forcefully assumes a variety of shapes. It moves like a mollusc or amoeba,
 oozing into position as commanded. It is technically a ``machine'' because it can exert force reliably, but
 it may be thought of as a material, because unlike most robots its components are not differentiated.
 
@@ -99,12 +97,12 @@ of \textit{gluss}, should be rare and refer to different kinds of metamorphic ma
 
 Massively scalable robots have often been proposed. Our particular approach is to use linear actuators,
 which are rod-like machines that can make themselves shorter or longer. These are tied together using
-a relatively new joint \cite{song2003spherical} which allows, for example, as many as 12, but more realistically 4,
+a relatively new joint \cite{song2003spherical} which allows, for example, as many as 12, but more realistically 4 or 6,
 members to be joined together sturdily at a single point.
 A 3-D printed embodiment presented here, called the \emph{turret joint}, allows the
 change of angle required for the gluss to ooze about. Some gluss consists of some actuators joined together
 with some turret joints and whatever batteries and control microelectronics are needed. In the first
-working, crawling robot discussed here, the \emph{3TetGlussBot}, there are two controllers and two batteries
+crawling robot discussed here, the \emph{3TetGlussBot}, there are two controllers and two batteries
 in addition to the 12 actuators and the 6 multi-member turret joints, but 3TetGlussBot is only
 a small amount of gluss compared to what we hope to build. Additionally, we present \emph{5TetGlussBot}, an obvious extension of the
 3Tet geometry implemented with magnetic joints.
@@ -119,7 +117,7 @@ a small amount of gluss compared to what we hope to build. Additionally, we pres
 
 Although unlimited geometries are possible, two geometries (See Figure \ref{twogeometries}) 
 have the advantage of being regular, thus allowing us to
-seamlessly connect any number of actuators into any amount of gluss.
+seamlessly connect any number of actuators into any amount of gluss with some hope of effective software control.
 
 \section{The \textit{Turret Joint}}
 
@@ -128,8 +126,8 @@ seamlessly connect any number of actuators into any amount of gluss.
 The way to make some thing large, light, and strong is to make it inherently rigid by building it
 out of triangles. In a single plane, this is called a \emph{truss} \cite{ambrose1993building}, and more generally is called
 a \emph{space frame}.  Space frames made completely from triangles tend to be rigid even if the
-joints that connect members are allow motion, such as a pin joint or a ball-and-socket joint. This
-is an advantage because strain (that is, a slight change in the geometry of the frame) cannot cause
+joints that connect members allow motion, such as a pin joint or a ball-and-socket joint. This
+is an advantage because strain (that is, a slight change in the angular geometry of the frame) cannot cause
 the joint to fail, as it can with a welded joint.
 
 But we seek a space frame that can change its shape dramatically. Imagine a radio tower in which
@@ -149,11 +147,9 @@ We name this joint the \emph{Turret Joint}.
       \label{SongKwonKimImage}
 \end{figure}
 
-The embodiment mentioned supports somewhat less than a theoretical
-$36\degree$ of motion.
 When properly configured to support regular nets of actuators,
 it allows the gluss to be a moving spaceframe. It happens that the specific actuators we use
-are geared such when no power is applied, they strongly resist outside forces that would change their length,
+are geared such that when no power is applied, they strongly resist outside forces that would change their length,
 essentially become rigid members.
 The resulting gluss
 can move into position and then be powered off to be a temporarily static space frame.
@@ -178,7 +174,7 @@ What is the maximum range of motion in our
 actuators which we can usefully employ in our gluss?
 To work independent of scale, we use the symbol $Q$ to denote the ratio of the actuator at its
 longest to its length at its shortest.
-The particular actuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
+The particular Actuonix zaactuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
 it already too high?
 
 One way to approach this problem is to consider a single triangle formed by joints and actuators.
@@ -221,7 +217,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
  rotor rather than a circular section, as shown in Figure \ref{rotormodel}.
  Assuming that each actuator is free to rotate about its axis as well as revolve about the
  center of the ball joint, this shape does not limit motion even in the most pinched
- configurations. The triangular rotor provides greater extent and curvature of contact,
+ configurations. The triangular rotor provides greater extent of contact,
  which presumably makes the joint motion
  smoother and less likely to bind.
  
@@ -266,7 +262,7 @@ both the tetrahexlix and octet-truss \cite{fuller1982synergetics} in terms of st
       \label{octet-truss-patent}
 \end{figure}
 
-The Octet Truss reflects the geomtry called the ``cuboctahedron.''
+The Octet Truss reflects the geomtry called the \emph{cuboctahedron}.
 
 Because the Turret Joint does not support infinte revolution of all members, the joint, or the ``lock'' or ``stator'' in particular,
 must be adjusted to the regular geometry that one is implementing.  The Figure \ref{lockcomparison} indicates this difference.
@@ -291,8 +287,8 @@ may contact a 2'' diamter steel ball.  This provides a pull force greater than t
 actuators. The \emph{5TetGlussBot} (see Figure \ref{5TetGlussBot}) using these
 joints was demoed at the Wichita Mini Maker Faire July 30-31, 2016.
 
-Although this joint functions well and acheives the intetion of making the robot quick to assemble and disassemble for travel,
-it is broken by side forces. Since climbing over obstacles and stairs will necessarily involved side forces on the actuators,
+Although this joint functions well and easily achieves the intetion of making the robot quick to assemble and disassemble for travel,
+it is broken by side forces. Since climbing over obstacles and stairs will necessarily involve side forces on the actuators,
 we intend to move away from the magnetic joints.
 
 Furthermore, it would be very expensive to scale upward (and similarly becomes less expensive when
@@ -326,7 +322,7 @@ We could also attempt to make smaller actuators, to make a pocket-sized gluss. T
 a greater technical challenge, because it is relatively difficult to make small electric motors.
 
 The current actuators use a rotary motor with a lead screw. This has the advantage of great
-strength relative to their size, and the retaining position forcefully. It has the disadvantage
+strength relative to their size, and of retaining position forcefully with relatively little backlash. It has the disadvantage
 of being relatively slow. It would be interesting to build a gluss out of linear motors, for
 example tubular linear synchronous motors. These would be much faster than the lead-screw type
 actuators, resulting in a much faster gluss. 
@@ -385,10 +381,11 @@ In order to dance, the program must synchronize the completion of poses, because
 guarantee how long it will take to achieve a pose. The time to reach a position in theory
 depends on the voltage level provided by the battery and the force resisting the motion.
 In practice, when lightly loaded by moving only itself, the time is relatively predictable. It takes
-about 2 seconds for the 3TetGlussBot to go from its most compact state to its largest, most expanded state.
+about 3 seconds for the 3TetGlussBot to go from its most compact state to its largest, most expanded state.
 
 The current software has been written in anticipation of a much larger number of controllers and much more gluss.
-Nonetheless as mentioned in future steps the current software is specific to either the 3-tetrahedron geometry or the 5-tet geometry.
+Nonetheless as mentioned in \ref{futuresteps} the current software is specific to either the 3-tetrahedron geometry or the
+5-tet geometry.
 
 
 \subsection{Open Source Realizations}
@@ -412,7 +409,7 @@ following resources to construct their own GlussBot.
   where it is titled the \emph{3x2 Motor Controller MegaShield, v0.2}.
   The \href{https://oshpark.com/shared_projects/fijpozoB}{https://oshpark.com/shared\_projects/fijpozoB} shield
   may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time, via Bluetooth.
-  Alternatively, you may use the Eagle Soft CAD files, which can be found here:
+  Alternatively, you may use the Creative Commons-licensed Eagle Soft CAD files, which can be found here:
   \href{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
   {https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
   \begin{figure}[!ht]
@@ -422,7 +419,7 @@ following resources to construct their own GlussBot.
   \end{figure}
 
 \item [Mountable Enclosures]
-  Files to 3D Print the mountable enclosures for the battery pack and the Arduion Mega with the Robot Controller Shield are:\\
+  Files to 3D Print the mountable enclosures for the battery pack and the Arduino Mega with the Robot Controller Shield are:\\
   \href{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}
 
 \item [Control Software]
@@ -448,9 +445,7 @@ An Arduino Sketch which implements a device driver for the GlussBot Controller S
 The 3TetGlussBot is capable of ``walking'' and turning. Some might prefer the term ``crawl'' to ``walk'' in
 this case. It can move forward awkwardly at a rate
 of about five inches per minute. It can turn 30 degrees in about 60 seconds.
-We believe the 3TetGlussBot is the simplest amount of gluss that we thought would be capable of locomtion.
-We believe that by adding even more gluss, that is, by connectiong more tetrahedra in the tetrahelix,
-we will open new and more efficient locomotion gaits.
+We believe the 3TetGlussBot is the simplest amount of gluss that would be capable of locomtion.
 
 The present mode of walking avoids dragging the pseudopods by leaning to one side or front or back and
 then lifting the pseudopod, moving it forward (without ground contact), and placing it down again.
@@ -506,7 +501,7 @@ Tensegrities are closely related to the gluss concept, more researched, and pote
 In fact a gluss could be considered a special case of a tensegrity, using vanishingly short cables
 and, in the terminology of \cite{paul2006}, \emph{strut-collocated actuation}.
 In spirit, however, the different is that a tensegrity is lighter, more flexible, and more dynamic.
-It has been reasonable to produce a static gait for the 3TetGlussBot because its behavior is not
+It has been reasonable to produce a static gait for the 3TetGlussBot and 5TetGlussBot because its behavior is not
 very dynamic: it is so slow and strong that velocity is irrelevant at the current scale.
 
 It is possible that gluss is easier to work with for an actual human being on the ground.
@@ -519,7 +514,7 @@ This paper presents the gluss as a ``machine'', rather than a ``mechanism''. Tha
 by asserting it can exert and resist force, yet currently treats gluss positioning as a purely kinematic,
 rather than dynamic problem. The actuators currently in use are geared such that they are so slow
 and powerful that the behavior is not really dynamic. Classic control theory has not yet been needed.
-As the gluss is made large and longer and dynamics are added,
+As the gluss is made larger and longer and dynamics are added,
 a finite element approach\cite{géradin2001flexible} seems appropriate,
 given its ability to represent complex structural connections and static analysis.
 
@@ -533,7 +528,7 @@ a crisp distinction betwen the two, but we have organized these from most diffic
 difficult.
 
 \begin{description}
-\item [Remove Scale:] (Pure math, physics, computer science) At present the 3TetGlussBot is programmed
+\item [Remove Scale:] (Pure math, physics, computer science) At present the 3- and 5-TetGlussBot is programmed
   as a specific geometry. Any program
   written for it would have zero value for a robot of the same general shape but built with considerably
   more actuators. Ideally, we would be able to program gluss completely independent of the scale
