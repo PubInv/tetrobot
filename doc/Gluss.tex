@@ -7,11 +7,11 @@
 \usepackage[toc,page]{appendix}
 \usepackage{pifont}
 \usepackage{amsmath}
-\usepackage{draftwatermark}
+%% \usepackage{draftwatermark}
 
-\SetWatermarkText{DRAFT}
-\SetWatermarkScale{6}
-\SetWatermarkLightness{0.95}
+%% \SetWatermarkText{DRAFT}
+%% \SetWatermarkScale{6}
+%% \SetWatermarkLightness{0.95}
 
 % \geometry{letter} % or letter or a5paper or ... etc
 % \geometry{landscape} % rotated page geometry
@@ -38,7 +38,16 @@
 
 The best introduction to this paper is to watch the 2:10 minute video of the
 walking robot, or \emph{glussbot}, which this paper describes:\\
+\\
 \indent \href{https://www.youtube.com/watch?v=zl0AEfxyVMw}{https://www.youtube.com/watch?v=zl0AEfxyVMw}.\\
+
+\begin{figure}[!ht]
+  \centering
+    \includegraphics[width=0.8\textwidth]{figures/3TetGlussBotPhotoAnnotated.png}
+    \caption[3TetGlussBot Components]{3TetGlussBot Components}
+      \label{annotated}
+\end{figure}
+
 
 Between 14 and 21 years ago, Arthur C. Sanderson and his colleagues published a series of
 papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robots.
@@ -109,7 +118,7 @@ a small amount of gluss compared to what we hope to build. Additionally, we pres
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=1.0\textwidth]{TwoGeometries.jpg}
+    \includegraphics[width=1.0\textwidth]{figures/TwoGeometries.jpg}
     \caption[The Octet Truss (above) and Tetrahelix (below)]{The Octet Truss (above) and Tetrahelix (below)}
       \label{twogeometries}
 \end{figure}
@@ -142,7 +151,7 @@ We name this joint the \emph{Turret Joint}.
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{SongKwonKimImage.png}
+    \includegraphics[width=0.5\textwidth]{figures/SongKwonKimImage.png}
     \caption[Song, Kwon, Kim, patent image.]{Song, Kwon, Kim, patent image.}
       \label{SongKwonKimImage}
 \end{figure}
@@ -162,7 +171,7 @@ variable member lengths liberated from using a finite set of angles.
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.5\textwidth]{SimplifiedConstraintDrawing.png}
+  \includegraphics[width=0.5\textwidth]{figures/SimplifiedConstraintDrawing.png}
     \caption[Turret Joint Planar Geometry]{Turret Joint Planar Geometry}
       \label{simplified-constraint-drawing}
 \end{figure}
@@ -208,7 +217,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
 
  \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{RotorModel.png}
+    \includegraphics[width=0.5\textwidth]{figures/RotorModel.png}
     \caption[Triangular Rotor Model]{Triangular Rotor Model.}
       \label{rotormodel}
 \end{figure}
@@ -228,7 +237,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.7\textwidth]{Parts.jpg}
+    \includegraphics[width=0.7\textwidth]{figures/Parts.jpg}
     \caption[3D Printed Parts]{3D Printed Parts}
       \label{parts}
 \end{figure}
@@ -257,7 +266,7 @@ both the tetrahexlix and octet-truss \cite{fuller1982synergetics} in terms of st
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{OctetTrussSelection.png}
+    \includegraphics[width=0.5\textwidth]{figures/OctetTrussSelection.png}
     \caption[The Octet Truss]{The Octet Truss, selected from Buckminster Fuller's patent.}
       \label{octet-truss-patent}
 \end{figure}
@@ -275,7 +284,7 @@ and have in the ``cap'' parts not shown here.
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{TetrahelixLockVsOctetTrussLock.png}
+    \includegraphics[width=0.5\textwidth]{figures/TetrahelixLockVsOctetTrussLock.png}
     \caption[Lock Comparison]{Lock Comparison}
       \label{lockcomparison}
 \end{figure}
@@ -301,7 +310,7 @@ general scale of 50 Newton, 400mm-average-length actuators.
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=1.0\textwidth]{CarbonFiberAndActuator.jpg}
+    \includegraphics[width=1.0\textwidth]{figures/CarbonFiberAndActuator.jpg}
     \caption[Static Rod and Actuator]{Static Rod and Actuator}
       \label{rodAndActuator}
 \end{figure}
@@ -354,16 +363,10 @@ Using these components, an NTetGlussBot can be constructed for any number of tet
 \end{itemize}
 for a cost of about \$400 per tetrahedra.
 
-\begin{figure}[!ht]
-  \centering
-    \includegraphics[width=0.8\textwidth]{3TetGlussBotPhotoAnnotated.png}
-    \caption[3TetGlussBot Components]{3TetGlussBot Components}
-      \label{annotated}
-\end{figure}
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.8\textwidth]{5TetGlussBotPictures/DSC_0002.jpg}
+    \includegraphics[width=0.8\textwidth]{figures/5TegGlussBotOverview.jpg}
     \caption[5TetGlussBot Components]{5TetGlussBot Components}
       \label{5TetGlussBot}
 \end{figure}
@@ -412,11 +415,11 @@ following resources to construct their own GlussBot.
   Alternatively, you may use the Creative Commons-licensed Eagle Soft CAD files, which can be found here:
   \href{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
   {https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
-  \begin{figure}[!ht]
-    \centering
-    \includegraphics[width=0.5\textwidth]{MotorControllerInPlace.JPG}
-    \caption{Arduino Mega Shield board}
-  \end{figure}
+   \begin{figure}[!ht]
+     \centering
+     \includegraphics[width=0.5\textwidth]{figures/MotorControllerInPlace.JPG}
+     \caption{Arduino Mega Shield board}
+   \end{figure}
 
 \item [Mountable Enclosures]
   Files to 3D Print the mountable enclosures for the battery pack and the Arduino Mega with the Robot Controller Shield are:\\
@@ -591,7 +594,11 @@ To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$
 \bibliographystyle{IEEEtran}
 \bibliography{IEEEabrv,gluss}
 
+
+
 \newpage
+
+
 
 \appendix
 
@@ -626,7 +633,7 @@ $ \psi \equiv $ Angle of Outmost Edge of the Rotor Hole
 
 \begin{figure}[!ht]
   \centering
-    \includegraphics[width=0.5\textwidth]{ConstraintDrawing.png}
+    \includegraphics[width=0.5\textwidth]{figures/ConstraintDrawing.png}
     \caption[Constraints]{Turret Joint Geometry Constraints}
       \label{constraint-drawing}
 \end{figure}
