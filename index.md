@@ -36,6 +36,8 @@ Imagine a bridge that crawls into place in a matter of hours. Imagine constructi
 
 Imagine a snake-like robot that can crawl into a collapsed building and hold the roof up while survivors are extracted. Imagine material that combines the functionality of forklift, a crane, a bulldozer and a backhoe, all in one machine. Imagine a very small gluss that crawl into and holds shut a wound, temporarily taking the place of missing tissue.
 
+<img width="30%" src="./images/robotTruckChasm.png"/>
+
 It is hard to imagine humanity exploring the stars in peace without gluss at its side.
 
 We've made a couple of videos showing physcial models and discussing our motivation:
