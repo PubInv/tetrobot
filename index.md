@@ -34,9 +34,11 @@ Imagine a strong, light, metamorphic robotic substance. The uses of such a subst
 
 Imagine a bridge that crawls into place in a matter of hours. Imagine constructing a temporary highway overpass in 24 hours, or a pedestrian bridge for a festival in the morning that comes down in the evening.
 
+<img width="80%" src="./images/robotTruckChasm.png"/>
+
 Imagine a snake-like robot that can crawl into a collapsed building and hold the roof up while survivors are extracted. Imagine material that combines the functionality of forklift, a crane, a bulldozer and a backhoe, all in one machine. Imagine a very small gluss that crawl into and holds shut a wound, temporarily taking the place of missing tissue.
 
-<img width="30%" src="./images/robotTruckChasm.png"/>
+
 
 It is hard to imagine humanity exploring the stars in peace without gluss at its side.
 
@@ -44,7 +46,9 @@ We've made a couple of videos showing physcial models and discussing our motivat
 
 <span>
 <iframe width="280" height="157" src="https://www.youtube.com/embed/WWXpSSwL88s" frameborder="0" allowfullscreen></iframe>
-<iframe width="280" height="157" src="https://www.youtube.com/embed/lLmkdvR1NCo" frameborder="0" allowfullscreen></iframe></span>
+<iframe width="280" height="157" src="https://www.youtube.com/embed/lLmkdvR1NCo" frameborder="0" allowfullscreen></iframe>
+
+</span>
 
 ## How You Can Get Involved
 
