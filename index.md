@@ -35,8 +35,8 @@ Imagine a strong, light, metamorphic robotic substance. The uses of such a subst
 Imagine a bridge that crawls into place in a matter of hours. Imagine constructing a temporary highway overpass in 24 hours, or a pedestrian bridge for a festival in the morning that comes down in the evening.
 
 <figure>
-	<img width="80%" src="https://github.com/PubInv/gluss/raw/gh-pages/images/robotTruckChasm.png"  alt="GlussBot Spannig Chasm, by WantedHero on Fiverrr"/>
-  <figcaption>GlussBot Spanning Chasm, by WantedHero on Fiverr.</figcaption>
+	<img width="80%" src="https://github.com/PubInv/gluss/raw/gh-pages/images/robotTruckChasm.png"  alt="GlussBot Spannig Chasm, by WantedHero on Fiverr"/>
+  <figcaption>GlussBot Spanning Chasm, by <a href="https://www.fiverr.com/wantedhero">WantedHero</a> on Fiverr.</figcaption>
 </figure>
 
 
