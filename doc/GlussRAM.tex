@@ -45,7 +45,7 @@
   minimum actuator length of  $\varphi \equiv \frac{1 + \sqrt{5}}{2} \approx 1.618...$.
   The simplest glussbot capable of crawling and turning, the 3TetGlussBot, is constructed of
   inexpensive open-source modules comprising an Arduino Mega, a custom PCB, servo controller chips, and a Bluetooth module.
-  A 3-module robot, the 5TetGlussBot, that uses spherical magnetic joints is described which crawls at ~27 cm/min (11 in/min).
+  A 3-module robot, the 5TetGlussBot, that uses spherical magnetic joints is described which oozes at ~27 cm/min (11 in/min).
 \end{abstract}
 
 \section{Introduction}
@@ -72,7 +72,7 @@ a certain amount of rotation about this center.  The TETROBOT used a joint calle
 
 This paper builds upon that work by introducing the concept of \emph{gluss}. It explains how to build it,
 introduces 3D-printable embodiments of
-a recently invented spherical joint, 
+a recently invented spherical joint\cite{song2003spherical}, 
 and gives some results related to the underlying geometry and math, as well as providing
 references to all of the open-source materials needed to duplicate and expand on this work. This is an
 open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
@@ -85,10 +85,10 @@ Imagine a strong, light, metamorphic material that can exert or resist force.
 You can command it to form any shape, limited by its flexibility.
 Using that power, you can, with some thought, get it to crawl across very rough terrain.
 You can command it to form into a bridge or to lift and move heavy objects,
-or to perform all the functions of a crane, a forklift, a backhoe and bulldozer.
+or to perform all the functions of a crane, a forklift, a backhoe and/or bulldozer.
 It is a truss that crawls like a slug---a \emph{gluss}.
 If you need more of it, you buy it by the kilo and when it arrives you order it
-to crawl to your existing gluss. You easily join it there, creating 
+to crawl to your existing gluss. You easily join it there, creating a
 larger, stronger, combined mass.
 
 The advantages of snakebots have been widely recognized \cite{liljebäck2012snake}. In general, these have been constructed
@@ -146,7 +146,7 @@ seamlessly connect any number of actuators into any amount of gluss with some ho
 
 \subsection{The Need}
 
-The way to make some thing large, light, and strong is to make it inherently rigid by building it
+The way to make something large, light, and strong is to make it inherently rigid by building it
 out of triangles. In a single plane, this is called a \emph{truss} \cite{ambrose1993building}, and more generally is called
 a \emph{space frame}.  Space frames made completely from triangles tend to be rigid even if the
 joints that connect members allow motion, such as a pin joint or a ball-and-socket joint. This
@@ -157,7 +157,7 @@ But we seek a space frame that can change its shape dramatically. Imagine a radi
 each girder has been replaced with an actuator that can get longer or shorter. Such a tower could
 bend its top down to the ground, or even
 tie itself into a knot. To accomplish this, the joints must support significant although not
-limitless range of motion. 
+limitless range of angular motion. 
 
 The spherical joint invented by Song, Kwon and Kim \cite{song2003spherical} is such a joint,
 the essence of which is rendered in their patent drawing, Figure \ref{SongKwonKimImage}.
@@ -171,7 +171,7 @@ We name this joint the \emph{Turret Joint}.
 \end{figure}
 
 When properly configured to support regular nets of actuators,
-it allows the gluss to be a moving spaceframe. It happens that the specific actuators we use
+it allows the gluss to be a moving space frame. It happens that the specific actuators we use
 are geared such that when no power is applied, they strongly resist outside forces that would change their length,
 essentially become rigid members.
 The resulting gluss
@@ -197,7 +197,7 @@ What is the maximum range of motion in our
 actuators which we can usefully employ in our gluss?
 To work independent of scale, we use the symbol $Q$ to denote the ratio of the actuator at its
 longest to its length at its shortest.
-The particular Actuonix zaactuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
+The particular Actuonix actuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
 it already too high?
 
 One way to approach this problem is to consider a single triangle formed by joints and actuators.
@@ -265,7 +265,7 @@ are capable of achieving.
 \subsection{Specific Geometries}
 
 Although the possible ways to configure actuators and joints is limitless, the simplest thing is to
-use regular, repeatable geometries. The two most obvious are the Boerdijk–Coxeter helix
+use regular, repeatable geometries. The two most obvious are the Boerdijk--Coxeter helix
 (more easily called the \textit{tetrahelix})
 \url{https://en.wikipedia.org/wiki/Boerdijk%E2%80%93Coxeter_helix}
   and the \emph{Octet Truss}
@@ -304,14 +304,16 @@ and have in the ``cap'' parts not shown here.
 \end{figure}
 
 
-We have additionally experimented with magnetic joints similar to those use in the Geomag\textsuperscript{TM}.
+We have additionally experimented with magnetic joints similar to those use in the Geomag\textsuperscript{TM} toy.
 These joints use 1/2'' diameter by 1'' long neodymium magnets restrained within small cages such that the circular face
-may contact a 2'' diameter steel ball.  This provides a pull force greater than the 50 Newton force applied by our linear
+may contact a 2'' diameter hollow steel ball.  This provides a pull force greater than the 50 Newton force applied by our linear
 actuators. The \emph{5TetGlussBot} (see Figure \ref{5TetGlussBot}) using these
 joints was demoed at the Wichita Mini Maker Faire July 30-31, 2016.
 
-Although this joint functions well and easily achieves the intention of making the robot quick to assemble and disassemble for travel,
-it is broken by side forces. Since climbing over obstacles and stairs will necessarily involve side forces on the actuators,
+Although this joint functions well and easily achieves the intention of making the robot quick to assemble and
+disassemble for travel,
+it is easily broken by side forces.
+Since climbing over obstacles and stairs will necessarily involve side forces on the actuators,
 we intend to move away from the magnetic joints.
 
 Furthermore, it would be very expensive to scale upward (and similarly becomes less expensive when
@@ -331,14 +333,14 @@ general scale of 50 Newton, 400mm-average-length actuators.
 
 We use the term Linear Actuator to refer to any device that is capable of changing its length. When
 used in gluss it might be called a \emph{glussion}, a single particle of gluss. Our current gluss
-uses a commercial linear actuator (the Firgelli/Actuonix L-16-140-35-12-P,
+uses a commercial linear actuator (the Firgelli/Actuonix\textsuperscript{TM} L-16-140-35-12-P,
 \href{http://www.firgelli.com/L16_Linear_Actuators_p/l16-p.htm}{http://www.firgelli.com/L16\_Linear\_Actuators\_p/l16-p.htm}
 )\footnote{At the time of this writing, Firgelli Technologies Inc. has changed its name to Actuonix Motion Devices.}
 that costs about \$80 and exerts about 50 Newtons of force.
 Turret joints that are 3D printed in plastic have been strong enough for this level of force.
 
 However, in principle there is no reason we could not use the enormous hydraulic cylinders
-used by backhoes, bulldozers, and other earth moving equipment. These would of course require much
+used by backhoes, bullozers, and other earth moving equipment. These would of course require much
 stronger joints. Probably not made out of plastic.
 
 We could also attempt to make smaller actuators, to make a pocket-sized gluss. This is probably
@@ -401,7 +403,7 @@ In practice, when lightly loaded by moving only itself, the time is relatively p
 about 3 seconds for the 3TetGlussBot to go from its most compact state to its largest, most expanded state.
 
 The current software has been written in anticipation of a much larger number of controllers and much more gluss.
-Nonetheless as mentioned in \ref{futuresteps} the current software is specific to either the 3-tetrahedron geometry or the
+Nonetheless as mentioned in Section \ref{futuresteps} the current software is specific to either the 3-tetrahedron geometry or the
 5-tet geometry.
 
 
@@ -451,7 +453,8 @@ An Arduino Sketch which implements a device driver for the GlussBot Controller S
      
 \item [S-Expr]
   The \href{https://github.com/PubInv/S-Expr}{https://github.com/PubInv/S-Expr} Arduino S-Expr project and its
-  \href{https://github.com/PubInv/Arduino-S-Expr-Test}{https://github.com/PubInv/Arduino-S-Expr-Test} test project
+  test project
+  \href{https://github.com/PubInv/Arduino-S-Expr-Test}{https://github.com/PubInv/Arduino-S-Expr-Test} 
   may be useful to anyone who wants to control an Arduino from Lisp or prefer S-Expressions to the closely related JSON format.
 
   
@@ -489,15 +492,15 @@ The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished
 in length of linear actuators, connected in a modular geometry based on the tetrahedron and octahedron.
 A quadrupedal robot was constructed completely out of the tetrahedral/octahedral geometry.
 The TETROBOT robots successfully walked and even rolled. The TETROBOT hardware was significantly
-heavier and more powerful that then hardware used here. The glussbots have so far demonstrated no greater functionality.
+heavier and more powerful that then hardware used here. The glussbots have so far demonstrated no greater functionality,
+although we have demonstrated that very simple robots consiting of only 3 tetrahedra can locomote.
 
 The present article has drastically lowered the cost thus making the glussbot/TETROBOT concept
-accessible to hobbyists and researchers on a tight budget. We have demonstrated that a very
-simple robot consisting of 3 tetrahedra can locomote.
+accessible to hobbyists and researchers on a tight budget.
 
-The TETROBOT used a joint called the CMS joint. Although
+The TETROBOT used a joint called the \emph{concentric multilink spherical} (CMS) joint. Although
 possibly superior in not allowing an extra degree or rotational freedom, it would be a challenge to use the CMS
-joint with the Actuonix actuators because the pushrod must fully retract, or the length of the pushrod would be
+joint with the Actuonix\textsuperscript{TM} actuators because the pushrod must fully retract, or the length of the pushrod would be
 have to be extended with an attachment. Prof. Sanderson's students used actuators that
 extended from the middle, avoiding this problem. If the Gluss Project ever develops its own actuators, it should
 explore using this joint.
@@ -517,7 +520,7 @@ exploration.
 Tensegrities are closely related to the gluss concept, more researched, and potentially more performant.
 In fact a gluss could be considered a special case of a tensegrity, using vanishingly short cables
 and, in the terminology of \cite{paul2006}, \emph{strut-collocated actuation}.
-In spirit, however, the different is that a tensegrity is lighter, more flexible, and more dynamic.
+In spirit, however, the difference is that a tensegrity is lighter, more flexible, and more dynamic.
 It has been reasonable to produce a static gait for the 3TetGlussBot and 5TetGlussBot because its behavior is not
 very dynamic: it is so slow and strong that velocity is irrelevant at the current scale.
 
@@ -560,7 +563,7 @@ difficult.
 \item [Throw a Ball:] (Mechatronics) Develop the dynamic control needed to throw a ball, thereby moving from
   kinematics to dynamics.
 \item [Cheap Actuator:] (Physics, Electrical Engineering) The gluss concept heightens the need for very inexpensive linear
-  actuators. The current actuators at \$80 make constructing a 100-actuator glussbot very expensive.
+  actuators. The current actuators at \$80 make constructing a 100-actuator glussbot expensive.
   It should be possible to build a linear actuator for 1/10th of this cost, although it may require
   giving up some advantages. If we imagine a design spectrum of actuators, creating a new and
   less expensive point in the spectrum of actuators designs would greatly
