@@ -7,6 +7,7 @@
 \usepackage[toc,page]{appendix}
 \usepackage{pifont}
 \usepackage{amsmath}
+\usepackage{float}
 %% \usepackage{draftwatermark}
 
 %% \SetWatermarkText{DRAFT}
@@ -34,6 +35,21 @@
 
 %% \tableofcontents
 
+\begin{abstract}
+  An innovative approach to modular robotics that combines manipulation and locomotion is described.
+  Extending the TETROBOT\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} concept of a variable-geometry
+  spaceframe or truss composed only of joints and linear actuators with a new 3D-printable emodiment of a
+  spherical joint\cite{song2003spherical}
+  produces a completely modular mechanically strong tentacle-like machine capable of independent locomotion.
+  We call this truss that can ooze like a slug a \emph{gluss}.
+  The \emph{turret joint} is shown to theoretically support a maximum ratio of maximum actuator length to
+  minimum actuator length of  $\varphi \equiv \frac{1 + \sqrt{5}}{2} \approx 1.618...$.
+  The simplest glussbot capable of crawling and turning, the 3TetGlussBot, is constructed of
+  inexpensive open-source modules comprising an Arduino Mega, a custom PCB, servo controller chipes, and a Bluetooth module.
+  A 3-module robot, the 5TetGlussBot, that uses spherical magnetic joints is described which crawls at ~27 cm/min (11 in/min).
+\end{abstract}
+
+
 \section{Introduction}
 
 The best introduction to this paper is to watch the 2:10 minute video of the
@@ -41,7 +57,7 @@ walking robot, or \emph{glussbot}, which this paper describes:\\
 \\
 \indent \href{https://www.youtube.com/watch?v=zl0AEfxyVMw}{https://www.youtube.com/watch?v=zl0AEfxyVMw}.\\
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.8\textwidth]{figures/3TetGlussBotPhotoAnnotated.png}
     \caption[3TetGlussBot Components]{3TetGlussBot Components}
@@ -72,6 +88,14 @@ You can command it to form any shape, limited by its flexibility.
 Using that power, you can, with some thought, get it to crawl across very rough terrain.
 You can command it to form into a bridge or to lift and move heavy objects,
 or to perform all the functions of a crane, a forklift, a backhoe and bulldozer.
+
+\begin{figure}[H]
+  \centering
+    \includegraphics[width=0.5\textwidth]{figures/robotTruckChasm.png}
+    \caption[Concept art of GlussBot Spanning a Chasm]{Concept art of GlussBot Spanning a Chasm}
+      \label{chasmspan}
+\end{figure}
+
 It is a truss that crawls like a slug---a \emph{gluss}.
 If you need more of it, you buy it by the kilo and when it arrives you order it
 to crawl to your existing gluss. You easily join it there, creating 
@@ -116,7 +140,7 @@ in addition to the 12 actuators and the 6 multi-member turret joints, but 3TetGl
 a small amount of gluss compared to what we hope to build. Additionally, we present \emph{5TetGlussBot}, an obvious extension of the
 3Tet geometry implemented with magnetic joints.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=1.0\textwidth]{figures/TwoGeometries.jpg}
     \caption[The Octet Truss (above) and Tetrahelix (below)]{The Octet Truss (above) and Tetrahelix (below)}
@@ -149,7 +173,7 @@ The spherical joint invented by Song, Kwon and Kim \cite{song2003spherical} is s
 the essence of which is rendered in their patent drawing, Figure \ref{SongKwonKimImage}.
 We name this joint the \emph{Turret Joint}.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.5\textwidth]{figures/SongKwonKimImage.png}
     \caption[Song, Kwon, Kim, patent image.]{Song, Kwon, Kim, patent image.}
@@ -169,7 +193,7 @@ variable member lengths liberated from using a finite set of angles.
 
 \subsection{Geometry}
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.5\textwidth]{figures/SimplifiedConstraintDrawing.png}
     \caption[Turret Joint Planar Geometry]{Turret Joint Planar Geometry}
@@ -215,7 +239,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
  but have found that nylon, which is far tougher and less prone to cracking, is superior for the
  rotors which bolt directly to the actuators.
 
- \begin{figure}[!ht]
+ \begin{figure}[H]
   \centering
     \includegraphics[width=0.5\textwidth]{figures/RotorModel.png}
     \caption[Triangular Rotor Model]{Triangular Rotor Model.}
@@ -235,7 +259,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
  the red ball. The green part is a Tetrahelix lock, and the yellow parts are the locks for the Octet Truss
  geometry.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.7\textwidth]{figures/Parts.jpg}
     \caption[3D Printed Parts]{3D Printed Parts}
@@ -264,7 +288,7 @@ is a good way to make a planar shape. The purpose of a tentacle is to curl, and 
 a plane that roll itself up into a cylinder or cone or form a barrel vault. Buckminster Fuller discusses
 both the tetrahelix and octet-truss \cite{fuller1982synergetics} in terms of static structures and geometries.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.5\textwidth]{figures/OctetTrussSelection.png}
     \caption[The Octet Truss]{The Octet Truss, selected from Buckminster Fuller's patent.}
@@ -282,7 +306,7 @@ It shows a lock part for the Tetrahelix geometry
 on the left, and the more expansive Octet Truss geometry on the right. Observe that some of the holes are half in this part,
 and have in the ``cap'' parts not shown here.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.5\textwidth]{figures/TetrahelixLockVsOctetTrussLock.png}
     \caption[Lock Comparison]{Lock Comparison}
@@ -308,7 +332,7 @@ general scale of 50 Newton, 400mm-average-length actuators.
 \section{Linear Actuators}
 \label{linearactuators}
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=1.0\textwidth]{figures/CarbonFiberAndActuator.jpg}
     \caption[Static Rod and Actuator]{Static Rod and Actuator}
@@ -364,7 +388,7 @@ Using these components, an NTetGlussBot can be constructed for any number of tet
 for a cost of about \$400 per tetrahedra.
 
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
     \includegraphics[width=0.8\textwidth]{figures/5TegGlussBotOverview.jpg}
     \caption[5TetGlussBot Components]{5TetGlussBot Components}
@@ -415,7 +439,7 @@ following resources to construct their own GlussBot.
   Alternatively, you may use the Creative Commons-licensed Eagle Soft CAD files, which can be found here:
   \href{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
   {https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
-   \begin{figure}[!ht]
+   \begin{figure}[H]
      \centering
      \includegraphics[width=0.5\textwidth]{figures/MotorControllerInPlace.JPG}
      \caption{Arduino Mega Shield board}
@@ -631,9 +655,9 @@ $ \psi \equiv $ Angle of Outmost Edge of the Rotor Hole
 
 
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
-    \includegraphics[width=0.5\textwidth]{figuresConstraintDrawing.png}
+    \includegraphics[width=0.5\textwidth]{figures/ConstraintDrawing.png}
     \caption[Constraints]{Turret Joint Geometry Constraints}
       \label{constraint-drawing}
 \end{figure}
