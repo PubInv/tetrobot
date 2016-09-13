@@ -36,7 +36,8 @@
 %% \tableofcontents
 
 \begin{abstract}
-  An innovative approach to modular robotics that combines manipulation and locomotion is described.
+  An innovative approach to modular robotics that is capable of both locomotion and exerting and
+  withstanding structural forces is described.
   Extending the TETROBOT\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} concept of a variable-geometry
   truss which is composed only of joints and linear actuators
   with a new 3D-printable emodiment of a
@@ -82,7 +83,7 @@ references to all of the open-source materials needed to duplicate and expand on
 open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
 hobbyist or researcher with a limited budget.  The development of 3D printers, Bluetooth, microprocessors
 such as the Arduino, and inexpensive commercial actuators has made this possible.
-A very simple robot have only three tetrahedra is shown to be capable of locomotion.
+A very simple robot having only three tetrahedra is shown to be capable of locomotion.
 
 \subsection{Motivation}
 
@@ -252,7 +253,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
       \label{rotormodel}
 \end{figure}
 
- We have innovated the design of the rotor slightly by using a trianngular section of a sphere as the
+ We have innovated the design of the rotor by using a trianngular section of a sphere as the
  rotor rather than a circular section, as shown in Figure \ref{rotormodel}.
  Assuming that each actuator is free to rotate about its axis as well as revolve about the
  center of the ball joint, this shape does not limit motion even in the most pinched
@@ -275,7 +276,7 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
 In Section \ref{linearactuators}, one of our actuators and also a carbon rod with 3D-printed tubular mounts
 are shown in Figure \ref{rodAndActuator}.
 The carbon rod and mounts can be used as a construction system to build a static structure.
-By cutting the rods to any length (with $Q \leq \phi$), you can build a static version of any geometry that
+By cutting the rods to any length (with $Q \leq \varphi$), you can build a static version of any geometry that
 the actuators
 are capable of dynamically achieving.
 
@@ -292,7 +293,7 @@ use regular, repeatable geometries. The two most obvious are the Boerdijk–-Cox
     
 Roughly speaking, the Tetrahelix is a good way to make a long shaft or tentacle, and the octet truss
 is a good way to make a planar shape. The purpose of a tentacle is to curl, and the we have no word for
-a stingray-like plane that rolls itself up into a cylinder or cone or form a barrel vault. Buckminster Fuller discusses
+a stingray-like plane that rolls itself up into a cylinder or cone or forms a barrel vault. Buckminster Fuller discusses
 both the tetrahelix and octet truss \cite{fuller1982synergetics} in terms of static structures and geometries.
 
 \begin{figure}[H]
@@ -354,6 +355,8 @@ uses a commercial linear actuator (the Firgelli/Actuonix L-16-140-35-12-P,
 \url{http://www.firgelli.com/L16_Linear_Actuators_p/l16-p.htm}
 )\footnote{At the time of this writing, Firgelli Technologies Inc. has changed its name to Actuonix Motion Devices.}
 that costs about \$80 and exerts about 50 Newtons of force.
+They have the tremoendous advantage
+of providing positional feedback.
 Turret joints that are 3D printed in plastic have been strong enough for this level of force.
 
 However, in principle there is no reason we could not use the enormous hydraulic cylinders
@@ -382,7 +385,7 @@ It comprises:
 \item 2 controller units, each of which comprises:
 \begin{itemize}  
 \item 1 Arduino Mega microcontroller, and
-\item 1 custom Arduino Mega shield hosting 6 1-amp motor channels and a BlueTooth module,
+\item 1 custom Arduino Mega shield hosting 6 1-amp motor channels and a Bluetooth module,
 \end{itemize}  
 \end{itemize}
 
@@ -406,9 +409,10 @@ for a cost of about \$400 per tetrahedra.
 
 
 Each controller module electrical system can support up to 6 actuators, so two are required for the 3TetGlussBot.
-The BlueTooth modules open serial connections controlled by a computer.
+The Bluetooth modules open serial connections controlled by a computer.
 The Arduino Mega is programmed to support commands addressed to each or all of the actuators, and
-to provide feedback. The computer and the Arduino control programs communicate via S-Expressions
+to convert electrical actuator feedback into digital position information.
+The computer and the Arduino control programs communicate via S-Expressions
 implemented with our own module. This is very analogous to sending JavaScript Object Notation (JSON) back and forth.
 
 Commands to and feedback from the controller modules are managed by an Emacs E-Lisp program.
@@ -552,11 +556,11 @@ of the future steps outlined in Section \ref{futuresteps} apply to both gluss an
 This paper presents the gluss as a ``machine'', rather than a ``mechanism''. That is, it motivates gluss
 by asserting it can exert and resist force, yet currently treats gluss positioning as a purely kinematic,
 rather than dynamic problem. The actuators currently in use are geared such that they are so slow
-and powerful that the behavior is not really dynamic. Classic control theory has not yet been needed.
-As the gluss is made larger and longer and dynamics are added,
-a finite element approach\cite{géradin2001flexible} seems appropriate,
-given its ability to represent complex structural connections and static analysis.
+and powerful that the behavior is not really dynamic. If static analysis of a resulting geometry is
+needed, for example to ask if structure used as a bridge will bear a load, a finite element approach\cite{géradin2001flexible} will be adequate.
 
+If one chooses to attempt to exert a high enough force or to move more quickly, classic robot control theory
+which models forces and velocities based on Lagrangian mechanics will be required.
 
 
 \section{Future Steps}
