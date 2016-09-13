@@ -71,21 +71,23 @@ papers\cite{sanderson1996modular,lee2002dynamic,lee1999dynamics} on modular robo
 The ``TETROBOT'' was a variable-geometry truss, in which motion was accomplished by the change
 in length of linear actuators, connected in a modular geometry based on the tetrahedron and octahedron.  Such a system
 requires a special joint which allows the actuators to remain aimed at the center of joints while supporting
-a certain amount of rotation about this center.  The TETROBOT used a joint called the CMS joint.
+a certain amount of rotation about this center.
 
-This paper builds upon that work by introducing the concept of \emph{gluss}. It explains how to build it,
-introduces 3D-printable embodiments of
+
+This paper builds upon that work by 
+introducing 3D-printable embodiments of
 a recently invented spherical joint\cite{song2003spherical}, 
 and gives some results related to the underlying geometry and math, as well as providing
 references to all of the open-source materials needed to duplicate and expand on this work. This is an
 open-source embodiment of the TETROBOT with physically smaller actuators which is more accessible to the
 hobbyist or researcher with a limited budget.  The development of 3D printers, Bluetooth, microprocessors
 such as the Arduino, and inexpensive commercial actuators has made this possible.
+A very simple robot have only three tetrahedra is shown to be capable of locomotion.
 
 \subsection{Motivation}
 
 Imagine a strong, light, metamorphic material that can exert or resist force.
-You can command it to form any shape, limited by its flexibility.
+You can command it to form any shape, limited only by its flexibility.
 Using that coformability you can get it to crawl across very rough terrain.
 You can command it to form into a bridge or to lift and move heavy objects,
 or to perform all the functions of a crane, a forklift, a backhoe and/or bulldozer.
@@ -102,10 +104,13 @@ If you need more of it, you buy it by the kilo and when it arrives you order it
 to crawl to your existing gluss. You easily join it there, creating 
 larger, stronger, combined mass.
 
-The advantages of snakebots have been widely recognized \cite{liljebäck2012snake}. In general, these have been constructed
+The advantages of snakebots have been widely recognized \cite{liljebäck2012snake}.
+In general, these have been constructed
 with angular joints. In this paper we propose a different, truss-like approach to providing similar
-mobility that uses only linear actuators and spherical joints that support no angular forces. This
-potentially combines the advantages of forceful machines with snake-like mobility.
+mobility that uses only linear actuators and spherical joints that eliminates non-axial forces so that only
+compressive and tensile forces act on the actuators.
+This potentially combines the advantages of forceful machines with snake-like mobility.
+
 
 Other geometries, such as moving planes, are possible with the same material.
 
@@ -161,14 +166,15 @@ The way to make something large, light, and strong is to make it inherently rigi
 out of triangles. In a single plane, this is called a \emph{truss} \cite{ambrose1993building}, and more generally is called
 a \emph{space frame}.  Space frames made completely from triangles tend to be rigid even if the
 joints that connect members allow motion, such as a pin joint or a ball-and-socket joint. This
-is an advantage because strain (that is, a slight change in the angular geometry of the frame) cannot cause
+is an advantage because non-axial strain (that is, a slight change in the angular geometry of the frame)
+cannot cause
 the joint to fail, as it can with a welded joint.
 
 But we seek a space frame that can change its shape dramatically. Imagine a radio tower in which
 each girder has been replaced with an actuator that can get longer or shorter. Such a tower could
 bend its top down to the ground, or even
-tie itself into a knot. To accomplish this, the joints must support significant although not
-limitless range of angular motion. 
+tie itself into a knot. To accomplish this, the joints must support significant
+but limited range of angular motion. 
 
 The spherical joint invented by Song, Kwon and Kim \cite{song2003spherical} is such a joint,
 the essence of which is rendered in their patent drawing, Figure \ref{SongKwonKimImage}.
@@ -206,7 +212,7 @@ How versatile can we make the turret joint?
 In particular, since we are attempting to build gluss which is regular in its use of actuators, we may ask:
 What is the maximum range of motion in our
 actuators which we can usefully employ in our gluss?
-To work independent of scale, we use the symbol $Q$ to denote the ratio of the actuator at its
+To work independent of scale, we use the symbol $Q$ to denote the ratio of the actuator length at its
 longest to its length at its shortest.
 The particular Actuonix\textsuperscript{TM} actuators we use have a $Q$ of 1.5. But is that the maximum $Q$ that we could utilize? Or is
 it already too high?
@@ -220,14 +226,13 @@ by an ideal turret joint happens to be
 the famous golden ratio, $\varphi \equiv \frac{1 + \sqrt{5}}{2} \approx 1.618...$, and the maximum deviation for any one member coming
 into the joint is $36\degree$.
 Thus in Figure \ref{simplified-constraint-drawing} the triangles drawn are in fact a Golden Triangle and a Golden Gnomon.
-This is interesting but has little to
-do with a real-world joint, which will support less variation because the ``post'' must have a
+A real-world joint, which will support less variation because the ``post'' must have a
 certain thickness and the ``rotor'' must have a lip
 slightly larger than the hole in order to remain locked in place.
 Furthermore, the joint adds a certain necessary thickness, the minimum length
  from joint-center to joint-center will be somewhat greater than from actuator tip to actuator tip.
 
- However, the theoretic result is a valuable guideline and makes a $Q$ for a physical actuator of 1.5 seem quite appropriate.
+ However, the theoretical ideal result is a valuable approach to physical computation and makes a $Q$ for a physical actuator of 1.5 seem quite appropriate.
 
  \subsection{Embodiment}
 
@@ -270,8 +275,9 @@ Furthermore, the joint adds a certain necessary thickness, the minimum length
 In Section \ref{linearactuators}, one of our actuators and also a carbon rod with 3D-printed tubular mounts
 are shown in Figure \ref{rodAndActuator}.
 The carbon rod and mounts can be used as a construction system to build a static structure.
-By cutting the rods to any length, you can build a static version of any geometry that the actuators
-are capable of achieving.
+By cutting the rods to any length (with $Q \leq \phi$), you can build a static version of any geometry that
+the actuators
+are capable of dynamically achieving.
 
 \subsection{Specific Geometries}
 
@@ -282,11 +288,11 @@ use regular, repeatable geometries. The two most obvious are the Boerdijk–-Cox
   and the \emph{Octet Truss}
   \cite{richard1961synergetic}.
   It is instructive to compare Figure \ref{octet-truss-patent} with the photo of the same object
-  made with the GeoMag toy shown in Figure \ref{twogeometries}.
+  made with the Geomag\textsuperscript{TM} toy shown in Figure \ref{twogeometries}.
     
 Roughly speaking, the Tetrahelix is a good way to make a long shaft or tentacle, and the octet truss
 is a good way to make a planar shape. The purpose of a tentacle is to curl, and the we have no word for
-a plane that roll itself up into a cylinder or cone or form a barrel vault. Buckminster Fuller discusses
+a stingray-like plane that rolls itself up into a cylinder or cone or form a barrel vault. Buckminster Fuller discusses
 both the tetrahelix and octet-truss \cite{fuller1982synergetics} in terms of static structures and geometries.
 
 \begin{figure}[H]
@@ -304,8 +310,9 @@ The image is from TurrentJoint.scad:\\
 \url{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}, an
 open-source file that can be used to 3D print all of the turret joint components.
 It shows a lock part for the Tetrahelix geometry
-on the left, and the more expansive Octet Truss geometry on the right. Observe that some of the holes are half in this part,
-and have in the ``cap'' parts not shown here.
+on the left, and the more expansive Octet Truss geometry on the right. Observe that some of the holes are
+semicircular, half in this part,
+and half in the ``cap'' parts not shown here.
 
 \begin{figure}[H]
   \centering
@@ -320,8 +327,10 @@ These joints use 1/2'' diameter by 1'' long neodymium magnets restrained within 
 may contact a 2'' diameter hollow steel ball.  This provides a pull force greater than the 50 Newton force applied by our linear
 actuators.
 
-Although this joint functions well and easily achieves the intention of making the robot quick to assemble and disassemble for travel,
-it is easily broken by side forces. Since climbing over obstacles and stairs will necessarily involve side forces on the actuators,
+Although this joint functions well and easily achieves the intention of making the robot quick to assemble and
+disassemble for travel,
+it is easily broken by non-axial forces exerted from outside the robot.
+Since climbing over obstacles and stairs will necessarily involve side forces on the actuators,
 we intend to move away from the magnetic joints.
 
 Furthermore, it would be very expensive to scale upward (and similarly becomes less expensive when
@@ -358,7 +367,7 @@ The current actuators use a rotary motor with a lead screw. This has the advanta
 strength relative to their size, and of retaining position forcefully with relatively little backlash. It has the disadvantage
 of being relatively slow. It would be interesting to build a gluss out of linear motors, for
 example tubular linear synchronous motors. These would be much faster than the lead-screw type
-actuators, resulting in a much faster gluss. 
+actuators, resulting in a much faster gluss, and would require dynamic, rather than purely kinematic control.  
 
 \section{Control and Motion}
 \subsection{Architecture of the 3TetGlussBot and 5TetGlussBot}
@@ -418,7 +427,7 @@ Nonetheless as mentioned in Section \ref{futuresteps} the current software is sp
 \subsection{Open Source Realizations}
 
 We have provided everything necessary to construct gluss in the form of FLOSS. Providing an ``Instructable''-style
-how-to guide is beyond the scope of this article, but a semi-skilled electronics hobbyist can use the
+how-to guide is beyond the scope of this article, but a semi-skilled electronics technician can use the
 following resources to construct their own GlussBot.
 
 \begin{description}
@@ -435,7 +444,7 @@ following resources to construct their own GlussBot.
   where it is titled the \emph{3x2 Motor Controller MegaShield, v0.2}.
   The \url{https://oshpark.com/shared_projects/fijpozoB} shield
   may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time, via Bluetooth.
-  Alternatively, you may use the Creative Commons-licensed Eagle Soft CAD files, which can be found here:\\
+  Alternatively, you may use and modify the Creative Commons-licensed Eagle Soft CAD files, which can be found here:\\
   \url{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
    \begin{figure}[H]
      \centering
@@ -470,7 +479,7 @@ An Arduino Sketch which implements a device driver for the GlussBot Controller S
 The 3TetGlussBot is capable of ``walking'' and turning. Some might prefer the term ``crawl'' to ``walk'' in
 this case. It can move forward awkwardly at a rate
 of about five inches per minute. It can turn 30 degrees in about 60 seconds.
-We believe the 3TetGlussBot is the simplest amount of gluss that would be capable of locomotion.
+We believe the 3TetGlussBot is the simplest amount of gluss that is capable of locomotion.
 
 The present mode of walking avoids dragging the pseudopods by leaning to one side or front or back and
 then lifting the pseudopod, moving it forward (without ground contact), and placing it down again.
@@ -482,8 +491,10 @@ move to any extent commanded of them. No attempt to model force has thus been ma
 Since the gait was constructed by hand, it does not represent a modelling of the idea of leaning and or
 unweighting a given joint.
 
-The 5TetGlussBot is significantly faster, moving about 7.5 inches per minute in the ``broadwalk'' mode
-and about 11 inches per minute in a walk in the ``thin'' direction using a ``slide'' in its gait.
+The 5TetGlussBot is significantly faster, moving about 19 centimeters (7.5 inches)
+per minute in the ``broadwalk'' mode
+and about approximately 28 centimeters (11 inches) per minutes in a walk in the
+``thin'' direction using a ``slide'' in its gait.
 
 The current programmed gaits are not optimal.
 We are developing a browser-based simulation using the Cannon.js physics engine that should allow for development
@@ -597,10 +608,10 @@ Finite element analysis is a standard approach to this.
   disassembled and assembled more quickly would be convenient.
 We have found that it is possible to build a magnetic
   joint similar (but larger) than those used in the Geomag\textsuperscript{TM} toy. However, it does not scale up in size
-  and is weak against side forces. We would like to investigate the turret joint using bolt-free ``bayonet mounts'' which
+  and is weak against external non-axial forces. We would like to investigate the turret joint using bolt-free ``bayonet mounts'' which
   can be easily snapped into place.
 \item [Construction System:] (Mechanical Engineering) If we imagine the members connecting the joints are not actuators but
-  simply rods that can be cut to any length, we have a construction system for making spaceframes.
+  simply rods that can be cut to any length, we have a construction system for making space frames.
   Exploring the possibilities of such a construction system to make organic and interesting shapes
   freed of rectilinear limits would be worthwhile.
 \item [Build Simulator:] (Computer Science) A 3TetGlussBot can be constructed for about \$1300. Nonetheless this
