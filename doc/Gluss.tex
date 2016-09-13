@@ -56,7 +56,7 @@
 The best introduction to this paper is to watch the 2:10 minute video of the
 walking robot, or \emph{glussbot}, which this paper describes:\\
 \\
-\indent \href{https://www.youtube.com/watch?v=zl0AEfxyVMw}{https://www.youtube.com/watch?v=zl0AEfxyVMw}.\\
+\indent \url{https://www.youtube.com/watch?v=zl0AEfxyVMw}.\\
 
 \begin{figure}[H]
   \centering
@@ -301,7 +301,7 @@ The Octet Truss reflects the geometry called the \emph{cuboctahedron}.
 Because the Turret Joint does not support infinite revolution of all members, the joint, or the ``lock'' or ``stator'' in particular,
 must be adjusted to the regular geometry that one is implementing.  Figure \ref{lockcomparison} indicates this difference.
 The image is from TurrentJoint.scad:\\
-\href{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}, an
+\url{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}, an
 open-source file that can be used to 3D print all of the turret joint components.
 It shows a lock part for the Tetrahelix geometry
 on the left, and the more expansive Octet Truss geometry on the right. Observe that some of the holes are half in this part,
@@ -342,7 +342,7 @@ general scale of 50 Newton, 400mm-average-length actuators.
 We use the term Linear Actuator to refer to any device that is capable of changing its length. When
 used in gluss it might be called a \emph{glussion}, a single particle of gluss. Our current gluss
 uses a commercial linear actuator (the Firgelli/Actuonix L-16-140-35-12-P,
-\href{http://www.firgelli.com/L16_Linear_Actuators_p/l16-p.htm}{http://www.firgelli.com/L16\_Linear\_Actuators\_p/l16-p.htm}
+\url{http://www.firgelli.com/L16_Linear_Actuators_p/l16-p.htm}
 )\footnote{At the time of this writing, Firgelli Technologies Inc. has changed its name to Actuonix Motion Devices.}
 that costs about \$80 and exerts about 50 Newtons of force.
 Turret joints that are 3D printed in plastic have been strong enough for this level of force.
@@ -425,20 +425,18 @@ following resources to construct their own GlussBot.
   
 \item [Turret Joint]
   The Turret Joint is implemented via OpenSCAD files. The file itself is here:\\
-  \href{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}
-       {https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}.
+  \url{https://github.com/PubInv/turret-joint/blob/master/Models/TurretJoint.scad}.
        The model may be observed without even installing OpenSCAD, and even 3D printed,
-       from the same file using the customizer feature of Thingiverse.\\
-       \href{http://www.thingiverse.com/thing:1043716}{http://www.thingiverse.com/thing:1043716}
+       from the same file using the customizer feature of Thingiverse:\\
+       \url{http://www.thingiverse.com/thing:1043716}
   
 \item [Robot Controller Shield]
   An Arduino Mega Shield may be ordered directly from OshPark and then hand-soldered with through-hole components,
   where it is titled the \emph{3x2 Motor Controller MegaShield, v0.2}.
-  The \href{https://oshpark.com/shared_projects/fijpozoB}{https://oshpark.com/shared\_projects/fijpozoB} shield
+  The \url{https://oshpark.com/shared_projects/fijpozoB} shield
   may be useful to anyone who wants to control up to six DC motors (up to 1 amp each) at the same time, via Bluetooth.
   Alternatively, you may use the Creative Commons-licensed Eagle Soft CAD files, which can be found here:\\
-  \href{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
-  {https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
+  \url{https://github.com/PubInv/gluss/tree/master/GlussPCBv0.1}
    \begin{figure}[H]
      \centering
      \includegraphics[width=0.5\textwidth]{figures/MotorControllerInPlace.JPG}
@@ -447,22 +445,21 @@ following resources to construct their own GlussBot.
 
 \item [Mountable Enclosures]
   Files to 3D Print the mountable enclosures for the battery pack and the Arduino Mega with the Robot Controller Shield are:\\
-  \href{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}
+  \url{https://github.com/PubInv/gluss/tree/master/MegaAndShieldEnclosure}
 
 \item [Control Software]
 An Emacs LISP program which controls the 3TetGlussBot via a command-line interface:
-\href{https://github.com/PubInv/gluss/blob/master/emacs-ctl.el}{https://github.com/PubInv/gluss/blob/master/emacs-ctl.el}
+\url{https://github.com/PubInv/gluss/blob/master/emacs-ctl.el}
 
 An Arduino Sketch which implements a device driver for the GlussBot Controller Shield is required as well:
 
-\href{https://github.com/PubInv/gluss/blob/master/GlussPCBv0.1/GlussPCBv0.1.ino}
-     {https://github.com/PubInv/gluss/blob/master/GlussPCBv0.1/GlussPCBv0.1.ino}.
+\url{https://github.com/PubInv/gluss/blob/master/GlussPCBv0.1/GlussPCBv0.1.ino}.
      This sketch needs the Arduino module S-Expr.
      
 \item [S-Expr]
-  The \href{https://github.com/PubInv/S-Expr}{https://github.com/PubInv/S-Expr} Arduino S-Expr project and its
+  The \url{https://github.com/PubInv/S-Expr} Arduino S-Expr project and its
   test project \\
-  \href{https://github.com/PubInv/Arduino-S-Expr-Test}{https://github.com/PubInv/Arduino-S-Expr-Test} 
+  \url{https://github.com/PubInv/Arduino-S-Expr-Test}
   may be useful to anyone who wants to control an Arduino from Lisp or prefer S-Expressions to the closely related JSON format.
 
   
@@ -615,7 +612,7 @@ We have found that it is possible to build a magnetic
 
 \section{Contact and Getting Involved}
 
-The Gluss Project \href{http://pubinv.github.io/gluss/}{http://pubinv.github.io/gluss/}
+The Gluss Project \url{http://pubinv.github.io/gluss/}
 is a free-libre, open-source research, hardware, and software project that welcomes volunteers.
 It is our goal to organize projects for the benefit of all humanity without seeking profit or intellectual property.
 To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$>$}.
