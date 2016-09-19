@@ -36,16 +36,17 @@
 
     {% include header.html %}
 	
-<div
+    
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+	  <div
   class="fb-like"
   data-share="true"
   data-width="450"
   data-show-faces="true">
 </div>
-    
-    <div id="content-wrapper">
-      <div class="inner clearfix">
-        <section id="main-content">
+
 	  {{ content }}
 	  {% include sub-footer.html %}
 
