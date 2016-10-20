@@ -15,7 +15,7 @@
 
   </head>
     <body>
-    <div id="world"></div>
+        <div id="world"></div>
     <div id="control">
     <textarea id="cli" rows="8" cols="80">
     Imagine enterring a command here.
@@ -82,11 +82,11 @@ Turn Auto Rectify On
 
 </div>
     <div>
-    <button type="button" onclick="double_size()">
-    Double size
+    <button type="button" onclick="big_size()">
+    Big size
 </button>
-    <button type="button" onclick="half_size()">
-Half size
+    <button type="button" onclick="small_size()">
+Small size
 </button>
     <button type="button" onclick="flat()">
 Flat Pose
@@ -105,9 +105,19 @@ Flat Pose
 </button>
     <button type="button" onclick="step_con()">
     Use STEP MODE
-</button>
+    </button>
+
+        <button type="button" onclick="do_test()">
+    Send Pose to Robot
+	</button>
+	<div id="robotcomresult">
+	  </div>
     </div>
-    
+    <p>
+    </p>
+    <p>
+    </p>
+
         <script src="./js/three.js"></script>
         <script src="./js/Detector.js"></script>
     <script src="./js/cannon.js"></script>
@@ -132,6 +142,7 @@ Flat Pose
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
     <script>
 
+var url_for_robot = "http://127.0.0.1:9000";
 
 // A "robot" is really a graph of vertices with connections.
 // In physical realization, the connections are actuators with length limits.
@@ -143,7 +154,6 @@ Flat Pose
 // This will be made slightly more confusing by utilizing Three.js
 // and cannon.js utility classes (such as Vector) for convenience,
 // even in the abstract world of the robot space.
-
 
 // TODO: I hate global variables ---- I'd like to encapsulate this
 // into a class.
@@ -165,12 +175,12 @@ var controls,time = Date.now();
 
 var MARGIN = 0;
 var SCREEN_WIDTH = window.innerWidth;
-var SCREEN_HEIGHT = 2*window.innerHeight/3.0;
+var SCREEN_HEIGHT = 1*window.innerHeight/2.0;
 
 
 // These are in meters, measured joint-center to joint-center
 var MAX_EDGE_LENGTH = 0.470;
-var MIN_EDGE_LENGTH = 0.340;
+var MIN_EDGE_LENGTH = 0.330;
 var MEDIAN_EDGE_LENGTH = (MAX_EDGE_LENGTH + MIN_EDGE_LENGTH)/2;
 var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
@@ -250,7 +260,7 @@ function init_scene() {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setClearColor( scene.fog.color );
     // After we do this, we want to start using renderer.getSize.
-    renderer.setSize( window.innerWidth,  window.innerHeight*2/3  );    
+    renderer.setSize( window.innerWidth,  window.innerHeight*(1/2)  );    
 
     // camera
     camera = new THREE.PerspectiveCamera( 35, renderer.getSize().width / (renderer.getSize().height), 0.5, 10000 );
@@ -388,7 +398,6 @@ function onMouseMove(e){
 
 function onMouseDown(e){
     // Find mesh from a ray
-    console.log(e); // you can inspect the click event
 
     var mouse3D = new THREE.Vector3( ( e.clientX / renderer.getSize().width ) * 2 - 1,   //x
 				     -( e.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
@@ -507,7 +516,7 @@ function projectOntoPlane(screenX,screenY,thePlane,camera) {
     last = now;
     if(hit)
         return hit.point;
-    return false;
+    else return false;
 }
 function findNearestIntersectingObject(clientX,clientY,camera,objects) {
     var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
@@ -546,7 +555,9 @@ function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
 }
 
 function onWindowResize() {
-    renderer.setSize( window.innerWidth, (2*window.innerHeight)/3 );
+//    init_scene();
+//    add_world_to_scene(scene);
+    renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
     
     camera.updateProjectionMatrix();
 
@@ -748,7 +759,24 @@ function add_ground_plane(world,scene) {
     var groundShape = new CANNON.Plane();
     var floor_position = 0;
 
-    var groundBody = new CANNON.Body({ mass: 0 });
+         // Materials
+        var groundMaterial = new CANNON.Material("groundMaterial");
+
+        // Adjust constraint equation parameters for ground/ground contact
+        var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
+            friction: 0.4,
+            restitution: 0.3,
+            contactEquationStiffness: 1e8,
+            contactEquationRelaxation: 3,
+            frictionEquationStiffness: 1e8,
+            frictionEquationRegularizationTime: 3,
+        });
+
+        // Add contact material to the world
+        world.addContactMaterial(ground_ground_cm);
+
+    
+    var groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     groundShape.position = new CANNON.Vec3(0,0,0);
@@ -757,7 +785,9 @@ function add_ground_plane(world,scene) {
     
     // floor
 
-    var floorTexture = new THREE.ImageUtils.loadTexture( 'images/logo-white-background.png' );
+//    var floorTexture = new THREE.ImageUtils.loadTexture( 'images/logo-white-background.png' );
+    var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
+
     floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
     floorTexture.repeat.set( 500, 500 );
     var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
@@ -856,8 +886,6 @@ function generate_mesh_pairings_from_world(world,scene)
 	results.unshift([link.body,mesh]);
 	mem_cnt++;
     }
-    console.log("body_cnt "+body_cnt);
-    console.log("mem_cnt "+mem_cnt);    
     return results;
 }
 
@@ -925,7 +953,6 @@ function load_NTetGlussBot(world,tets,pvec) {
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
-	    console.log(i+" to "+h);
 	    add_member_spring(robot_joints[h],robot_joints[i],world);
 
 	    // Okay, here I also want to add a new body to represent the actuator
@@ -951,10 +978,13 @@ function load_NTetGlussBot(world,tets,pvec) {
     }
 }
 
+var ROBOT_PAIRINGS;
+
 function add_robot(world,scene) {
     var pvec = new CANNON.Vec3(0,INITIAL_HEIGHT,0);
     load_NTetGlussBot(world,NUMBER_OF_TETRAHEDRA,pvec);
     var pairings = generate_mesh_pairings_from_world(world,scene);
+    ROBOT_PAIRINGS = pairings;
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
     }
@@ -965,6 +995,7 @@ function add_robot(world,scene) {
     });
 }
 
+var GROUND_PLANE_MESH;
 function initCannon(){
     // Setup our world
     world = new CANNON.World();
@@ -975,7 +1006,7 @@ function initCannon(){
     world.broadphase = new CANNON.NaiveBroadphase();
 
     var item = add_ground_plane(world,scene)
-    scene.add(item[1]);
+    GROUND_PLANE_MESH = item[1];
     push_body_mesh_pair(item[0],item[1]);
     
     // This would be better as a function that
@@ -989,7 +1020,17 @@ function initCannon(){
     jointBody.addShape(shape);
     jointBody.collisionFilterGroup = 0;
     jointBody.collisionFilterMask = 0;
-    world.add(jointBody)
+    world.add(jointBody);
+    
+    scene.add(item[1]);
+}
+
+function add_world_to_scene(scene) {
+    var pairings = ROBOT_PAIRINGS;
+    for(var i = 0; i < pairings.length; i++) {
+	scene.add(pairings[i][1]);
+    }
+    scene.add(GROUND_PLANE_MESH);
 }
 
 var FORCE_REGIME = "DISABLE";
@@ -1005,7 +1046,29 @@ function step_con() {
 }
 
 function step_con() {
+		       }
+
+function do_test() {
+    // Right now, we are just sending the current config
+    var pmodel = extract_physical_node_model();
+    var am = model_to_actuator_space(pmodel);
+    var x = JSON.stringify(am,null,2);
+    $.ajax({url: url_for_robot,
+	    crossDomain: true,
+	    beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
+//	    dataType: 'jsopn',
+	    data: x,
+	    success: function(result){
+		alert(result);
+		
+        $("#robotcomresult").html(result);
+	    },
+	    error: function (request, status, error) {
+		alert(request.responseText);
+	     }
+	   });
 }
+		       
 
 function updateConstraints(body) {
         // Now we want to disable all attached length constraints (and actually add others)
@@ -1195,6 +1258,10 @@ function render_physical_model(id) {
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
+function send_pose_to_robot() {
+    alert("Yes, I will send!");
+}
+
 // This is now rendering in an "emacs-ready" way --- that needs to be
 // made clear.
 function render_actuator_model(form) {
@@ -1336,7 +1403,14 @@ function half_size() {
 }
 
 function double_size() {
-    factor_size(2.0);
+    factors_size(2.0);
+}
+
+function big_size() {
+    fixed_size(MAX_EDGE_LENGTH);
+}
+function small_size() {
+    fixed_size(MIN_EDGE_LENGTH);
 }
 
 var gravity_on = true;
@@ -1376,7 +1450,24 @@ function factor_size(f) {
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
-	var c = new CANNON.DistanceConstraint(a,b,d*f,CONSTRAINT_FORCE_SMALL);
+	var c = new CANNON.DistanceConstraint(a,b,d*f,CONSTRAINT_FORCE_LARGE);
+	world.addConstraint(c);
+    }
+}
+
+function fixed_size(s) {
+    
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    
+    for(var lin in robot_members) {
+	var link = robot_members[lin];  
+	var a = link.a;
+	var b = link.b;
+	var d = a.position.distanceTo(b.position);
+	var c = new CANNON.DistanceConstraint(a,b,s,CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(c);
     }
 }
@@ -1576,9 +1667,11 @@ function regenerate() {
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 var scene = init_scene();
-initCannon(scene);
+initCannon();
 finish_scene_preparation(scene);
+    update_poses();
 animate();
+
         </script>
     </body>
 </html>
