@@ -902,7 +902,9 @@ function ccw_tetrahelix_vertex(n,edge_length) {
     var r = (3 * Math.sqrt(3) / 10) * edge_length;
     var h = (1/Math.sqrt(10)) *edge_length;
     var theta = Math.acos(-2/3);
-    return new CANNON.Vec3( r * Math.cos(n*theta),  r * Math.sin(n*theta), n*h );
+    // I want to make sure "B and C" land on the ground first!    
+    var twist = 45*(Math.PI / 180.0);
+    return new CANNON.Vec3( r * Math.cos(n*theta+twist),  r * Math.sin(n*theta+twist), n*h );
 }
 
 function add_member_spring(a,b,world) {
