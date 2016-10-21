@@ -1,5 +1,6 @@
 (require 'cl)
 (require 'rdp)
+(require 'json)
 
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
@@ -151,9 +152,9 @@
 ;; I also need to consider the possibility that filter functions
 ;; could sound output from multiple controllers to the same buffer.
 ;; However, for now, I'm just playing around with reading.
-(defun process-status (p)
-  (bufferp (process-buffer (get-process p)))
-  )
+;;(defun my-process-status (p)
+;;  (bufferp (process-buffer (get-process p)))
+;;  )
 
 ;; Driving commands
 (defun get-symbol-for-com-use (&optional sym)
@@ -987,7 +988,26 @@ Return the results of all forms as a list."
 ;; in a pretty straightforward way....
 ;; TODO --- TEST THIS, and add the optional symbol argument, then put in
 ;; the dance.
+(defun valid-pose (pose)
+  (print "pose")
+  (print pose)
+  (let ((result 
+	 (cl-reduce #'(lambda (x y) (and x y))
+	  (mapcar #'(lambda (ass)
+	      (let ((r (cadr ass)))
+		(and (>=  r 0) (<= r 1023))
+		)
+	      )
+	  pose
+	  )
+	  )))
+    (print "valid:")
+    (print result)
+     )
+  )
+
 (defun p-style (cmd args &optional sym)
+  (assert (valid-pose args))    
   (let ((a (p-assignments args))
 	(msym (get-symbol-for-com-use sym)))
     (protected-mapcar
@@ -1319,7 +1339,9 @@ Return the results of all forms as a list."
   ))
 
 ;; Demo sketch (in scratch)
-;; (load "~/PubInv/gluss-demo/emacs-ctl.el")
+;; (load "~/PubInv/emacs-web-server/web-server.el")
+;; (load "~/PubInv/gluss/emacs-ctl.el")
+
 ;; (init)
 ;; (turn-left)
 ;; (small)
@@ -1572,76 +1594,131 @@ Return the results of all forms as a list."
      ))
 
 
-(defun json-to-sexpr (json)
-  ;; Strategy: We only have quoted strings, colons and commas, and braces.
-  ;; it should be possible to do a lexer and recursive descent parsing...sigh..
+;; (defun json-to-sexpr (json)
+;;   ;; Strategy: We only have quoted strings, colons and commas, and braces.
+;;   ;; it should be possible to do a lexer and recursive descent parsing...sigh..
   
-  )
+;;   )
 
-;; My attempt to create a grammer for JSON
-;; ((json obj "{" expr "}")
-;;  (expr [symbol num])
-;;  (num     . "-?[0-9]+\\(\\.[0-9]*\\)?")
-;;  (symbol . "\"[a-Z]+\"))
 
-(setq json-tokens
-      '(
-	(object "{" pair-list "}")
-	(pair-list pair [("," pair-list) no-pair])
-	(pair symbol ":" value)
-	(value [symbol num object])
-	(no-pair . "")
-	(num     . "\"-?[0-9]+\\(\\.[0-9]*\\)?\"")    
-	(symbol . "\"[a-zA-Z][a-zA-Z0-9]*\"")
-	))
+;; ;; This is all obsolete --- json.el is build into emacs,
+;; ;; sadly, wish I had known this!!  TOOD: Must replace and rip out.
 
-(defun process-json-attrib-tokens (e)
-  (let ((ce (car e)))
-    (if (null (cadr e))
-	ce
-      (if (equal (car (cadr e)) ",")
-	  (let ((f (cdr (cadr e))))
-	    (progn
-	      (if (atom (caar f))
-		  (list (car e) (car f))
-		(cons (car e) (car f))
+;; ;; My attempt to create a grammer for JSON
+;; ;; ((json obj "{" expr "}")
+;; ;;  (expr [symbol num])
+;; ;;  (num     . "-?[0-9]+\\(\\.[0-9]*\\)?")
+;; ;;  (symbol . "\"[a-Z]+\"))
+
+;; (setq json-tokens
+;;       '(
+;; 	(object "{" pair-list "}")
+;; 	(pair-list pair [("," pair-list) no-pair])
+;; 	(pair symbol ":" value)
+;; 	(value [symbol num object])
+;; 	(no-pair . "")
+;; 	(num     . "\"-?[0-9]+\\(\\.[0-9]*\\)?\"")    
+;; 	(symbol . "\"[a-zA-Z][a-zA-Z0-9]*\"")
+;; 	))
+
+;; (defun process-json-attrib-tokens (e)
+;;   (let ((ce (car e)))
+;;     (if (null (cadr e))
+;; 	ce
+;;       (if (equal (car (cadr e)) ",")
+;; 	  (let ((f (cdr (cadr e))))
+;; 	    (progn
+;; 	      (if (atom (caar f))
+;; 		  (list (car e) (car f))
+;; 		(cons (car e) (car f))
+;; 		)
+;; 	      )
+;; 	    )
+;; 	(progn
+;; 	  (print "yikes")
+;; 	  (print e)
+;; 	  (error "ill-formed")
+;; 	  e
+;; 	  )
+;; 	)
+;;       )
+;;     ))
+
+;; (setq json-funcs
+;;       `((json . ,(lambda (e)  (car e)))
+;; 	(object . ,(lambda (e)   (cadr (butlast e))))
+;; 	(num . ,(lambda (e)
+;; 		  (string-to-number (substring e 1 -1))
+;; 		  ))
+;; 	(pair . ,(lambda (e)
+;; 		   (if (listp (caddr e))
+;; 		       (list (car e) (caddr e))
+;; 		     (cons (car e)
+;; 			   (caddr e)))
+;; 		   ))
+;; 	(pair-list . ,#'process-json-attrib-tokens)    
+;; 	(no-pair . ,(lambda (e) nil))        
+;; 	(value   . ,#'car)
+;; 	(symbol   . ,(lambda (e)
+;; 		       (intern (substring e 1 -1))
+;; 		       ))
+;; 	))
+
+;; ;; This parser is not very efficient, so we need this...
+;; (setq max-lisp-eval-depth 800)
+
+(defun range-limit (pose)
+  (mapcar #'(lambda (aspec)
+	      (let ((actuator (car aspec))
+		    (range (if (stringp (cadr aspec))
+			       (string-to-number (cadr aspec))
+			     (cadr aspec))))
+		(list actuator
+		      (min (max range 0) 1023)
+		      )
 		)
 	      )
-	    )
-	(progn
-	  (print "yikes")
-	  (print e)
-	  (error "ill-formed")
-	  e
+	  pose
 	  )
-	)
-      )
-    ))
+  )
 
-(setq json-funcs
-      `((json . ,(lambda (e)  (car e)))
-	(object . ,(lambda (e)   (cadr (butlast e))))
-	(num . ,(lambda (e)
-		  (string-to-number (substring e 1 -1))
-		  ))
-	(pair . ,(lambda (e)
-		   (if (listp (caddr e))
-		       (list (car e) (caddr e))
-		     (cons (car e)
-			   (caddr e)))
-		   ))
-	(pair-list . ,#'process-json-attrib-tokens)    
-	(no-pair . ,(lambda (e) nil))        
-	(value   . ,#'car)
-	(symbol   . ,(lambda (e)
-		       (intern (substring e 1 -1))
-		       ))
-	))
+(defun convert-from-pairs-to-list (pose)
+  (mapcar #'(lambda (aspec)
+	      (let ((actuator (car aspec))
+		    (range (if (stringp (cdr aspec))
+			       (string-to-number (cdr aspec))
+			     (cdr aspec))))
+		(list actuator
+		      (min (max range 0) 1023)
+		      )
+		)
+	      )
+	  pose
+	  )
+  )
 
-;; This parser is not very efficient, so we need this...
-(setq max-lisp-eval-depth 800)
+(defun test-range-limit ()
+  (let* ((p '((A0 -20)
+	      (B5 1025)))
+	 (r (range-limit p)))
+    (assert
+     (= 0 (cadr (car r))))
+    (assert
+     (= 1023 (cadr (cadr r))))
+    )
+  )
+
+;; Possibly the range-limit should be a separate issue
 (defun json-parse (string)
-  (rdp-parse-string string json-tokens json-funcs))
+  (let ((new 
+	 (range-limit (convert-from-pairs-to-list (json-read-from-string string)))))
+    (print new)
+    new
+  ))
+
+(defun json-parse (string)
+   (json-read-from-string string))
+
 
 (defun test-json-parse ()
   (let ((q
@@ -1670,11 +1747,11 @@ Return the results of all forms as a list."
     ))
 
 (defun move-from-json (j)
-  (p 
-  (mapcar (lambda (e) (list (car e) (cdr e)))
-	  (json-parse j)
-	  )
-  nil)
+  (let ((pose   (mapcar (lambda (e) (list (car e) (cadr e)))
+			(json-parse j))))
+    (print pose)
+    (p pose  nil)
+    )
   )
 
 
@@ -2408,3 +2485,30 @@ Return the results of all forms as a list."
 	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
 	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
 	    )))
+
+(setq logbuffer (get-buffer-create "foo"))
+
+(defvar lastreq nil)
+
+
+(ws-start
+     '(((lambda (_) t) .                         ; match every request
+        (lambda (request)                        ; reply with "hello world"
+          (with-slots (process) request
+	    (print "QQQQQQQQQQ")
+	    (print request)
+	    (let ((json (car (nth 2 (elt request 9)))))
+	      (print json)
+	      (move-from-json json)
+	      (print "ABOUT TO CALL 200")
+	      (ws-response-header process 200
+				'("Content-type" . "text/plain")
+				'("Access-Control-Allow-Origin" . "*")
+				'("Access-Control-Allow-Methods" . "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+				'("Access-Control-Allow-Headers" . "X-PINGOTHER, Origin, Content-Type, X-Auth-Token,Access-Control-Allow-Headers, access-control-allow-origin")
+				'("Access-Control-Max-Age" . "86400")
+					      )
+	      (process-send-string process "hello, world!"))))))
+     9000
+     logbuffer
+     )
