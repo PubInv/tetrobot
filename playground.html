@@ -109,7 +109,9 @@ Flat Pose
 
         <button type="button" onclick="do_test()">
     Send Pose to Robot
-	</button>
+</button>
+    Send Poses To URL:
+    <input id="poseurl" type="text" name="poseurl"><br>
 	<div id="robotcomresult">
 	  </div>
     </div>
@@ -143,6 +145,7 @@ Flat Pose
     <script>
 
 var url_for_robot = "http://127.0.0.1:9000";
+$("#poseurl").val(url_for_robot);
 
 // A "robot" is really a graph of vertices with connections.
 // In physical realization, the connections are actuators with length limits.
@@ -1053,13 +1056,12 @@ function do_test() {
     var pmodel = extract_physical_node_model();
     var am = model_to_actuator_space(pmodel);
     var x = JSON.stringify(am,null,2);
+    url_for_robot = $("#poseurl").val();
     $.ajax({url: url_for_robot,
 	    crossDomain: true,
 	    beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
-//	    dataType: 'jsopn',
 	    data: x,
 	    success: function(result){
-		alert(result);
 		
         $("#robotcomresult").html(result);
 	    },
