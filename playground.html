@@ -494,6 +494,10 @@ function onMouseUp(e) {
     // Send the remove mouse joint to server
     removeJointConstraint();
 
+        // This is an experimental positioning
+    do_test();
+
+
     if (gplane.visible == true) {
 	gplane.visible = false;
 	// We need to re-establish the controls because I don't have
@@ -1069,6 +1073,7 @@ function do_test() {
 		alert(request.responseText);
 	     }
 	   });
+
 }
 		       
 
