@@ -538,10 +538,10 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObjects( objects );        
     // Change color if hit block
-    if ( intersects.length > 0 ) {
-	if (intersects[0].object.name != "movementplane") 
-	    intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
-    }
+    // if ( intersects.length > 0 ) {
+    // 	if (intersects[0].object.name != "movementplane") 
+    // 	    intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+    // }
     var closest = false;
     if (intersects.length > 0) {
         closest = intersects[0];
