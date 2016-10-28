@@ -20,9 +20,6 @@
 <!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
-<!-- Optional theme -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-
 <!-- Latest compiled and minified JavaScript -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   </head>
@@ -32,7 +29,7 @@
 	<div class="panel panel-default">
 	  <div class="panel-heading">
 	    <h3 class="panel-title">Control Graphical Interactions</h3>
-	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
     <div class="panel-body">
     
@@ -61,7 +58,7 @@
 	<div class="panel panel-default">
 	  <div class="panel-heading">
 	    <h3 class="panel-title">Standard Poses</h3>
-	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
 	    <button type="button" onclick="big_size()">
@@ -93,7 +90,7 @@
 	<div class="panel panel-default">
 	  <div class="panel-heading">
 	    <h3 class="panel-title">Pose and Gait</h3>
-	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
 	    <button type="button" onclick="load_pose()">
@@ -107,21 +104,20 @@
 	      Pose Name:
 	      <input id="posename" type="text" name="pose"><br>
 	    </span>
-	    My named poses: <p id="poslist"></p>
+	    My named poses: <div id="poslist"></div>
 	    <span>
 	      <button type="button" onclick="execute_gait()">
 		Execute Gait
 	      </button>
 	      Gait:
-	      <textarea id="gait" rows="8" cols="80">
-	      </textarea>
+	      <textarea id="gait" rows="8" cols="80"></textarea>
 	    </span>
 	  </div>
 	</div>
 	<div class="panel panel-default">
 	  <div class="panel-heading">
 	    <h3 class="panel-title">Robot Control</h3>
-	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
             <button type="button" onclick="do_test()">
@@ -137,18 +133,20 @@
 	<div class="panel panel-default">
 	  <div class="panel-heading">
 	    <h3 class="panel-title">JSON Interactions</h3>
-	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
 
+<div>
 	    <textarea id="pmodel" rows="8" cols="80">
 	      The physcial model positions as JSON object will be rendered here.
 	    </textarea>
             
             <textarea id="amodel" rows="8" cols="80">
-	      The physcial model positions as JSON object will be rendered here.
-	    </textarea>
-	    
+	      The actuator positions as JSON object will be rendered here.
+    </textarea>
+    </div>
+	  <div>  
 	    <button type="button" onclick="render_physical_model(this)">
 	      Render Physical    
 	    </button>
@@ -158,7 +156,7 @@
 	    <button type="button" onclick="render_actuator_model('escaped')">
 	      Render Actuators Esacped
 	    </button>
-
+</div>
 	  </div>
 	</div>
       </div>
@@ -1293,9 +1291,10 @@ function removeJointConstraint() {
     moveCnt = 0;
 
     // Turn gravity back on...
-        // We want to turn gravity offf while we are editing....
-    world.gravity.set(0,Y_GRAVITY_FORCE,0);
-
+    // We want to turn gravity offf while we are editing....
+    if (gravity_on) {
+	world.gravity.set(0,Y_GRAVITY_FORCE,0);
+    }
 }
 
 function execute_code(id) {
@@ -1385,12 +1384,20 @@ function name_pose(id) {
     update_poses();
 }
 
+function set_named_pose(id) {
+    var pose = localStorage.getItem(localStorage.key(id));
+    var constraints = JSON.parse(pose);
+    set_constraints(constraints);
+}
+
 function update_poses() {
     var names = "";
     for (var i = 0; i < localStorage.length; i++){
-	names += localStorage.key(i) + " ";
+//	names += localStorage.key(i) + " ";
+	names += '<button type="button" onclick="set_named_pose('+i+')">' + localStorage.key(i) + '</button>';
+
     }
-    $("#poslist").text(names);
+    $("#poslist").html(names);
 }
 var TIME_BETWEEN_POSES_MS = 1000;
 function execute_gait() {
@@ -1473,7 +1480,7 @@ function toggle_gravity() {
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
 	gravity_on = true;
-	world.gravity.set(0,-5,0);
+	world.gravity.set(0,Y_GRAVITY_FORCE,0);
 	$("#gravity_ctl").html("Turn Gravity Off");
     }
 }
