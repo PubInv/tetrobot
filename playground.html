@@ -9,125 +9,169 @@
                 height: 100%;
                 margin:0;
                 padding:0;
-                overflow: hidden;
+                overflow: auto;
             }
+	    .robscroll {
+	    overflow: auto;
+	    background: #fff;
+	    }
         </style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   </head>
     <body>
-        <div id="world"></div>
-    <div id="control">
-    <textarea id="cli" rows="8" cols="80">
-    Imagine enterring a command here.
-    </textarea>
-    <button type="button" onclick="execute_code(this)">
-    Execute    
-</button>
-    
-    <textarea id="pmodel" rows="8" cols="80">
-    The physcial model positions as JSON object will be rendered here.
-    </textarea>
-        
-    <button type="button" onclick="render_physical_model(this)">
-    Render Physical    
-</button>
-        <textarea id="amodel" rows="8" cols="80">
-    The physcial model positions as JSON object will be rendered here.
-    </textarea>
-<div>    
-    <button type="button" onclick="render_actuator_model()">
-    Render Actuators
-</button>
-    <button type="button" onclick="render_actuator_model('escaped')">
-    Render Actuators Esacped
-</button>
-    <button type="button" onclick="rectify()">
-    Rectify
-</button>
-    <button type="button" onclick="load_pose()">
-    Load Pose from JSON
-</button>
-    
-    <span>
-    <button type="button" onclick="name_pose()">
-    Name Pose
-</button>
-    Pose Name:
-    <input id="posename" type="text" name="pose"><br>
-    </span>
-    <p id="poslist"></p>
-    </div>
-
-    <div>
-
-    <span>
-    <button type="button" onclick="execute_gait()">
-    Execute Gait
-</button>
-    Gait:
-    <textarea id="gait" rows="8" cols="80">
-    </textarea>
-
-    </span>
-
-
-    </div>
-<div>
-    <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
-Turn Gravity Off    
-</button>
-    <button id="auto_rectify_ctl" type="button" onclick="auto_rectify_toggle()" >
-Turn Auto Rectify On
-</button>
-
-</div>
-    <div>
-    <button type="button" onclick="big_size()">
-    Big size
-</button>
-    <button type="button" onclick="small_size()">
-Small size
-</button>
-    <button type="button" onclick="flat()">
-Flat Pose
-</button>
-    <button type="button" onclick="regenerate()">
-    Regenerate
-</button>
-    </div>
-</div>
-    <div>
-    <button type="button" onclick="disable_con()">
-    Disable Constraints On Manipulation
-</button>
-    <button type="button" onclick="allow_con()">
-    Allow Constraints On Manipulatin
-</button>
-    <button type="button" onclick="step_con()">
-    Use STEP MODE
-    </button>
-
-        <button type="button" onclick="do_test()">
-    Send Pose to Robot
-</button>
-    Send Poses To URL:
-    <input id="poseurl" type="text" name="poseurl"><br>
-	<div id="robotcomresult">
+      <div id="world"></div>
+    <div id="control" class="robscroll">
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Control Graphical Interactions</h3>
+	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
-    </div>
-    <p>
-    </p>
-    <p>
-    </p>
+    <div class="panel-body">
+    
+	    <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
+	      Turn Gravity Off    
+	    </button>
+	    <button id="auto_rectify_ctl" type="button" onclick="auto_rectify_toggle()" >
+	      Turn Auto Rectify On
+	    </button>
+	    <button type="button" onclick="rectify()">
+	      Rectify
+	    </button>
+	    <button type="button" onclick="disable_con()">
+	      Disable Constraints On Manipulation
+	    </button>
+	    <button type="button" onclick="allow_con()">
+	      Allow Constraints On Manipulation
+	    </button>
+	    <button type="button" onclick="step_con()">
+	      Use STEP MODE
+	    </button>
+	    
 
-        <script src="./js/three.js"></script>
+    </div>
+    </div>
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Standard Poses</h3>
+	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+	    <button type="button" onclick="big_size()">
+	      Big size
+	    </button>
+	    <button type="button" onclick="small_size()">
+	      Small size
+	    </button>
+	    <!-- These are currently not workin....
+		 <button type="button" onclick="flat()">
+		   Flat Pose
+		 </button>
+		 <button type="button" onclick="regenerate()">
+		   Regenerate
+		 </button>
+		 -->
+	  </div>
+	</div>
+
+	<!--
+	    <textarea id="cli" rows="8" cols="80">
+	      Imagine enterring a command here.
+	    </textarea>
+	    <button type="button" onclick="execute_code(this)">
+	      Execute    
+	    </button>
+	    -->
+
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Pose and Gait</h3>
+	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+	    <button type="button" onclick="load_pose()">
+	      Load Pose from JSON
+	    </button>
+	    
+	    <span>
+	      <button type="button" onclick="name_pose()">
+		Name Pose
+	      </button>
+	      Pose Name:
+	      <input id="posename" type="text" name="pose"><br>
+	    </span>
+	    My named poses: <p id="poslist"></p>
+	    <span>
+	      <button type="button" onclick="execute_gait()">
+		Execute Gait
+	      </button>
+	      Gait:
+	      <textarea id="gait" rows="8" cols="80">
+	      </textarea>
+	    </span>
+	  </div>
+	</div>
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Robot Control</h3>
+	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+            <button type="button" onclick="do_test()">
+	      Send Pose to Robot
+	    </button>
+	    Send Poses To URL:
+	    <input id="poseurl" type="text" name="poseurl"><br>
+	    <div id="robotcomresult">
+	    </div>
+	  </div>
+	</div>	
+	
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">JSON Interactions</h3>
+	    <span class="pull-right clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+
+	    <textarea id="pmodel" rows="8" cols="80">
+	      The physcial model positions as JSON object will be rendered here.
+	    </textarea>
+            
+            <textarea id="amodel" rows="8" cols="80">
+	      The physcial model positions as JSON object will be rendered here.
+	    </textarea>
+	    
+	    <button type="button" onclick="render_physical_model(this)">
+	      Render Physical    
+	    </button>
+	    <button type="button" onclick="render_actuator_model()">
+	      Render Actuators
+	    </button>
+	    <button type="button" onclick="render_actuator_model('escaped')">
+	      Render Actuators Esacped
+	    </button>
+
+	  </div>
+	</div>
+      </div>
+    </body>
+
+    <script src="./js/three.js"></script>
         <script src="./js/Detector.js"></script>
     <script src="./js/cannon.js"></script>
     	<script src="./js/Projector.js"></script>	
     <script src="./js/STLLoader.js"></script>
     <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>    
- //   <script src="./js/d3-scale.min.js"></script>
- //   <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+   <script src="./js/d3-scale.min.js"></script>
+   <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
 
 <script src="https://d3js.org/d3-array.v1.min.js"></script>
 <script src="https://d3js.org/d3-collection.v1.min.js"></script>
@@ -141,7 +185,6 @@ Flat Pose
     
     <script src="./js/OrbitControls.js"></script>
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
     <script>
 
 var url_for_robot = "http://127.0.0.1:9000";
@@ -1072,7 +1115,7 @@ function do_test() {
         $("#robotcomresult").html(result);
 	    },
 	    error: function (request, status, error) {
-		alert(request.responseText);
+//		alert(request.responseText);
 	     }
 	   });
 
@@ -1678,9 +1721,22 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 var scene = init_scene();
 initCannon();
 finish_scene_preparation(scene);
-    update_poses();
+update_poses();
 animate();
 
+$(document).on('click', '.panel-heading span.clickable', function(e){
+    var $this = $(this);
+    if(!$this.hasClass('panel-collapsed')) {
+	$this.parents('.panel').find('.panel-body').slideUp();
+	$this.addClass('panel-collapsed');
+	$this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+    } else {
+	$this.parents('.panel').find('.panel-body').slideDown();
+	$this.removeClass('panel-collapsed');
+	$this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+    }
+});
+
+$('.panel-heading span.clickable').click();
         </script>
-    </body>
 </html>
