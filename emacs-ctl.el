@@ -1,7 +1,10 @@
 (require 'cl)
 (require 'rdp)
 (require 'json)
-
+;; This is necessar because 'web-server doesn't support options...I need to make a pull-request about this
+(setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS)
+(require 'web-server)
+      
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
 (setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
@@ -1339,7 +1342,11 @@ Return the results of all forms as a list."
   ))
 
 ;; Demo sketch (in scratch)
-;; (load "~/PubInv/emacs-web-server/web-server.el")
+;; XXX (load "~/PubInv/emacs-web-server/web-server.el")
+;; Or should we use this: 
+;; (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS)
+;; (require 'web-server)
+
 ;; (load "~/PubInv/gluss/emacs-ctl.el")
 
 ;; (init)
@@ -1716,8 +1723,8 @@ Return the results of all forms as a list."
     new
   ))
 
-(defun json-parse (string)
-   (json-read-from-string string))
+;;(defun json-parse (string)
+;;   (json-read-from-string string))
 
 
 (defun test-json-parse ()
@@ -2490,17 +2497,13 @@ Return the results of all forms as a list."
 
 (defvar lastreq nil)
 
-
 (ws-start
      '(((lambda (_) t) .                         ; match every request
         (lambda (request)                        ; reply with "hello world"
           (with-slots (process) request
-	    (print "QQQQQQQQQQ")
-	    (print request)
 	    (let ((json (car (nth 2 (elt request 9)))))
-	      (print json)
+	      ;; This needs to be protected with an error catch!
 	      (move-from-json json)
-	      (print "ABOUT TO CALL 200")
 	      (ws-response-header process 200
 				'("Content-type" . "text/plain")
 				'("Access-Control-Allow-Origin" . "*")
@@ -2512,3 +2515,5 @@ Return the results of all forms as a list."
      9000
      logbuffer
      )
+
+
