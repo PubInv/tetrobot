@@ -222,6 +222,18 @@ var SCREEN_WIDTH = window.innerWidth;
 var SCREEN_HEIGHT = 1*window.innerHeight/2.0;
 
 
+var playgroundDimensions = {
+	w:10,
+	d:10,
+	h:3
+};
+
+
+
+
+
+
+
 // These are in meters, measured joint-center to joint-center
 var MAX_EDGE_LENGTH = 0.470;
 var MIN_EDGE_LENGTH = 0.330;
@@ -236,6 +248,8 @@ var Y_GRAVITY_FORCE = -5;
 var jointBody, constrainedBody, mouseConstraint;
 
 var container, camera, scene, renderer, projector;
+
+var grid_scene;
 
 var meshes=[], bodies=[];
 
@@ -294,11 +308,17 @@ function init_scene() {
 
     container.style.backgroundColor = "blue";
 
+    
+
     // scene
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
 
     sceneOrtho = new THREE.Scene();
+
+
+    grid_scene = new THREE.Scene();
+    grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
     //
     renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -323,8 +343,10 @@ function init_scene() {
     var light, materials;
     scene.add( new THREE.AmbientLight( 0x666666 ) );
 
-
     scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+
+    grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    
     addShadowedLight( 1, 1, 1, 0xffffff, 1.35 );
     addShadowedLight( 0.5, 1, -1, 0xffaa00, 1 );
     
@@ -369,6 +391,9 @@ function init_scene() {
     light.shadow.Darkness = 0.5;
 
     scene.add( light );
+
+    grid_scene.add(light);
+    gridInit(grid_scene,playgroundDimensions);
 
     return scene;
 }
@@ -536,7 +561,7 @@ function onMouseUp(e) {
     removeJointConstraint();
 
         // This is an experimental positioning
-//    do_test();
+    do_test();
 
 
     if (gplane.visible == true) {
@@ -795,6 +820,7 @@ function updatePhysics(){
 }
 function render() {
     renderer.render(scene, camera);
+    renderer.render(grid_scene, camera);
     renderer.autoClear = false;
     // This is for the sprites....
     // WARNING! Calling this is someohow causing a massive memorey leak and poor performance!
@@ -832,14 +858,19 @@ function add_ground_plane(world,scene) {
     world.add(groundBody);
     
     // floor
-
-//    var floorTexture = new THREE.ImageUtils.loadTexture( 'images/logo-white-background.png' );
     var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
 
     floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
-    floorTexture.repeat.set( 500, 500 );
+    floorTexture.repeat.set( 10, 10 );
     var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
-    var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+
+    floorMaterial.transparent = true;
+    floorMaterial.opacity = 0.7;
+    
+    var floorGeometry = new THREE.PlaneGeometry(playgroundDimensions.w,
+						playgroundDimensions.d,
+						10,
+						 10);
     floorGeometry.position = new THREE.Vector3(0,0,0);
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     mesh = floor;
@@ -985,7 +1016,6 @@ function load_NTetGlussBot(world,tets,pvec) {
     // Vn = (r cos(n*theta), r sin(n*theta), n*h)
 
     var n = tets+3;
-    var member_radius = MEDIAN_EDGE_LENGTH/ 20;
     var mass = BASIC_BODY_MASS;
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
@@ -1745,5 +1775,217 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
 });
 
 $('.panel-heading span.clickable').click();
+
+
+//----------------------------------------------------------------------------
+// opts
+// {
+//  height: width, 
+//  width: depth,
+//  linesHeight: b,
+//  linesWidth: c,
+//  color: 0xcccccc
+// }
+//
+//____________________________________________________________________________
+function createAGrid(opts) {
+  var config = opts || {
+    height: 500,
+    width: 500,
+    linesHeight: 10,
+    linesWidth: 10,
+    color: 0xDD006C
+  };
+
+  var material = new THREE.LineBasicMaterial({
+    color: config.color,
+    opacity: 0.2
+  });
+
+  var gridObject = new THREE.Object3D(),
+    gridGeo = new THREE.Geometry(),
+    stepw = 2 * config.width / config.linesWidth,
+    steph = 2 * config.height / config.linesHeight;
+
+  //width
+  for (var i = -config.width; i <= config.width; i += stepw) {
+    gridGeo.vertices.push(new THREE.Vector3(-config.height, i, 0));
+    gridGeo.vertices.push(new THREE.Vector3(config.height, i, 0));
+
+  }
+  //height
+  for (var i = -config.height; i <= config.height; i += steph) {
+    gridGeo.vertices.push(new THREE.Vector3(i, -config.width, 0));
+    gridGeo.vertices.push(new THREE.Vector3(i, config.width, 0));
+  }
+
+  var line = new THREE.Line(gridGeo, material, THREE.LinePieces);
+  gridObject.add(line);
+
+  return gridObject;
+}
+
+function labelAxis(width, data, direction){
+
+  var separator = 2*width/data.length,
+			p = {
+				x:0,
+				y:0,
+				z:0
+			},
+			dobj = new THREE.Object3D();
+
+  for ( var i = 0; i < data.length; i ++ ) {
+      var label = makeTextSprite(data[i],{fontsize: 50 });
+
+		label.position.set(p.x,p.y,p.z);
+
+		dobj.add( label );
+		if (direction=="y"){
+			p[direction]+=separator;
+		}else{
+			p[direction]-=separator;
+		}
+
+  }
+  return dobj;
+}
+
+
+// This was written by Lee Stemkoski
+// https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html
+function makeTextSprite( message, parameters )
+{
+	if ( parameters === undefined ) parameters = {};
+
+	var fontface = parameters["fontface"] || "Helvetica";
+        var fontsize = parameters["fontsize"] || 70;
+	var canvas = document.createElement('canvas');
+	var context = canvas.getContext('2d');
+	context.font = fontsize + "px " + fontface;
+
+	// get size data (height depends only on font size)
+	var metrics = context.measureText( message );
+	var textWidth = metrics.width;
+
+
+	// text color
+        context.fillStyle = "yellow";
+
+	context.fillText( message, 0, fontsize);
+
+	// canvas contents will be used for a texture
+	var texture = new THREE.Texture(canvas)
+			texture.minFilter = THREE.LinearFilter;
+			texture.needsUpdate = true;
+
+	var spriteMaterial = new THREE.SpriteMaterial({ map: texture, useScreenCoordinates: false});
+	var sprite = new THREE.Sprite( spriteMaterial );
+	return sprite;
+}
+
+function getMeterScale(sep,meters) {
+    var scale = [];
+    var n = meters/sep;
+    for(var i = 0; i < n; i++) {
+	scale.push(""+i*sep+"m");
+    }
+    return scale;
+}
+
+function gridInit(glScene,gDimensions){
+
+    var tickSeparationMeters = 0.5;
+
+    // Y is the vertical dimension!
+    // x is width, z is distance away
+    var data = {
+  labels: {
+      y: getMeterScale(tickSeparationMeters,gDimensions.h),
+      x: getMeterScale(tickSeparationMeters,gDimensions.w),
+    z: getMeterScale(tickSeparationMeters,gDimensions.d)
+  }
+};
+
+
+      var graphDimensions = {
+	  w:gDimensions.w,
+	  d:gDimensions.d,
+	  h:gDimensions.h
+      };
+
+	var boundingGrid = new THREE.Object3D(),
+			depth = graphDimensions.d/2, //depth
+			width = graphDimensions.w/2, //width
+			height = graphDimensions.h/2, //height
+			a =data.labels.y.length,
+			b= data.labels.x.length,
+			c= data.labels.z.length;
+
+	//pink
+	var newGridXY = createAGrid({
+				height: width,
+				width: height,
+				linesHeight: b,
+				linesWidth: a,
+				color: 0xcc0000
+			});
+			//newGridXY.position.y = height;
+    newGridXY.position.z = -depth;
+    newGridXY.position.y = height;
+			boundingGrid.add(newGridXY);
+
+    //blue
+	var newGridYZ = createAGrid({
+				height: width,
+				width: depth,
+				linesHeight: b,
+				linesWidth: c,
+				color: 0x0000cc
+			});
+	 		newGridYZ.rotation.x = Math.PI/2;
+//	 		newGridYZ.position.y = -height;
+			boundingGrid.add(newGridYZ);
+
+	//green
+	var newGridXZ = createAGrid({
+				height: depth,
+				width: height,
+				linesHeight:c,
+				linesWidth: a,
+				color: 0x00cc00
+			});
+
+    newGridXZ.position.x = width;
+        newGridXZ.position.y = height;
+			//newGridXZ.position.y = height;
+	 		newGridXZ.rotation.y = Math.PI/2;
+			boundingGrid.add(newGridXZ);
+
+    glScene.add(boundingGrid);
+
+
+
+    var margin = 0.4;
+	var labelsW = labelAxis(width, data.labels.x,"x");
+			labelsW.position.x = width;
+			labelsW.position.y = 0;
+    			labelsW.position.z = -margin + -depth;
+			glScene.add(labelsW);
+
+	var labelsH = labelAxis(height, data.labels.y,"y");
+			labelsH.position.x = width;
+                        labelsH.position.y = -margin/2;
+			labelsH.position.z = -depth;
+			glScene.add(labelsH);
+
+	var labelsD = labelAxis(depth, data.labels.z, "z");
+                        labelsD.position.x = width;
+                        labelsD.position.y = 0;
+			labelsD.position.z = -margin + depth;
+			glScene.add(labelsD);
+};
+
+
         </script>
 </html>
