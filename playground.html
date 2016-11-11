@@ -185,6 +185,12 @@
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script>
 
+var standard_gaits;
+
+$.getJSON( "./standard_gaits.json", function( data ) {
+    standard_gaits = data;
+});
+
 var url_for_robot = "http://127.0.0.1:9000";
 $("#poseurl").val(url_for_robot);
 
