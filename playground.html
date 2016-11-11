@@ -103,7 +103,9 @@
 	      </button>
 	      Pose Name:
 	      <input id="posename" type="text" name="pose"><br>
-	    </span>
+    </span>
+    Standard poses: <div id="stdposes"></div>
+    Standard gaits: <div id="stdgaits"></div>    
 	    My named poses: <div id="poslist"></div>
 	    <span>
 	      <button type="button" onclick="execute_gait()">
@@ -185,11 +187,18 @@
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script>
 
-var standard_gaits;
+var standard_objs;
 
-$.getJSON( "./standard_gaits.json", function( data ) {
-    standard_gaits = data;
-});
+$.getJSON( "./standard_gaits.json")
+    .done(function( json ) {
+	standard_objs = json;
+	update_standard_poses();	
+    })
+  .fail(function( jqxhr, textStatus, error ) {
+    var err = textStatus + ", " + error;
+    console.log( "Request Failed: " + err );
+  });
+
 
 var url_for_robot = "http://127.0.0.1:9000";
 $("#poseurl").val(url_for_robot);
@@ -1425,26 +1434,60 @@ function set_named_pose(id) {
     var constraints = JSON.parse(pose);
     set_constraints(constraints);
 }
+function set_standard_pose(num) {
+    var pose = standard_objs[num];
+    var constraints = JSON.parse(pose);
+    set_constraints(constraints);
+}
+function set_standard_gait(num) {
+    var gait = standard_objs[num];
+    execute_pose_list(gait.gait);
+}
 
 function update_poses() {
     var names = "";
     for (var i = 0; i < localStorage.length; i++){
-//	names += localStorage.key(i) + " ";
 	names += '<button type="button" onclick="set_named_pose('+i+')">' + localStorage.key(i) + '</button>';
 
     }
     $("#poslist").html(names);
 }
+
+function update_standard_poses() {
+    var poses = "";
+    var gaits = "";    
+    for (var i = 0; i < standard_objs.length; i++){
+	var obj = standard_objs[i];
+	if (obj.type == "pose") {
+	    poses += '<button type="button" onclick="set_standard_pose('+i+')">' + standard_objs[i].name + '</button>';
+	} else if (obj.type == "gait") {
+	    gaits += '<button type="button" onclick="set_standard_gait('+i+')">' + standard_objs[i].name + '</button>';
+	}
+    }
+    $("#stdposes").html(poses);
+    $("#stdgaits").html(gaits);    
+}
+
+
 var TIME_BETWEEN_POSES_MS = 1000;
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.split(" ");
+    var pose_lists = [];
     for(var i = 0; i < pose_names.length; i++) {
 	var am = pose_names[i];
 	var pose = JSON.parse(localStorage.getItem(am));
+	pose_lists[i] = pose;
+    }
+    execute_pose_list(pose_lists);
+}
+
+function execute_pose_list(pose_names) {
+    for(var i = 0; i < pose_names.length; i++) {
+	var am = pose_names[i];
 	setTimeout(function(model){ set_constraints(model); regenerate(); },
 		   i*TIME_BETWEEN_POSES_MS,
-		   pose);
+		   am);
     }
 }
 
@@ -1765,6 +1808,7 @@ var scene = init_scene();
 initCannon();
 finish_scene_preparation(scene);
 update_poses();
+
 animate();
 
 $(document).on('click', '.panel-heading span.clickable', function(e){
