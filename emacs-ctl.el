@@ -2,8 +2,10 @@
 (require 'rdp)
 (require 'json)
 ;; This is necessar because 'web-server doesn't support options...I need to make a pull-request about this
-(setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS)
+(setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS))
 (require 'web-server)
+(require 'json-pretty-print)
+
       
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
@@ -1601,79 +1603,6 @@ Return the results of all forms as a list."
      ))
 
 
-;; (defun json-to-sexpr (json)
-;;   ;; Strategy: We only have quoted strings, colons and commas, and braces.
-;;   ;; it should be possible to do a lexer and recursive descent parsing...sigh..
-  
-;;   )
-
-
-;; ;; This is all obsolete --- json.el is build into emacs,
-;; ;; sadly, wish I had known this!!  TOOD: Must replace and rip out.
-
-;; ;; My attempt to create a grammer for JSON
-;; ;; ((json obj "{" expr "}")
-;; ;;  (expr [symbol num])
-;; ;;  (num     . "-?[0-9]+\\(\\.[0-9]*\\)?")
-;; ;;  (symbol . "\"[a-Z]+\"))
-
-;; (setq json-tokens
-;;       '(
-;; 	(object "{" pair-list "}")
-;; 	(pair-list pair [("," pair-list) no-pair])
-;; 	(pair symbol ":" value)
-;; 	(value [symbol num object])
-;; 	(no-pair . "")
-;; 	(num     . "\"-?[0-9]+\\(\\.[0-9]*\\)?\"")    
-;; 	(symbol . "\"[a-zA-Z][a-zA-Z0-9]*\"")
-;; 	))
-
-;; (defun process-json-attrib-tokens (e)
-;;   (let ((ce (car e)))
-;;     (if (null (cadr e))
-;; 	ce
-;;       (if (equal (car (cadr e)) ",")
-;; 	  (let ((f (cdr (cadr e))))
-;; 	    (progn
-;; 	      (if (atom (caar f))
-;; 		  (list (car e) (car f))
-;; 		(cons (car e) (car f))
-;; 		)
-;; 	      )
-;; 	    )
-;; 	(progn
-;; 	  (print "yikes")
-;; 	  (print e)
-;; 	  (error "ill-formed")
-;; 	  e
-;; 	  )
-;; 	)
-;;       )
-;;     ))
-
-;; (setq json-funcs
-;;       `((json . ,(lambda (e)  (car e)))
-;; 	(object . ,(lambda (e)   (cadr (butlast e))))
-;; 	(num . ,(lambda (e)
-;; 		  (string-to-number (substring e 1 -1))
-;; 		  ))
-;; 	(pair . ,(lambda (e)
-;; 		   (if (listp (caddr e))
-;; 		       (list (car e) (caddr e))
-;; 		     (cons (car e)
-;; 			   (caddr e)))
-;; 		   ))
-;; 	(pair-list . ,#'process-json-attrib-tokens)    
-;; 	(no-pair . ,(lambda (e) nil))        
-;; 	(value   . ,#'car)
-;; 	(symbol   . ,(lambda (e)
-;; 		       (intern (substring e 1 -1))
-;; 		       ))
-;; 	))
-
-;; ;; This parser is not very efficient, so we need this...
-;; (setq max-lisp-eval-depth 800)
-
 (defun range-limit (pose)
   (mapcar #'(lambda (aspec)
 	      (let ((actuator (car aspec))
@@ -1696,6 +1625,21 @@ Return the results of all forms as a list."
 			       (string-to-number (cdr aspec))
 			     (cdr aspec))))
 		(list actuator
+		      (min (max range 0) 1023)
+		      )
+		)
+	      )
+	  pose
+	  )
+  )
+
+(defun convert-from-list-to-pairs (pose)
+  (mapcar #'(lambda (aspec)
+	      (let ((actuator (car aspec))
+		    (range (if (stringp (cadr aspec))
+			       (string-to-number (cdr aspec))
+			     (cadr aspec))))
+		(cons actuator
 		      (min (max range 0) 1023)
 		      )
 		)
@@ -2491,7 +2435,24 @@ Return the results of all forms as a list."
   (fdance '( (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
 	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
 	     (thinA) (thinB) (thinC) (thinD) (thinE) (thinF)
-	    )))
+	     )))
+
+(defun pose-as-json (name geometry p)
+  (format "%s %s %s"
+	  (format "{type: \"pose\", name :  \"%s\",\n geometry: \"%s\",\n" name geometry)
+	  (format "pose: %s\n" 
+		  (json-encode (convert-from-list-to-pairs p)))
+	  (format "}\n")
+	  )
+  )
+
+(defun gait-as-json (name geometry g)
+  (format "%s %s %s"
+	  (format "{type: \"gait\", name :  \"%s\",\n geometry: \"%s\",\n" name geometry)
+	  (format "gait: %s\n" 
+		  (json-encode (mapcar #'(lambda (p) (convert-from-list-to-pairs p)) g)))
+	  (format "}\n")))
+
 
 (setq logbuffer (get-buffer-create "foo"))
 
