@@ -221,6 +221,8 @@ var MirroredWorld = function() {
     this.dt = 1/60;
 };
 
+var groundMaterial = new CANNON.Material("groundMaterial");
+
 var BASIC_BODY_MASS = 1; // This is kilograms.
 
 var mirroredWorld = new MirroredWorld();
@@ -243,7 +245,7 @@ var playgroundDimensions = {
 	h:3
 };
 
-
+var global_friction = 0.0;
 
 
 
@@ -853,7 +855,7 @@ function add_ground_plane(world,scene) {
 
         // Adjust constraint equation parameters for ground/ground contact
         var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
-            friction: 0.4,
+            friction: global_friction,
             restitution: 0.3,
             contactEquationStiffness: 1e8,
             contactEquationRelaxation: 3,
@@ -865,12 +867,12 @@ function add_ground_plane(world,scene) {
         world.addContactMaterial(ground_ground_cm);
 
     
-    var groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
+    var groundBody = new CANNON.Body({ mass: 0, material: ground_ground_cm });
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     groundShape.position = new CANNON.Vec3(0,0,0);
     groundBody.name = "floor";
-    world.add(groundBody);
+    world.addBody(groundBody);
     
     // floor
     var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
@@ -1032,11 +1034,21 @@ function load_NTetGlussBot(world,tets,pvec) {
 
     var n = tets+3;
     var mass = BASIC_BODY_MASS;
+    var sticky_material = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
+            friction: global_friction,
+            restitution: 0.3,
+            contactEquationStiffness: 1e8,
+            contactEquationRelaxation: 3,
+            frictionEquationStiffness: 1e8,
+            frictionEquationRegularizationTime: 3,
+    });
+    world.addContactMaterial(sticky_material);    
+
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass });
-	var    boxShape = new CANNON.Sphere(JOINT_RADIUS);
+	var boxBody = new CANNON.Body({ mass: mass, material : groundMaterial });
+	var    boxShape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
 	boxBody.addShape(boxShape);
 	boxBody.position.set(v.x,v.y,v.z);
 	boxBody.mass = 1;
@@ -1044,7 +1056,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	boxBody.linearDamping = 0.9;
 	boxBody.name = alphabetic_name(i);
 	robot_joints.push(boxBody);
-	world.add(boxBody);
+	world.addBody(boxBody);
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
@@ -1053,7 +1065,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    // Okay, here I also want to add a new body to represent the actuator
 	    // This may require some roation math, but for now let me just put it
 	    // in the cetner
-	    var memBody = new CANNON.Body({ mass: mass });
+	    var memBody = new CANNON.Body({ mass: mass, material : groundMaterial });
 	    var b_z = robot_joints[i];
 	    var b_a = robot_joints[h];
 	    var v_z = b_z.position;
@@ -1068,7 +1080,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    memBody.structureKind = "member";
 	    memBody.link_a = b_a;
 	    memBody.link_z = b_z;
-	    world.add(memBody);
+	    world.addBody(memBody);
 	}
     }
 }
@@ -1110,12 +1122,12 @@ function initCannon(){
     add_robot(world,scene);
 
     // Joint body
-    var shape = new CANNON.Sphere(JOINT_RADIUS);
+    var shape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
     jointBody = new CANNON.Body({ mass: 0 });
     jointBody.addShape(shape);
     jointBody.collisionFilterGroup = 0;
     jointBody.collisionFilterMask = 0;
-    world.add(jointBody);
+    world.addBody(jointBody);
     
     scene.add(item[1]);
 }
@@ -1380,6 +1392,7 @@ function get_body_by_name(name) {
     }
 }
 function set_constraints(am) {
+    console.log("moving to: "+ am);
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint();
@@ -1469,7 +1482,8 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 1000;
+var TIME_BETWEEN_POSES_MS = 3000;
+var GAIT_SUBDIVISIONS = 5;
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.split(" ");
@@ -1481,14 +1495,36 @@ function execute_gait() {
     }
     execute_pose_list(pose_lists);
 }
-
-function execute_pose_list(pose_names) {
-    for(var i = 0; i < pose_names.length; i++) {
-	var am = pose_names[i];
-	setTimeout(function(model){ set_constraints(model); regenerate(); },
-		   i*TIME_BETWEEN_POSES_MS,
-		   am);
+// Eventually this should be a linear interpolation of the models of frace from m1 to m2
+function interpolate_model(m1,m2,frac) {
+    console.assert(m1.length == m2.length,m1);
+    var v = {};
+    for (var key in m1) {
+	if (m1.hasOwnProperty(key)) {
+	    var iv = m1[key] + (m2[key] - m1[key])*frac;
+	    v[key] = iv;
+	}
     }
+    console.log(v);
+    return v;
+}
+function execute_pose_list(pose_names) {
+    var last = pose_names.length-1;
+    var intertick = TIME_BETWEEN_POSES_MS / GAIT_SUBDIVISIONS;
+    for(var i = 0; i < last; i++) {
+	var am = pose_names[i];
+	for(var j = 0; j < GAIT_SUBDIVISIONS; j++) {
+	    var interp = interpolate_model(am,pose_names[i+1],j/(GAIT_SUBDIVISIONS*1.0));
+	    console.log(interp);
+	    setTimeout(function(model){ set_constraints(model); regenerate(); },
+		       i*TIME_BETWEEN_POSES_MS + j*intertick,
+		       interp);
+	    	}
+    }
+    setTimeout(function(model){ set_constraints(model); regenerate(); },
+	       last*TIME_BETWEEN_POSES_MS,
+	       pose_names[last]);
+    
 }
 
 function extract_physical_node_model() {
