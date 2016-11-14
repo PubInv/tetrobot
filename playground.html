@@ -257,6 +257,12 @@ var MIN_EDGE_LENGTH = 0.330;
 var MEDIAN_EDGE_LENGTH = (MAX_EDGE_LENGTH + MIN_EDGE_LENGTH)/2;
 var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
+
+var jointGeo = new THREE.BoxGeometry( JOINT_RADIUS*2,JOINT_RADIUS*2,JOINT_RADIUS*2);
+var jointGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32,32);
+var jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
+
+
 var INITIAL_HEIGHT = 0.5;
 
 var Y_GRAVITY_FORCE = -5;
@@ -494,6 +500,7 @@ function onMouseDown(e){
     
     var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
     var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
     if(pos && entity.object.geometry instanceof THREE.SphereGeometry){
         var idx = meshes.indexOf(entity.object);
 
@@ -776,11 +783,14 @@ function get_member_color(len) {
     }
 }
 
+
+
 function updatePhysics(){
     world.step(mirroredWorld.dt);
     var mem_cnt = 0;
 
-//    sprite_controls.clear();
+    //    sprite_controls.clear();
+
 
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
@@ -795,9 +805,9 @@ function updatePhysics(){
 	    var bp3 = new THREE.Vector3(bp.x,bp.y,bp.z);
 	    var mid = new THREE.Vector3().addVectors(ap3,bp3);
 	    mid = mid.multiplyScalar(0.5);
-	    mesh.up = new THREE.Vector3(0,0,1);//Z axis up
-	    var vector = new THREE.Vector3().subVectors(ap3,bp3);
+	    mesh.up = new THREE.Vector3(0,0,1);
 	    var axis = new THREE.Vector3(0, 1, 0);
+	    var vector = new THREE.Vector3().subVectors(ap3,bp3);
 	    mesh.position.copy(mid);
 
 	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
@@ -823,7 +833,8 @@ function updatePhysics(){
 	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
 
 	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
-	    
+
+	    // Experiment...
 	    body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
 
             mesh.position.copy(bodies[i].position);
@@ -931,6 +942,7 @@ function update_three_js_from_bodies(scene,bodies)
 }
 */
 
+
 function generate_mesh_pairings_from_world(world,scene)
 {
     var results = [];
@@ -945,10 +957,11 @@ function generate_mesh_pairings_from_world(world,scene)
     var mem_cnt = 0;
     // This is not yet physically modeling our system.
     var size = JOINT_RADIUS;
-    function process_vertex(joint,v,results) {
-	var cubeGeo = new THREE.SphereGeometry( size,32,32 );
-	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
-	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+    // Totally not understanding this...
+
+    function process_vertex(joint,v,results,geo,mat) {
+
+	var mesh = new THREE.Mesh(geo, mat);
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	results.unshift([joint,mesh]);
@@ -960,7 +973,7 @@ function generate_mesh_pairings_from_world(world,scene)
 
     for(var i = 0; i < robot_joints.length; i++) {
 	var joint = robot_joints[i];
-	process_vertex(joint,joint.position,results);
+	process_vertex(joint,joint.position,results,jointGeo,jointMaterial);
     }
 
 
@@ -971,6 +984,11 @@ function generate_mesh_pairings_from_world(world,scene)
 	var a = link.a;
 	var b = link.b;
 	var h = link.a.position.distanceTo(b.position);
+	// Possibly this represents a memory leak.
+	// When a Mesh is deallocated, it is not clear that
+	// the Geometry and material are deallocated properly.
+	// We might ahve to store a pointer to these objects and deallocated them
+	// separately.
 	var cubeGeo = new THREE.BoxGeometry( w,h,w );
 	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
@@ -1392,7 +1410,6 @@ function get_body_by_name(name) {
     }
 }
 function set_constraints(am) {
-    console.log("moving to: "+ am);
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint();
@@ -1405,6 +1422,28 @@ function set_constraints(am) {
 	    var b = get_body_by_name(link[1]);
 	    var d = a.position.distanceTo(b.position);
 	    var e = actuator_to_length(am[key]);
+	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_LARGE);
+	    world.addConstraint(c);
+	}
+    }
+}
+
+function interp(x,y,frac) {
+    return x + (y-x)*frac;
+}
+function set_interp_constraints(am0,am1,frac) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    for (var key in am0) {
+	if (am1.hasOwnProperty(key)) {
+	    //	  var link = inversion_actuator_map[key];
+	    var link  = find_bodies_from_actuator(key);
+	    var a = get_body_by_name(link[0]);
+	    var b = get_body_by_name(link[1]);
+	    var d = a.position.distanceTo(b.position);
+	    var e = actuator_to_length(interp(am0[key],am1[key],frac));
 	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_LARGE);
 	    world.addConstraint(c);
 	}
@@ -1482,8 +1521,8 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 3000;
-var GAIT_SUBDIVISIONS = 5;
+var TIME_BETWEEN_POSES_MS = 5000;
+var GAIT_SUBDIVISIONS = 9;
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.split(" ");
@@ -1514,14 +1553,16 @@ function execute_pose_list(pose_names) {
     for(var i = 0; i < last; i++) {
 	var am = pose_names[i];
 	for(var j = 0; j < GAIT_SUBDIVISIONS; j++) {
-	    var interp = interpolate_model(am,pose_names[i+1],j/(GAIT_SUBDIVISIONS*1.0));
-	    console.log(interp);
-	    setTimeout(function(model){ set_constraints(model); regenerate(); },
+	    setTimeout(function(am0,am1,frac) {
+		set_interp_constraints(am0,am1,frac); regenerate(); },
 		       i*TIME_BETWEEN_POSES_MS + j*intertick,
-		       interp);
-	    	}
+		       am,
+		       pose_names[i+1],
+		       j/(GAIT_SUBDIVISIONS*1.0)
+		      );
+	}
     }
-    setTimeout(function(model){ set_constraints(model); regenerate(); },
+    setTimeout(function(model){ set_constraints(model); regenerate(); console.log("POSE DONE!"); },
 	       last*TIME_BETWEEN_POSES_MS,
 	       pose_names[last]);
     
@@ -1817,7 +1858,7 @@ function regenerate() {
 	var bx = bodies[i];
 	var mx = meshes[i];
 	if (bx.structureKind == "member") {
-	    scene.remove(meshes[i]);	    
+	    scene.remove(meshes[i]);
 	}
     }
 
@@ -2050,8 +2091,6 @@ function gridInit(glScene,gDimensions){
 			boundingGrid.add(newGridXZ);
 
     glScene.add(boundingGrid);
-
-
 
     var margin = 0.4;
 	var labelsW = labelAxis(width, data.labels.x,"x");
