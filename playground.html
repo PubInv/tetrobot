@@ -24,7 +24,8 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   </head>
     <body>
-      <div id="world"></div>
+    <div id="world"></div>
+    <div id="worldspace"></div>
     <div id="control" class="robscroll">
 	<div class="panel panel-default">
 	  <div class="panel-heading">
@@ -50,6 +51,9 @@
 	    </button>
 	    <button type="button" onclick="step_con()">
 	      Use STEP MODE
+	    </button>
+	    <button type="button" onclick="reinitialize()">
+	      Reset to Initial
 	    </button>
 	    
 
@@ -220,6 +224,8 @@ $("#poseurl").val(url_for_robot);
 var MirroredWorld = function() {
     this.dt = 1/60;
 };
+var GROUND_PLANE_MESH;
+var GROUND_BODY;
 
 var groundMaterial = new CANNON.Material("groundMaterial");
 
@@ -227,11 +233,11 @@ var BASIC_BODY_MASS = 1; // This is kilograms.
 
 var mirroredWorld = new MirroredWorld();
 var world;
+
+var world_live = true;
 // var dt = 1 / 60;
 
 var constraintDown = false;
-var camera, cameraOrtho, scene, sceneOrtho, renderer, gplane=false, clickMarker=false;
-var geometry, material, mesh;
 var controls,time = Date.now();
 
 var MARGIN = 0;
@@ -248,8 +254,11 @@ var playgroundDimensions = {
 var global_friction = 0.0;
 
 
+// TODO: All of this needs to be put in a mirrored world object so that we don't have
+// global variables!
 
-
+var camera, cameraOrtho, scene, sceneOrtho, renderer, gplane=false, clickMarker=false;
+var geometry, material, mesh;
 
 // These are in meters, measured joint-center to joint-center
 var MAX_EDGE_LENGTH = 0.470;
@@ -267,6 +276,8 @@ var INITIAL_HEIGHT = 0.5;
 
 var Y_GRAVITY_FORCE = -5;
 
+var vector_up = new THREE.Vector3(0,0,1);
+var vector_axis = new THREE.Vector3(0, 1, 0);
 
 var jointBody, constrainedBody, mouseConstraint;
 
@@ -280,9 +291,10 @@ var meshes=[], bodies=[];
 var NUMBER_OF_TETRAHEDRA = 5;
 
 // This is where the cannon.js joints are storied
-var robot_joints = [];
-// This is the cannon.js robot members.
-var robot_members = [];
+var robot = {
+    robot_joints: [],
+    robot_members: []
+};
 // This is a map of the robot links.
 // var links_map = [];
 
@@ -309,6 +321,13 @@ function push_body_mesh_pair(body,mesh) {
     meshes.push(mesh);
     bodies.push(body);
 }
+function clear_non_floor_body_mesh_pairs() {
+    meshes = [];
+    bodies = [];
+    meshes.push(GROUND_PLANE_MESH);
+    bodies.push(GROUND_BODY);
+    
+}
 
 function establish_controls(camera,container) {
     controls = new THREE.OrbitControls( camera, container );
@@ -322,16 +341,17 @@ function establish_controls(camera,container) {
 function init_scene() {
     projector = new THREE.Projector();
     var world_container = $("#world");
+
+    while (world_container.get()[0].hasChildNodes()) {   
+	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
+    }
     
     container = document.createElement( 'div' );
-    
-    world_container.append( container );
+    world_container.append( container );	
 
     container.style["max-height"] = 800;
 
     container.style.backgroundColor = "blue";
-
-    
 
     // scene
     scene = new THREE.Scene();
@@ -441,9 +461,16 @@ function addShadowedLight( x, y, z, color, intensity ) {
 
 // This needs to be changed to init the floor and ground together...
 function finish_scene_preparation(schen) {
+    scene.add(GROUND_PLANE_MESH);
     material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+
+    while (container.hasChildNodes()) {   
+	container.removeChild(container.firstChild);
+    }
+    
     container.appendChild( renderer.domElement );
+
     
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
@@ -652,8 +679,6 @@ function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
 }
 
 function onWindowResize() {
-//    init_scene();
-//    add_world_to_scene(scene);
     renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
     
     camera.updateProjectionMatrix();
@@ -664,9 +689,14 @@ function onWindowResize() {
 
     cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
 }
-
+var world_dead = false;
 function animate() {
-    requestAnimationFrame( animate );
+    if (world_live) {
+	requestAnimationFrame( animate );
+	world_dead = false;
+    } else {
+	world_dead = true;
+    }
     //    controls.update();
     updatePhysics();    
     render();
@@ -789,9 +819,6 @@ function updatePhysics(){
     world.step(mirroredWorld.dt);
     var mem_cnt = 0;
 
-    //    sprite_controls.clear();
-
-
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
 	var body = bodies[i];
@@ -801,13 +828,11 @@ function updatePhysics(){
 	    var b = body.link_z;
 	    var ap = a.position;
 	    var bp = b.position;
-	    var ap3 = new THREE.Vector3(ap.x,ap.y,ap.z);
-	    var bp3 = new THREE.Vector3(bp.x,bp.y,bp.z);
-	    var mid = new THREE.Vector3().addVectors(ap3,bp3);
-	    mid = mid.multiplyScalar(0.5);
-	    mesh.up = new THREE.Vector3(0,0,1);
-	    var axis = new THREE.Vector3(0, 1, 0);
-	    var vector = new THREE.Vector3().subVectors(ap3,bp3);
+
+	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
+	    mesh.up = vector_up;
+	    var axis = vector_axis;
+	    var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
 	    mesh.position.copy(mid);
 
 	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
@@ -878,12 +903,12 @@ function add_ground_plane(world,scene) {
         world.addContactMaterial(ground_ground_cm);
 
     
-    var groundBody = new CANNON.Body({ mass: 0, material: ground_ground_cm });
-    groundBody.addShape(groundShape);
-    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+    GROUND_BODY = new CANNON.Body({ mass: 0, material: ground_ground_cm });
+    GROUND_BODY.addShape(groundShape);
+    GROUND_BODY.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     groundShape.position = new CANNON.Vec3(0,0,0);
-    groundBody.name = "floor";
-    world.addBody(groundBody);
+    GROUND_BODY.name = "floor";
+    world.addBody(GROUND_BODY);
     
     // floor
     var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
@@ -903,7 +928,7 @@ function add_ground_plane(world,scene) {
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     mesh = floor;
 
-    return [groundBody,mesh];
+    return [GROUND_BODY,mesh];
 }
 
 var spring = [];
@@ -943,7 +968,7 @@ function update_three_js_from_bodies(scene,bodies)
 */
 
 
-function generate_mesh_pairings_from_world(world,scene)
+function generate_mesh_pairings_from_robot(robot,scene)
 {
     var results = [];
     
@@ -971,16 +996,16 @@ function generate_mesh_pairings_from_world(world,scene)
     //    var links_map = new Map();
     var links = [];
 
-    for(var i = 0; i < robot_joints.length; i++) {
-	var joint = robot_joints[i];
+    for(var i = 0; i < robot.robot_joints.length; i++) {
+	var joint = robot.robot_joints[i];
 	process_vertex(joint,joint.position,results,jointGeo,jointMaterial);
     }
 
 
     // This in fact needs to be a lot more complicated...but one step at a time.
     var w = MEDIAN_EDGE_LENGTH / 20;
-    for(var lin in robot_members) {
-	var link = robot_members[lin];
+    for(var lin in robot.robot_members) {
+	var link = robot.robot_members[lin];
 	var a = link.a;
 	var b = link.b;
 	var h = link.a.position.distanceTo(b.position);
@@ -1073,19 +1098,19 @@ function load_NTetGlussBot(world,tets,pvec) {
 	boxBody.angularDamping = 0.9;
 	boxBody.linearDamping = 0.9;
 	boxBody.name = alphabetic_name(i);
-	robot_joints.push(boxBody);
+	robot.robot_joints.push(boxBody);
 	world.addBody(boxBody);
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
-	    add_member_spring(robot_joints[h],robot_joints[i],world);
+	    add_member_spring(robot.robot_joints[h],robot.robot_joints[i],world);
 
 	    // Okay, here I also want to add a new body to represent the actuator
 	    // This may require some roation math, but for now let me just put it
 	    // in the cetner
 	    var memBody = new CANNON.Body({ mass: mass, material : groundMaterial });
-	    var b_z = robot_joints[i];
-	    var b_a = robot_joints[h];
+	    var b_z = robot.robot_joints[i];
+	    var b_a = robot.robot_joints[h];
 	    var v_z = b_z.position;
 	    var v_avg = v_z.vadd(b_a.position);
 	    v_avg.scale(0.5);
@@ -1094,7 +1119,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    memBody.angularDamping = 0.9;
 	    memBody.linearDamping = 0.9;
 	    var link = { a: b_a, b: b_z, body: memBody};
-	    robot_members.push(link);
+	    robot.robot_members.push(link);
 	    memBody.structureKind = "member";
 	    memBody.link_a = b_a;
 	    memBody.link_z = b_z;
@@ -1108,7 +1133,7 @@ var ROBOT_PAIRINGS;
 function add_robot(world,scene) {
     var pvec = new CANNON.Vec3(0,INITIAL_HEIGHT,0);
     load_NTetGlussBot(world,NUMBER_OF_TETRAHEDRA,pvec);
-    var pairings = generate_mesh_pairings_from_world(world,scene);
+    var pairings = generate_mesh_pairings_from_robot(robot,scene);
     ROBOT_PAIRINGS = pairings;
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
@@ -1120,7 +1145,7 @@ function add_robot(world,scene) {
     });
 }
 
-var GROUND_PLANE_MESH;
+
 function initCannon(){
     // Setup our world
     world = new CANNON.World();
@@ -1133,12 +1158,6 @@ function initCannon(){
     var item = add_ground_plane(world,scene)
     GROUND_PLANE_MESH = item[1];
     push_body_mesh_pair(item[0],item[1]);
-    
-    // This would be better as a function that
-    // returns a robot, but I am dependent on some sort of
-    // geometry for the construction of the robot..
-    add_robot(world,scene);
-
     // Joint body
     var shape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
     jointBody = new CANNON.Body({ mass: 0 });
@@ -1146,9 +1165,9 @@ function initCannon(){
     jointBody.collisionFilterGroup = 0;
     jointBody.collisionFilterMask = 0;
     world.addBody(jointBody);
-    
-    scene.add(item[1]);
 }
+
+
 
 function add_world_to_scene(scene) {
     var pairings = ROBOT_PAIRINGS;
@@ -1412,7 +1431,7 @@ function get_body_by_name(name) {
 function set_constraints(am) {
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	world.removeConstraint();
+	world.removeConstraint(c);
     }
     for (var key in am) {
 	if (am.hasOwnProperty(key)) {
@@ -1434,7 +1453,7 @@ function interp(x,y,frac) {
 function set_interp_constraints(am0,am1,frac) {
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	world.removeConstraint();
+	world.removeConstraint(c);
     }
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
@@ -1601,8 +1620,8 @@ function flat() {
 function model_to_actuator_space(bodies) {
     var pose = {};
 
-    for(var lin in robot_members) {
-	var mem = robot_members[lin];  
+    for(var lin in robot.robot_members) {
+	var mem = robot.robot_members[lin];  
 	var a = mem.a;
 	var b = mem.b;
 	var d = actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0);
@@ -1660,8 +1679,8 @@ function factor_size(f) {
 	world.removeConstraint();
     }
     
-    for(var lin in robot_members) {
-	var link = robot_members[lin];  
+    for(var lin in robot.robot_members) {
+	var link = robot.robot_members[lin];  
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
@@ -1677,8 +1696,8 @@ function fixed_size(s) {
 	world.removeConstraint();
     }
     
-    for(var lin in robot_members) {
-	var link = robot_members[lin];  
+    for(var lin in robot.robot_members) {
+	var link = robot.robot_members[lin];  
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
@@ -1693,8 +1712,8 @@ function assume_pose(pose) {
 	world.removeConstraint();
     }
     
-    for(var lin in robot_members) {
-	var link = robot_members[lin];
+    for(var lin in robot.robot_members) {
+	var link = robot.robot_members[lin];
 	var a = link.a;
 	var b = link.b;
 	var act = actuator(a.name,b.name);
@@ -1848,8 +1867,6 @@ function test_find_actuator() {
 // Compute the actuator name between the two 
 function actuator(b1,b2) {
     return find_actuator(b1,b2);
-//    return (b1 < b2) ?
-//	actuator_map[b1][b2] : actuator_map[b2][b1];
 }
 
 // Compute the actuator name between the two 
@@ -1857,16 +1874,18 @@ function regenerate() {
     for(var i = 0; i < bodies.length; i++) {
 	var bx = bodies[i];
 	var mx = meshes[i];
-	if (bx.structureKind == "member") {
+	if (bx.name != "floor") {
 	    scene.remove(meshes[i]);
 	}
     }
 
-    var pairings = generate_mesh_pairings_from_world(world,scene);
+    var pairings = generate_mesh_pairings_from_robot(robot,scene);
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
     }
 
+    clear_non_floor_body_mesh_pairs();
+    
     // The timing here is making this asynchronous, which is not ideal...
     pairings.forEach(function (item) {
 	push_body_mesh_pair(item[0],item[1]);
@@ -1881,12 +1900,74 @@ function regenerate() {
 // Initialize Three.js
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-var scene = init_scene();
-initCannon();
-finish_scene_preparation(scene);
-update_poses();
 
-animate();
+function remove_robot() {
+    meshes = [];
+    bodies = [];
+    robot.robot_joints = [];
+// This is the cannon.js robot members.
+    robot.robot_members = [];
+}
+
+function remove_world() {
+    var world_container = $("#world");
+    world_live = false;
+    while (world_container.get()[0].hasChildNodes()) {   
+	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
+    }
+
+//    remove_robot();
+
+    world = null;
+    jointBody = null;
+    constrainedBody = null;
+    mouseConstraint = null;
+
+    container = null;
+    camera = null;
+    scene = null;
+    renderer = null;
+    projector = null;
+
+    grid_scene = null;
+
+    camera = null;
+    cameraOrtho = null;
+    scene = null;
+    sceneOrtho = null;
+    renderer = null;
+    gplane=false, clickMarker=false;
+    geometry = null;
+    material = null;
+    mesh = null;
+    GROUND_PLAN_MESH = null;
+}
+
+// This is ugly, this needs to be refactored....
+function reinitialize() {
+    remove_world();
+    var scene = init_scene();
+    initCannon();
+//    add_robot(world,scene);
+    finish_scene_preparation(scene);
+    world_live = true;
+    regenerate();
+    if (world_dead) {
+	animate();
+    }
+}
+
+function build_world() {
+    var scene = init_scene();
+    initCannon();
+    add_robot(world,scene);
+    finish_scene_preparation(scene);
+    update_poses();
+    world_live = true;
+    animate();
+}
+
+build_world();
 
 $(document).on('click', '.panel-heading span.clickable', function(e){
     var $this = $(this);
