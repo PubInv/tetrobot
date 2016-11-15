@@ -52,11 +52,6 @@
 	    <button type="button" onclick="step_con()">
 	      Use STEP MODE
 	    </button>
-	    <button type="button" onclick="reinitialize()">
-	      Reset to Initial
-	    </button>
-	    
-
     </div>
     </div>
 	<div class="panel panel-default">
@@ -1540,8 +1535,8 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 5000;
-var GAIT_SUBDIVISIONS = 9;
+var TIME_BETWEEN_POSES_MS = 1000;
+var GAIT_SUBDIVISIONS = 10;
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.split(" ");
@@ -1900,7 +1895,8 @@ function regenerate() {
 // Initialize Three.js
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-
+// remove_robot and remove_world are dead code but useful for creating
+// proper objects in the future.
 function remove_robot() {
     meshes = [];
     bodies = [];
@@ -1940,21 +1936,8 @@ function remove_world() {
     geometry = null;
     material = null;
     mesh = null;
-    GROUND_PLAN_MESH = null;
-}
-
-// This is ugly, this needs to be refactored....
-function reinitialize() {
-    remove_world();
-    var scene = init_scene();
-    initCannon();
-//    add_robot(world,scene);
-    finish_scene_preparation(scene);
-    world_live = true;
-    regenerate();
-    if (world_dead) {
-	animate();
-    }
+    GROUND_PLANE_MESH = null;
+    GROUND_BODY = null;
 }
 
 function build_world() {
