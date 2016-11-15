@@ -4,7 +4,6 @@
 ;; This is necessar because 'web-server doesn't support options...I need to make a pull-request about this
 (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS))
 (require 'web-server)
-(require 'json-pretty-print)
 
       
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
