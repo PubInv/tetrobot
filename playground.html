@@ -188,9 +188,20 @@
 
 var standard_objs;
 
+var standard_ctx;
+
 $.getJSON( "./standard_gaits.json")
     .done(function( json ) {
 	standard_objs = json;
+	standard_ctx = generate_context_from_standard(standard_objs);
+
+	var local_objs = [];
+	for (var i = 0; i < localStorage.length; i++){
+	    var obj = localStorage[localStorage.key(i)];
+	    var pobj = JSON.parse(obj);
+	    pobj["pose"] = convert_to_number(pobj["pose"])
+	    standard_ctx[localStorage.key(i)] = pobj;
+	}
 	update_standard_poses();	
     })
   .fail(function( jqxhr, textStatus, error ) {
@@ -198,6 +209,28 @@ $.getJSON( "./standard_gaits.json")
     console.log( "Request Failed: " + err );
   });
 
+function convert_to_number(obj) {
+    for(var k in obj) {
+	if (typeof obj[k] == "string") {
+	    obj[k] = parseInt(obj[k]);
+	}
+    }
+    return obj;
+}
+
+function one_time_conversion() {
+    for (var i = 0; i < localStorage.length; i++){
+	var name = localStorage.key(i);
+	var obj_str = localStorage[name];
+	var obj = JSON.parse(obj_str);
+	var pose = {};
+	pose["type"] = "pose";
+	pose["name"] = name;
+	pose["geometry"] = "5TetGlussBot";
+	pose["pose"] = obj;
+	localStorage.setItem(name,JSON.stringify(pose));
+    }
+}
 
 var url_for_robot = "http://127.0.0.1:9000";
 $("#poseurl").val(url_for_robot);
@@ -245,6 +278,9 @@ var playgroundDimensions = {
 	d:10,
 	h:3
 };
+
+
+
 
 var global_friction = 0.0;
 
@@ -1498,7 +1534,7 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    set_constraints(constraints);
+    set_constraints(constraints.pose);
 }
 function set_standard_pose(num) {
     var pose = standard_objs[num];
@@ -1507,7 +1543,8 @@ function set_standard_pose(num) {
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
-    execute_pose_list(gait.gait);
+    //    execute_pose_list(gait.gait);
+    execute(standard_ctx,gait.gait[0],execute_atom,gait.gait,10,1000);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1560,7 +1597,7 @@ function get_first_executable(ctx,glog) {
 	// Now if we are a string, we look it up in the context and expand..
 	if (typeof glog == "string") {
 	    var def = ctx[glog];
-	    if (typeof def === undefined) { // didn't find it,
+	    if (typeof def == 'undefined') { // didn't find it,
 		console.log("Couldn't find string in context:" + glog);
 		console.log("Context:" + ctx);
 	    } else {
@@ -1591,7 +1628,6 @@ function get_first_executable(ctx,glog) {
 	    }
 	    return [glog,[]];
 	}
-
     }
 }
 
@@ -1693,13 +1729,18 @@ function generate_context_from_standard(objects) {
     return ctx;
 }
 
-var standard_ctx;
 
 function test_execute_2() {
     var n0 = standard_objs[5].name;
     var n1 = standard_objs[6].name;
     var glog = [n0,n1];
-    standard_ctx = generate_context_from_standard(standard_objs);
+//    standard_ctx = generate_context_from_standard(standard_objs);
+    execute(standard_ctx,glog[0],execute_atom,glog,10,1000);
+}
+
+function test_execute_3() {
+    var glog = ["thinwalk"];
+//    standard_ctx = generate_context_from_standard(standard_objs);
     execute(standard_ctx,glog[0],execute_atom,glog,10,1000);
 }
 
@@ -1734,38 +1775,25 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 5000;
+var TIME_BETWEEN_POSES_MS = 1000;
 var GAIT_SUBDIVISIONS = 10;
 
 // Need to expand this machinergy so that at any time we can process
 // a pose or a gait mixed generically.
-// function execute_gait() {
-//     var gait = $("#gait").val();
-//     var raw_names = gait.split(" ");
-//     var pose_names = expand_poses(raw_names);
 
-//     var pose_lists = [];
-//     for(var i = 0; i < pose_names.length; i++) {
-// 	var am = pose_names[i];
-// 	var pose = JSON.parse(localStorage.getItem(am));
-// 	pose_lists[i] = pose;
-//     }
-//     TIME_BETWEEN_POSES_MS / GAIT_SUBDIVISIONS;
-//     execute_pose_list(pose_lists);
-// }
 function execute_gait() {
     var gait = $("#gait").val();
-    var pose_names = gait.split(" ");
+    var pose_names = gait.trim().split(" ");
 
-    var pose_lists = [];
-    for(var i = 0; i < pose_names.length; i++) {
-	var am = pose_names[i];
-	var pose = JSON.parse(localStorage.getItem(am));
-	pose_lists[i] = pose;
-    }
-    standard_ctx = generate_context_from_standard(standard_objs);
-    var initial = get_first_executable(standard_ctx,pose_lists[0]);
-    execute(standard_ctx,initial[0],execute_atom,pose_lists,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
+    // var pose_lists = [];
+    // for(var i = 0; i < pose_names.length; i++) {
+    // 	var am = pose_names[i];
+    // 	var pose = JSON.parse(localStorage.getItem(am));
+    // 	pose_lists[i] = pose;
+    // }
+//    standard_ctx = generate_context_from_standard(standard_objs);
+    var initial = get_first_executable(standard_ctx,pose_names[0]);
+    execute(standard_ctx,initial[0],execute_atom,pose_names,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
 }
 
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
