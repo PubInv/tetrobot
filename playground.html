@@ -1502,13 +1502,139 @@ function set_named_pose(id) {
 }
 function set_standard_pose(num) {
     var pose = standard_objs[num];
-    var constraints = JSON.parse(pose);
+    var constraints = pose.pose;
     set_constraints(constraints);
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
     execute_pose_list(gait.gait);
 }
+
+// This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
+// This should probably be broken out into a different file.  The basic concept
+// is that GLPL is a valid JSON object.  Here is a BNF, although since this is in JSON
+// we basically will do "parsing".
+// <glog> ::= <array> | <object>
+// <object> ::= <def> | <com>
+// <def> ::= <pose> | <gait>
+// <pose> ::= Object whose "type" is "pose" and has "pose" property | <string>
+// <gait> ::= Object whose "type is "gait" and has "gait" property, which is a glog
+// <array> ::= '[' <list> ']'
+// <list> ::= <glog> | <list> , <glog>
+// <com> ::= <string> | <ex-pose>
+// <ex-pose> ::= object which does not have "name" as a property
+// In other words, a GLOG is an array of GLOGs or an object, and an object pose or a gait,
+// and a gait is a GLOG.  So this is a language with no conditionals, not input, no loops.
+// Not that in when a <string> is a <pose>, it potentially must be resolvable by definitions
+// some where else.
+// Following the concept I learned back at Rice University in '86, the language has a "context"
+// which is mainly a dictionary of known defintions for strings.  Execution can return a context
+// which adds a defintion to the context.  All of this is easier in LISP, of course. In this case
+// we will use an object that maps names to GLOGs as the context
+// So the 0.1 version is really astounding simple.  The main thing we have to be able to do
+// is to process it into an executable pose and the remainding GLOG.
+
+// This function returns [first,rest] (meaning a two-element array, where rest may not be an atom)
+// It guarantees that the first is a executable command or an defintion (and that rest coorectly
+// takes into account the fact that the head of the glog might not be atomic.
+function get_first_executable(glog) {
+    if (Array.isArray(glog)) {
+	if (glog.length == 0) {
+	    return [glog,[]];
+	} else if (glog.length == 1) {
+	    return get_first_executable(glog[0]);	    
+	} else {
+	    // Okay, so how to handle the resulting arg here is a little tricky....
+	    var res = get_first_executable(glog[0]);
+	    var rest = [];
+	    rest[0] = res[0];
+	    rest[1] = res[1].concat(glog.slice(1));
+	    return rest;
+	}
+    } else { // So we are either a definition of a command, either way we just package and are done.
+	return [glog,[]];
+    }
+}
+
+// Real glogs have internal stucture we don't care about...so we can test with non-glogs..
+function test_get_first_executable_0() {
+    var ex0 = [[{A: 0},{A: 1}],[{A: 2}]];
+    var res0 = get_first_executable(ex0,null);
+    var f0 = res0[0];
+    if (f0.A != 0)
+	return false;
+    var res1 = get_first_executable(res0[1],null);
+    var f1 = res1[0];
+    if (f1.A != 1)
+	return false;
+    var res2 = get_first_executable(res1[1],null);
+    var f2 = res2[0];
+    if (f2.A != 2)
+	return false;
+    if (res2[1].length != 0)
+	return false;
+    return true;
+}
+
+function glog_is_atom(glog) {
+    return !(Array.isArray(glog));
+}
+function glog_is_definition(glog) {
+    return (glog["type"] == "pose" || glog["type"] == "gait");
+}
+function glog_is_executable(glog) {
+    return glog_is_atom(glog) && !glog_is_definition(glog);
+}
+
+function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms) {
+    var intertick = time_between_poses_ms / subdivisions;
+    for(var j = 0; j < subdivisions; j++) {
+	setTimeout(function(am0,am1,frac) {
+	    set_interp_constraints(am0,am1,frac);
+	},
+	   j*intertick,
+		   cur,
+	   atom,
+	   j/(subdivisions*1.0)
+	  );
+    }
+}
+
+function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_ms) {
+    // if glog is an empty array or null, there is nothing to do.
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    execute_atom(ctx,initial,glog,subdivisions,time_between_poses_ms);
+	}
+    }
+    var wait_time = time/subdivisions;
+    var res0 = get_first_executable(glog);
+    var first = res0[0];
+    execute_atom(ctx,first,subdivisions,time_between_poses_ms);
+    var rest = res0[1];
+    if (rest.length > 0) {
+	setTimeout(function(r) {
+	    execute(ctx,first,execute_atom,rest,subdivisions,time_between_poses_ms);
+	},
+		   rest,
+		   time_between_poses_ms);
+    }
+}
+function execute_atom_dummy(ctx,glog) {
+    console.log("atom"+glog);
+}
+
+function test_execute_0() {
+    var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
+		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
+    execute(null,glog[0],execute_atom_dummy,glog,10,1000);
+}
+
+// The purpose of this is to return the context with more definitions...
+function execute_definitions(ctx,glog) {
+}
+
+
 
 function update_poses() {
     var names = "";
@@ -1537,15 +1663,21 @@ function update_standard_poses() {
 
 var TIME_BETWEEN_POSES_MS = 1000;
 var GAIT_SUBDIVISIONS = 10;
+
+// Need to expand this machinergy so that at any time we can process
+// a pose or a gait mixed generically.
 function execute_gait() {
     var gait = $("#gait").val();
-    var pose_names = gait.split(" ");
+    var raw_names = gait.split(" ");
+    var pose_names = expand_poses(raw_names);
+
     var pose_lists = [];
     for(var i = 0; i < pose_names.length; i++) {
 	var am = pose_names[i];
 	var pose = JSON.parse(localStorage.getItem(am));
 	pose_lists[i] = pose;
     }
+    TIME_BETWEEN_POSES_MS / GAIT_SUBDIVISIONS;
     execute_pose_list(pose_lists);
 }
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
@@ -1561,6 +1693,33 @@ function interpolate_model(m1,m2,frac) {
     console.log(v);
     return v;
 }
+function find_pose(pose) {
+    if ((typeof pose) == "string") {
+	var lpose = localStorage.hasKey(pose);
+	if (lpose != null) {
+	    return JSON.parse(lpose);
+	}
+    }
+   for (var i = 0; i < standard_objs.length; i++){
+       var obj = standard_objs[i];
+       if (obj.name == pose) {
+	   return (obj.type == "pose") ? obj.pose : obj.gait;
+       }
+   }
+    
+   console.log("unable to find pose: "+pose);
+}
+function expand_poses(gait) {
+    return gait.map(pose => {
+	if ((typeof pose) == "string" ) {
+	    // here we seek to obtain the pose...
+	    var epose = find_pose(pose);
+	    return expand_poses(epose);
+	} else {
+	    return pose;
+	}
+    });
+}
 function execute_pose_list(pose_names) {
     var last = pose_names.length-1;
     var intertick = TIME_BETWEEN_POSES_MS / GAIT_SUBDIVISIONS;
@@ -1568,6 +1727,7 @@ function execute_pose_list(pose_names) {
 	var am = pose_names[i];
 	for(var j = 0; j < GAIT_SUBDIVISIONS; j++) {
 	    setTimeout(function(am0,am1,frac) {
+		// TODO is regenerate really need here?  I doubt it....
 		set_interp_constraints(am0,am1,frac); regenerate(); },
 		       i*TIME_BETWEEN_POSES_MS + j*intertick,
 		       am,
