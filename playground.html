@@ -187,8 +187,8 @@
     <script>
 
 var standard_objs;
-
 var standard_ctx;
+var most_recent_constraints;
 
 $.getJSON( "./standard_gaits.json")
     .done(function( json ) {
@@ -1422,12 +1422,12 @@ function removeJointConstraint() {
     }
 }
 
-function execute_code(id) {
-    var command = $("#cli").val();
-    var result = eval(command);
-    console.log(command);
-    console.log(result);    
-}
+// function execute_code(id) {
+//     var command = $("#cli").val();
+//     var result = eval(command);
+//     console.log(command);
+//     console.log(result);    
+// }
 
 function render_physical_model(id) {
     var pmodel = extract_physical_node_model();
@@ -1466,7 +1466,6 @@ function set_constraints(am) {
     }
     for (var key in am) {
 	if (am.hasOwnProperty(key)) {
-	    //	  var link = inversion_actuator_map[key];
 	    var link  = find_bodies_from_actuator(key);
 	    var a = get_body_by_name(link[0]);
 	    var b = get_body_by_name(link[1]);
@@ -1476,6 +1475,7 @@ function set_constraints(am) {
 	    world.addConstraint(c);
 	}
     }
+    most_recent_constraints = am;
 }
 
 function interp(x,y,frac) {
@@ -1498,6 +1498,7 @@ function set_interp_constraints(am0,am1,frac) {
 	    world.addConstraint(c);
 	}
     }
+    most_recent_constraints = am1;
 }
 
 function rectify(id) {
@@ -1527,6 +1528,12 @@ function name_pose(id) {
     var pmodel = extract_physical_node_model();
     var am = model_to_actuator_space(pmodel);
     var name = $("#posename").val();
+    var pose = {};
+    pose["type"] = "pose";
+    pose["name"] = name;
+    pose["geometry"] = "5TetGlussBot";
+    pose["pose"] = am;
+    console.log(pose);
     localStorage.setItem(name, JSON.stringify(am));
     update_poses();
 }
@@ -1543,7 +1550,6 @@ function set_standard_pose(num) {
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
-    //    execute_pose_list(gait.gait);
     execute(standard_ctx,gait.gait[0],execute_atom,gait.gait,10,1000);
 }
 
@@ -1707,13 +1713,13 @@ function execute_atom_dummy(ctx,glog) {
 function test_execute_0() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(standard_objs,glog[0],execute_atom_dummy,glog,10,1000);
+    execute(standard_objs,most_recent_constraints,execute_atom_dummy,glog,10,1000);
 }
 
 function test_execute_1() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(standard_objs,glog[0],execute_atom,glog,10,1000);
+    execute(standard_objs,most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 function generate_context_from_standard(objects) {
@@ -1735,13 +1741,13 @@ function test_execute_2() {
     var n1 = standard_objs[6].name;
     var glog = [n0,n1];
 //    standard_ctx = generate_context_from_standard(standard_objs);
-    execute(standard_ctx,glog[0],execute_atom,glog,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 function test_execute_3() {
     var glog = ["thinwalk"];
 //    standard_ctx = generate_context_from_standard(standard_objs);
-    execute(standard_ctx,glog[0],execute_atom,glog,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 // The purpose of this is to return the context with more definitions...
@@ -1809,54 +1815,6 @@ function interpolate_model(m1,m2,frac) {
     console.log(v);
     return v;
 }
-function find_pose(pose) {
-    if ((typeof pose) == "string") {
-	var lpose = localStorage.hasKey(pose);
-	if (lpose != null) {
-	    return JSON.parse(lpose);
-	}
-    }
-   for (var i = 0; i < standard_objs.length; i++){
-       var obj = standard_objs[i];
-       if (obj.name == pose) {
-	   return (obj.type == "pose") ? obj.pose : obj.gait;
-       }
-   }
-    
-   console.log("unable to find pose: "+pose);
-}
-function expand_poses(gait) {
-    return gait.map(pose => {
-	if ((typeof pose) == "string" ) {
-	    // here we seek to obtain the pose...
-	    var epose = find_pose(pose);
-	    return expand_poses(epose);
-	} else {
-	    return pose;
-	}
-    });
-}
-function execute_pose_list(pose_names) {
-    var last = pose_names.length-1;
-    var intertick = TIME_BETWEEN_POSES_MS / GAIT_SUBDIVISIONS;
-    for(var i = 0; i < last; i++) {
-	var am = pose_names[i];
-	for(var j = 0; j < GAIT_SUBDIVISIONS; j++) {
-	    setTimeout(function(am0,am1,frac) {
-		// TODO is regenerate really need here?  I doubt it....
-		set_interp_constraints(am0,am1,frac); regenerate(); },
-		       i*TIME_BETWEEN_POSES_MS + j*intertick,
-		       am,
-		       pose_names[i+1],
-		       j/(GAIT_SUBDIVISIONS*1.0)
-		      );
-	}
-    }
-    setTimeout(function(model){ set_constraints(model); regenerate(); console.log("POSE DONE!"); },
-	       last*TIME_BETWEEN_POSES_MS,
-	       pose_names[last]);
-    
-}
 
 function extract_physical_node_model() {
     var nodes = [];
@@ -1895,7 +1853,8 @@ function model_to_actuator_space(bodies) {
 	var mem = robot.robot_members[lin];  
 	var a = mem.a;
 	var b = mem.b;
-	var d = actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0);
+	// invert actually returns strings, for some reason, probably for css...
+	var d = parseInt(actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0));
 	var actuator_name = find_actuator(a.name,b.name);
 	pose[actuator_name] = d;
     }
