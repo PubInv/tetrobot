@@ -52,6 +52,9 @@
 	    <button type="button" onclick="step_con()">
 	      Use STEP MODE
 	    </button>
+	    <button type="button" onclick="reset_to_default()">
+	      Reset to Default
+	    </button>
     </div>
     </div>
 	<div class="panel panel-default">
@@ -232,6 +235,9 @@ function one_time_conversion() {
     }
 }
 
+var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+
+
 var url_for_robot = "http://127.0.0.1:9000";
 $("#poseurl").val(url_for_robot);
 
@@ -256,6 +262,19 @@ var GROUND_PLANE_MESH;
 var GROUND_BODY;
 
 var groundMaterial = new CANNON.Material("groundMaterial");
+
+
+// Adjust constraint equation parameters for ground/ground contact
+var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
+    friction: global_friction,
+    restitution: 0.3,
+    contactEquationStiffness: 1e8,
+    contactEquationRelaxation: 3,
+    frictionEquationStiffness: 1e8,
+    frictionEquationRegularizationTime: 3,
+});
+
+
 
 var BASIC_BODY_MASS = 1; // This is kilograms.
 
@@ -282,7 +301,7 @@ var playgroundDimensions = {
 
 
 
-var global_friction = 0.0;
+var global_friction = 1.0;
 
 
 // TODO: All of this needs to be put in a mirrored world object so that we don't have
@@ -319,6 +338,7 @@ var grid_scene;
 var meshes=[], bodies=[];
 
 
+// var NUMBER_OF_TETRAHEDRA = 5;
 var NUMBER_OF_TETRAHEDRA = 5;
 
 // This is where the cannon.js joints are storied
@@ -402,7 +422,7 @@ function init_scene() {
 
     // camera
     camera = new THREE.PerspectiveCamera( 35, renderer.getSize().width / (renderer.getSize().height), 0.5, 10000 );
-    camera.position.set(3, 1, 0);
+    camera.position.set(3, 0.25, 0);
     var origin = new THREE.Vector3(0,0,0);
     camera.lookAt(origin);
     camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
@@ -492,7 +512,6 @@ function addShadowedLight( x, y, z, color, intensity ) {
 
 // This needs to be changed to init the floor and ground together...
 function finish_scene_preparation(schen) {
-    scene.add(GROUND_PLANE_MESH);
     material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
 
@@ -559,7 +578,11 @@ function onMouseDown(e){
     var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
-    if(pos && entity.object.geometry instanceof THREE.SphereGeometry){
+    if (pos && (entity.object.geometry instanceof THREE.SphereGeometry
+		 ||
+		(entity.object.name.startsWith("obstacle"))
+		)
+       ){
         var idx = meshes.indexOf(entity.object);
 
 	if (e.shiftKey) {
@@ -853,12 +876,20 @@ function updatePhysics(){
     for(var i=0; i !== bodies.length; i++){
 	var mesh = meshes[i];
 	var body = bodies[i];
+	// HACK : somewhere here we have to deal changing the actual
+	// objects.  Not sure how this will interact, but we have to do it somehow.
+	// May have to break down and make a two-part model of sliding parts
+	// which would have to be tested in a different webpage.
+	
 	if (bodies[i].structureKind == "member") {
 	    mem_cnt++;
 	    var a = body.link_a;
 	    var b = body.link_z;
 	    var ap = a.position;
 	    var bp = b.position;
+
+	    body.position = ap.vadd(bp).scale(0.5);
+//	    console.log(body);
 
 	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
 	    mesh.up = vector_up;
@@ -867,6 +898,9 @@ function updatePhysics(){
 	    mesh.position.copy(mid);
 
 	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
+
+	    var q = mesh.quaternion;
+	    body.quaternion.set(q.x,q.y,q.z,q.w);
 
 	    var len = ap.distanceTo(bp);
 	    var cd3 = get_member_color(len);
@@ -883,6 +917,7 @@ function updatePhysics(){
 	    mesh.geometry.colorsNeedUpdate = true;
 
 	} else {
+
 	    var p = body.position;
 	    var p3 = new THREE.Vector3(p.x,p.y,p.z);
 	    var p3 = p3.project(camera);
@@ -917,22 +952,6 @@ function add_ground_plane(world,scene) {
     var groundShape = new CANNON.Plane();
     var floor_position = 0;
 
-         // Materials
-        var groundMaterial = new CANNON.Material("groundMaterial");
-
-        // Adjust constraint equation parameters for ground/ground contact
-        var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
-            friction: global_friction,
-            restitution: 0.3,
-            contactEquationStiffness: 1e8,
-            contactEquationRelaxation: 3,
-            frictionEquationStiffness: 1e8,
-            frictionEquationRegularizationTime: 3,
-        });
-
-        // Add contact material to the world
-        world.addContactMaterial(ground_ground_cm);
-
     
     GROUND_BODY = new CANNON.Body({ mass: 0, material: ground_ground_cm });
     GROUND_BODY.addShape(groundShape);
@@ -954,13 +973,65 @@ function add_ground_plane(world,scene) {
     var floorGeometry = new THREE.PlaneGeometry(playgroundDimensions.w,
 						playgroundDimensions.d,
 						10,
-						 10);
+						10);
     floorGeometry.position = new THREE.Vector3(0,0,0);
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     mesh = floor;
-
+    GROUND_PLANE_MESH = mesh;
+    scene.add(GROUND_PLANE_MESH);    
+    
     return [GROUND_BODY,mesh];
 }
+
+function add_obstacle(world,scene) {
+    // Materials
+    var obstacleSize = 0.02;
+    for(var i = 0; i < 4; i++) {
+    var obstacleShape = new CANNON.Box(new CANNON.Vec3(
+	obstacleSize*10,obstacleSize,obstacleSize));
+    
+//    var obstacleMaterial = new CANNON.Material("obstacleMaterial");
+
+    // Adjust constraint equation parameters for obstacle/obstacle contact
+    // var obstacle_obstacle_cm = new CANNON.ContactMaterial(obstacleMaterial, obstacleMaterial, {
+    //     friction: global_friction,
+    //     restitution: 0.3,
+    //     contactEquationStiffness: 1e8,
+    //     contactEquationRelaxation: 3,
+    //     frictionEquationStiffness: 1e8,
+    //     frictionEquationRegularizationTime: 3,
+    // });
+
+    // Add contact material to the world
+//    world.addContactMaterial(obstacle_obstacle_cm);
+    
+    OBSTACLE_BODY = new CANNON.Body({ mass: 10, material: ground_ground_cm });
+    OBSTACLE_BODY.addShape(obstacleShape);
+
+	OBSTACLE_BODY.name = "obstacle-"+i;
+	OBSTACLE_BODY.structureKind = "obstracle";
+    OBSTACLE_BODY.position.set(-1*i,INITIAL_HEIGHT,0);
+    OBSTACLE_BODY.angularDamping = 0.9;
+    OBSTACLE_BODY.linearDamping = 0.9;
+
+
+    world.addBody(OBSTACLE_BODY);
+
+    var cubeGeo = new THREE.BoxGeometry( obstacleSize*2*10, obstacleSize*2, obstacleSize*2 );
+    var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+    mesh.name = "obstacle-"+i;
+    scene.add(mesh);
+
+    mesh.geometry.verticesNeedUpdate = true;
+    mesh.geometry.elementsNeedUpdate = true;        
+    mesh.geometry.colorsNeedUpdate = true;
+
+	push_body_mesh_pair(OBSTACLE_BODY,mesh);
+
+    }
+    return [OBSTACLE_BODY,mesh];
+}
+
 
 var spring = [];
 
@@ -976,28 +1047,6 @@ Object.size = function(obj) {
 function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
-
-/*
-// This basically needs to take the bodies, read their positions,
-// and update the geometry in the same way. Every Body has both
-// an "id" and "index" field, but I don't know how to keep the
-// association...
-function update_three_js_from_bodies(scene,bodies)
-{
-    // at this point, the meshes and the bodies must match....
-    for(var i = 0; i < bodies.length; i++) {
-	var b = bodies[i];
-	var m = meshes[i];
-
-	// Not sure about this, but will try removing the mesh and
-	// regenerating...
-	scene.remove(m);
-	var nm = generate_mesh_from_body(b);
-	scene.add(b);
-    }
-}
-*/
-
 
 function generate_mesh_pairings_from_robot(robot,scene)
 {
@@ -1018,6 +1067,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
     function process_vertex(joint,v,results,geo,mat) {
 
 	var mesh = new THREE.Mesh(geo, mat);
+	mesh.name = "joint";
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	results.unshift([joint,mesh]);
@@ -1080,6 +1130,7 @@ function add_member_spring(a,b,world) {
     
 }
 
+
 // To do a great job with this, we really need to know the
 // range of possible values, but I'll fake it..
 function alphabetic_name(n) {
@@ -1106,23 +1157,15 @@ function load_NTetGlussBot(world,tets,pvec) {
     // I guess I will use a CounterClockWise (ccw) tetrahelix:
     // Vn = (r cos(n*theta), r sin(n*theta), n*h)
 
-    var n = tets+3;
+    var n = tets+3;    
     var mass = BASIC_BODY_MASS;
-    var sticky_material = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
-            friction: global_friction,
-            restitution: 0.3,
-            contactEquationStiffness: 1e8,
-            contactEquationRelaxation: 3,
-            frictionEquationStiffness: 1e8,
-            frictionEquationRegularizationTime: 3,
-    });
-    world.addContactMaterial(sticky_material);    
+    world.addContactMaterial(ground_ground_cm);    
 
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass, material : groundMaterial });
-	var    boxShape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
+	var boxBody = new CANNON.Body({ mass: mass, material : ground_ground_cm });
+	var boxShape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
 	boxBody.addShape(boxShape);
 	boxBody.position.set(v.x,v.y,v.z);
 	boxBody.mass = 1;
@@ -1139,9 +1182,26 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    // Okay, here I also want to add a new body to represent the actuator
 	    // This may require some roation math, but for now let me just put it
 	    // in the cetner
-	    var memBody = new CANNON.Body({ mass: mass, material : groundMaterial });
+	    var memBody = new CANNON.Body({ mass: mass, material : ground_ground_cm });
+	    var memShape = new CANNON.Box(
+		new CANNON.Vec3(MEDIAN_EDGE_LENGTH/20,MEDIAN_EDGE_LENGTH/20,MEDIAN_EDGE_LENGTH/2));
+	    memBody.addShape(memShape);
 	    var b_z = robot.robot_joints[i];
 	    var b_a = robot.robot_joints[h];
+	    {
+	    var ap = b_a.position;
+	    var bp = b_z.position;
+
+	    memBody.position = ap.vadd(bp).scale(0.5);
+
+	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
+	    var axis = vector_axis;
+	    var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
+		var q = new THREE.Quaternion();
+		q.setFromUnitVectors(axis, vector.clone().normalize());
+		memBody.quaternion.set(q.x,q.y,q.z,q.w);
+	    }
+
 	    var v_z = b_z.position;
 	    var v_avg = v_z.vadd(b_a.position);
 	    v_avg.scale(0.5);
@@ -1180,15 +1240,15 @@ function add_robot(world,scene) {
 function initCannon(){
     // Setup our world
     world = new CANNON.World();
+    // Add contact material to the world
+    world.addContactMaterial(ground_ground_cm);
+    
     world.quatNormalizeSkip = 0;
     world.quatNormalizeFast = false;
 
     world.gravity.set(0,Y_GRAVITY_FORCE,0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
-    var item = add_ground_plane(world,scene)
-    GROUND_PLANE_MESH = item[1];
-    push_body_mesh_pair(item[0],item[1]);
     // Joint body
     var shape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
     jointBody = new CANNON.Body({ mass: 0 });
@@ -1198,6 +1258,12 @@ function initCannon(){
     world.addBody(jointBody);
 }
 
+function add_floor() {
+    var item = add_ground_plane(world,scene)
+    GROUND_PLANE_MESH = item[1];
+    push_body_mesh_pair(item[0],item[1]);
+    scene.add(GROUND_PLANE_MESH);
+}
 
 
 function add_world_to_scene(scene) {
@@ -1205,7 +1271,7 @@ function add_world_to_scene(scene) {
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
     }
-    scene.add(GROUND_PLANE_MESH);
+
 }
 
 var FORCE_REGIME = "DISABLE";
@@ -1313,7 +1379,6 @@ function addMouseConstraint(x,y,z,body) {
 }
 
 
-var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
 
 // This functions moves the transparent joint body to a new postion in space
@@ -1422,13 +1487,6 @@ function removeJointConstraint() {
     }
 }
 
-// function execute_code(id) {
-//     var command = $("#cli").val();
-//     var result = eval(command);
-//     console.log(command);
-//     console.log(result);    
-// }
-
 function render_physical_model(id) {
     var pmodel = extract_physical_node_model();
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
@@ -1460,7 +1518,11 @@ function get_body_by_name(name) {
     }
 }
 function set_constraints(am) {
-    for(var i = 0; i < world.constraints.length; i++) {
+    update_constraints(link => {
+	var e = actuator_to_length(am[key]);	
+	return e;
+    });
+/*    for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint(c);
     }
@@ -1475,6 +1537,7 @@ function set_constraints(am) {
 	    world.addConstraint(c);
 	}
     }
+*/
     most_recent_constraints = am;
 }
 
@@ -1486,18 +1549,35 @@ function set_interp_constraints(am0,am1,frac) {
 	var c = world.constraints[i];
 	world.removeConstraint(c);
     }
+//    var links = {};
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
+	              var link  = find_bodies_from_actuator(key);
+           var a = get_body_by_name(link[0]);
+           var b = get_body_by_name(link[1]);
+           var d = a.position.distanceTo(b.position);
 	    //	  var link = inversion_actuator_map[key];
-	    var link  = find_bodies_from_actuator(key);
-	    var a = get_body_by_name(link[0]);
-	    var b = get_body_by_name(link[1]);
-	    var d = a.position.distanceTo(b.position);
+//	    links[key] = am0[key];
+	 //   var link = links[key];
+	  //  var a = get_body_by_name(link[0]);
+	   // var b = get_body_by_name(link[1]);
+	 //   var d = a.position.distanceTo(b.position);
 	    var e = actuator_to_length(interp(am0[key],am1[key],frac));
 	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_LARGE);
 	    world.addConstraint(c);
 	}
     }
+ /*   update_constraints(links,link => {
+	    var link  = find_bodies_from_actuator(key);
+	    links[key] = link;
+	    var a = get_body_by_name(link[0]);
+	    var b = get_body_by_name(link[1]);
+	    var d = a.position.distanceTo(b.position);
+	    var e = actuator_to_length(interp(am0[key],am1[key],frac));
+	var d = actuator_to_length(am0[link],am1[link],frac);
+	return d;
+    });
+*/
     most_recent_constraints = am1;
 }
 
@@ -1541,16 +1621,16 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    set_constraints(constraints.pose);
+    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,10,1000);
 }
 function set_standard_pose(num) {
     var pose = standard_objs[num];
     var constraints = pose.pose;
-    set_constraints(constraints);
+    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,10,1000);
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
-    execute(standard_ctx,gait.gait[0],execute_atom,gait.gait,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,10,1000);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1671,6 +1751,9 @@ function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms) {
     var intertick = time_between_poses_ms / subdivisions;
     console.log("cur:");
     console.log(cur);
+    if (!cur) {
+	cur = atom;
+    }
     console.log("atom:");
     console.log(atom);    
     for(var j = 0; j < subdivisions; j++) {
@@ -1901,10 +1984,29 @@ function auto_rectify_toggle() {
     }
 }
 
+function update_constraints(links,f) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    for(var lin in links) {
+	var link = links[lin];  
+	var a = link.a;
+	var b = link.b;
+//	var d = a.position.distanceTo(b.position);
+	var c = new CANNON.DistanceConstraint(a,b,f(link),CONSTRAINT_FORCE_LARGE);
+	world.addConstraint(c);
+    }
+}
 		       
 function factor_size(f) {
-    
-    for(var i = 0; i < world.constraints.length; i++) {
+    update_constraints(robot.robot_members,link => {
+	var a = link.a;
+	var b = link.b;
+	var d = a.position.distanceTo(b.position);
+	return d*f;
+    });
+/*    for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint();
     }
@@ -1917,10 +2019,14 @@ function factor_size(f) {
 	var c = new CANNON.DistanceConstraint(a,b,d*f,CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(c);
     }
+*/
 }
 
 function fixed_size(s) {
-    
+    update_constraints(robot.robot_members,link => {
+	return s;
+    });
+/*    
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint();
@@ -1934,10 +2040,12 @@ function fixed_size(s) {
 	var c = new CANNON.DistanceConstraint(a,b,s,CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(c);
     }
+*/
 }
 
+
 function assume_pose(pose) {
-    for(var i = 0; i < world.constraints.length; i++) {
+/*    for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
 	world.removeConstraint();
     }
@@ -1951,6 +2059,12 @@ function assume_pose(pose) {
 	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_SMALL);
 	world.addConstraint(c);
     }
+*/
+    update_constraints(robot.robot_members,link => {
+	var d = actuator_to_length(pose[act]);
+	return d;
+    });
+    
     var STEPS_TO_TAKE = 30;
     for(var j = 0; j < STEPS_TO_TAKE; j++) {
 	updatePhysics();
@@ -2147,7 +2261,7 @@ function remove_world() {
 	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
     }
 
-//    remove_robot();
+    remove_robot();
 
     world = null;
     jointBody = null;
@@ -2165,12 +2279,17 @@ function remove_world() {
     camera = null;
     cameraOrtho = null;
     scene = null;
+    
+    sprite_controls.clear();
+    
     sceneOrtho = null;
     renderer = null;
     gplane=false, clickMarker=false;
     geometry = null;
     material = null;
     mesh = null;
+    meshes = [];
+    bodies = [];
     GROUND_PLANE_MESH = null;
     GROUND_BODY = null;
 }
@@ -2178,7 +2297,9 @@ function remove_world() {
 function build_world() {
     var scene = init_scene();
     initCannon();
+    add_floor();
     add_robot(world,scene);
+    add_obstacle(world,scene);
     finish_scene_preparation(scene);
     update_poses();
     world_live = true;
@@ -2186,6 +2307,11 @@ function build_world() {
 }
 
 build_world();
+
+function reset_to_default() {
+    remove_world();
+    build_world();
+}
 
 $(document).on('click', '.panel-heading span.clickable', function(e){
     var $this = $(this);
