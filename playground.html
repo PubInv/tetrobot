@@ -1549,35 +1549,36 @@ function set_interp_constraints(am0,am1,frac) {
 	var c = world.constraints[i];
 	world.removeConstraint(c);
     }
-//    var links = {};
+    var links = {};
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
 	              var link  = find_bodies_from_actuator(key);
            var a = get_body_by_name(link[0]);
-           var b = get_body_by_name(link[1]);
+            var b = get_body_by_name(link[1]);
+
            var d = a.position.distanceTo(b.position);
 	    //	  var link = inversion_actuator_map[key];
 //	    links[key] = am0[key];
 	 //   var link = links[key];
 	  //  var a = get_body_by_name(link[0]);
 	   // var b = get_body_by_name(link[1]);
-	 //   var d = a.position.distanceTo(b.position);
+	    //   var d = a.position.distanceTo(b.position);
+    	    links[key] = { a: a, b: b, k: key};
+/*	    
 	    var e = actuator_to_length(interp(am0[key],am1[key],frac));
 	    var c = new CANNON.DistanceConstraint(a,b,e,CONSTRAINT_FORCE_LARGE);
 	    world.addConstraint(c);
+*/
 	}
     }
- /*   update_constraints(links,link => {
-	    var link  = find_bodies_from_actuator(key);
-	    links[key] = link;
-	    var a = get_body_by_name(link[0]);
-	    var b = get_body_by_name(link[1]);
-	    var d = a.position.distanceTo(b.position);
-	    var e = actuator_to_length(interp(am0[key],am1[key],frac));
-	var d = actuator_to_length(am0[link],am1[link],frac);
-	return d;
+   update_constraints(links,link => {
+       var a = link.a;
+       var b = link.b;
+       var key = link.k;
+       var e = actuator_to_length(interp(am0[key],am1[key],frac));
+       return e;
     });
-*/
+
     most_recent_constraints = am1;
 }
 
@@ -1993,7 +1994,6 @@ function update_constraints(links,f) {
 	var link = links[lin];  
 	var a = link.a;
 	var b = link.b;
-//	var d = a.position.distanceTo(b.position);
 	var c = new CANNON.DistanceConstraint(a,b,f(link),CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(c);
     }
