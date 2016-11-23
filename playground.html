@@ -359,7 +359,7 @@ var meshes=[], bodies=[];
 
 
 var NUMBER_OF_TETRAHEDRA = 5;
-// var NUMBER_OF_TETRAHEDRA = 1;
+//var NUMBER_OF_TETRAHEDRA = 1;
 
 // This is where the cannon.js joints are storied
 var robot = {
@@ -381,7 +381,9 @@ Need a way to control the constraint force, in some time we want it to be much w
 
 
 var CONSTRAINT_FORCE_SMALL = 1.0;
-var CONSTRAINT_FORCE_LARGE = 100.0;
+var CONSTRAINT_FORCE_LARGE = 10000.0;
+
+var MEMBER_FRACTION = 20;
 
 var getTexture = function () {
     var texture = new THREE.TextureLoader("./logo-tight.png");
@@ -777,7 +779,7 @@ function animate() {
 	world_dead = true;
     }
     //    controls.update();
-    updatePhysics();    
+    updatePhysics();
     render();
 }
 
@@ -895,7 +897,11 @@ function get_member_color(len) {
 
 
 function updatePhysics(){
-    world.step(mirroredWorld.dt);
+
+    // Unfortunately, we seem to need to slow the 1/60th of a second even furhter to reduce
+    // jitter...possibly this is because my forces are too high?
+    //    world.step(mirroredWorld.dt*0.2);
+        world.step(mirroredWorld.dt*0.5);
     var mem_cnt = 0;
 
     for(var i=0; i !== bodies.length; i++){
@@ -1019,10 +1025,10 @@ function add_ground_plane(world,scene) {
 function add_obstacle(world,scene) {
     // Materials
 
-
-    for(var i = 0; i < 4; i++) {
+    var num = 1;
+    for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-	    obstacleSize/2,obstacleSize/20,obstacleSize/20));
+	    obstacleSize/2,obstacleSize/(2*MEMBER_FRACTION),obstacleSize/(2*MEMBER_FRACTION)));
 	
 	OBSTACLE_BODY = new CANNON.Body({ mass: 10, material: ground_ground_cm
 					  ,
@@ -1037,11 +1043,52 @@ function add_obstacle(world,scene) {
 	OBSTACLE_BODY.angularDamping = 0.9;
 	OBSTACLE_BODY.linearDamping = 0.9;
 
+	var endpoints = [];
+	var ep_mass = 1;
+	for (var j = 0; j < 2; j++) {
+	    var ep = new CANNON.Body({ mass: ep_mass,
+					     collisionFilterGroup: GROUP1,
+					     collisionFilterMask: GROUP1 | GROUP2, 
+				     });
+	    endpoints.push(ep);
+            ep.addShape(new CANNON.Particle());
+	    ep.name = "endpoint-"+i+"-"+j;
+	    ep.structureKind = "obstacle";
+	    var s0 = (j == 0) ? obstacleSize/2 : -obstacleSize/2;
+	    var s1 = -s0;
+	    ep.position.set(-1*i+s0,
+			    INITIAL_HEIGHT,0);
+	    ep.angularDamping = 0.9;
+	    ep.linearDamping = 0.9;
+	    var pivotA = new CANNON.Vec3(s0,
+					 obstacleSize/MEMBER_FRACTION,
+				     obstacleSize/MEMBER_FRACTION);
+	    var pivotB = new CANNON.Vec3(0,0,0);
+	    var ca = new CANNON.PointToPointConstraint(OBSTACLE_BODY,pivotA,ep,pivotB,CONSTRAINT_FORCE_LARGE);
+	    
+	    world.addConstraint(ca);
+	    world.addBody(ep);
+	    var endpointShape = new THREE.SphereGeometry(obstacleSize/MEMBER_FRACTION*2);
+	    var mesh = new THREE.Mesh(endpointShape, cubeMaterial);
+	    
+//	    mesh.name = "obstacle-"+i;
+	    scene.add(mesh);
+
+	    mesh.geometry.verticesNeedUpdate = true;
+	    mesh.geometry.elementsNeedUpdate = true;        
+	    mesh.geometry.colorsNeedUpdate = true;
+	    
+	    push_body_mesh_pair(ep,mesh);
+
+	}
+	OBSTACLE_BODY["endpoints"] = endpoints;
 
 	world.addBody(OBSTACLE_BODY);
 	obstacles.push(OBSTACLE_BODY);
 
-	var cubeGeo = new THREE.BoxGeometry( obstacleSize, obstacleSize/10, obstacleSize/10 );
+	var cubeGeo = new THREE.BoxGeometry( obstacleSize,
+					     obstacleSize/MEMBER_FRACTION,
+					     obstacleSize/MEMBER_FRACTION );
 	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
 	mesh.name = "obstacle-"+i;
 	scene.add(mesh);
@@ -1053,7 +1100,7 @@ function add_obstacle(world,scene) {
 	push_body_mesh_pair(OBSTACLE_BODY,mesh);
 
     }
-//    add_obstacle_constraints();
+//    add_obstacle_constraints(num);
 
     return [OBSTACLE_BODY,mesh];
 }
@@ -1063,8 +1110,12 @@ function add_obstacle_constraints() {
     for(var i = 0; i < len-1; i++) {
 	var a = obstacles[i % len];
 	var b = obstacles[(i+1) % len];
-    	var pivotA = new CANNON.Vec3(-obstacleSize,obstacleSize/10,obstacleSize/10);
-	var pivotB = new CANNON.Vec3(obstacleSize,obstacleSize/10,obstacleSize/10);
+    	var pivotA = new CANNON.Vec3(-obstacleSize,
+				     obstacleSize/MEMBER_FRACTION,
+				     obstacleSize/MEMBER_FRACTION);
+	var pivotB = new CANNON.Vec3(obstacleSize,
+				     obstacleSize/MEMBER_FRACTION,
+				     obstacleSize/MEMBER_FRACTION);
 	
 	var ca = new CANNON.PointToPointConstraint(a,pivotA,b,pivotB,CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(ca);
@@ -1121,7 +1172,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
 
 
     // This in fact needs to be a lot more complicated...but one step at a time.
-    var w = MEDIAN_EDGE_LENGTH / 10;
+    var w = MEDIAN_EDGE_LENGTH / MEMBER_FRACTION;
     for(var lin in robot.robot_members) {
 	var link = robot.robot_members[lin];
 	var a = link.a;
@@ -1202,14 +1253,15 @@ function load_NTetGlussBot(world,tets,pvec) {
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass, material : ground_ground_cm
+	var boxBody = new CANNON.Body({ mass: mass*4, material : ground_ground_cm
 					,
 				      	collisionFilterGroup: GROUP2,
 					collisionFilterMask: GROUP1 
 				      });
-//	var boxBody = new CANNON.Body({ mass: mass});
-	//	var boxShape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
-	var boxShape = new CANNON.Sphere(JOINT_RADIUS);	
+	//	var boxBody = new CANNON.Body({ mass: mass});
+	// We have to use a Box to get the friction to work right!
+	var boxShape = new CANNON.Box(new CANNON.Vec3(JOINT_RADIUS/2,JOINT_RADIUS/2,JOINT_RADIUS/2));
+	//	var boxShape = new CANNON.Sphere(JOINT_RADIUS);	
 	boxBody.addShape(boxShape);
 	boxBody.position.set(v.x,v.y,v.z);
 	boxBody.mass = 1;
@@ -1226,35 +1278,35 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    // Okay, here I also want to add a new body to represent the actuator
 	    // This may require some roation math, but for now let me just put it
 	    // in the cetner
-	    var memBody = new CANNON.Body({ mass: 1, material : ground_ground_cm
+	    var memBody = new CANNON.Body({ mass: mass*10, material : ground_ground_cm
 					    ,
 					    collisionFilterGroup: GROUP2,
 					    collisionFilterMask: GROUP1 
 					  });
-//	    var memBody = new CANNON.Body({ mass: mass });
-	    var thinning = 1.0;
 	    var memShape = new CANNON.Box(
-		new CANNON.Vec3(MEDIAN_EDGE_LENGTH/2,thinning*(MEDIAN_EDGE_LENGTH/20),thinning*(MEDIAN_EDGE_LENGTH/20)));
+		new CANNON.Vec3(MEDIAN_EDGE_LENGTH/2,
+				(MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION)),
+				(MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION))));
 	    memBody.addShape(memShape);
     	    memBody.position = v_avg;
 	    memBody.mass = mass;
-	    memBody.angularDamping = 0.9;
-	    memBody.linearDamping = 0.9;
+	    memBody.angularDamping = 0.99;
+	    memBody.linearDamping = 0.99;
 
 	    var b_z = robot.robot_joints[i];
 	    var b_a = robot.robot_joints[h];
 	    {
-	    var ap = b_a.position;
-	    var bp = b_z.position;
+		var ap = b_a.position;
+		var bp = b_z.position;
 
-	    memBody.position = ap.vadd(bp).scale(0.5);
+		memBody.position = ap.vadd(bp).scale(0.5);
 
-	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-	    var axis = vector_axis;
-	    var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
+		var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
+		var axis = vector_axis;
+		var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
 		var q = new THREE.Quaternion();
 		q.setFromUnitVectors(axis, vector.clone().normalize());
-		memBody.quaternion.set(q.x,q.y,q.z,q.w);
+//		memBody.quaternion.set(q.x,q.y,q.z,q.w);
 	    }
 
 	    var v_z = b_z.position;
@@ -1273,6 +1325,47 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    memBody.name = b_a.name + " " + b_z.name;
 	    joints_to_link_map[b_a.name][b_z.name] = memBody;
 	    world.addBody(memBody);
+
+	    // Now we will attempt to add the endpoints
+	    var endpoints = [];
+	    var ep_mass = 0.1;
+	    for (var j = 0; j < 2; j++) {
+		var ep = new CANNON.Body({ mass: ep_mass,
+					   collisionFilterGroup: GROUP2,
+					   collisionFilterMask: GROUP1, 
+					 });
+		endpoints.push(ep);
+		ep.addShape(new CANNON.Particle());
+		ep.name = "endpoint-"+i+"-"+j;
+		//	    ep.structureKind = "obstacle";
+		var s0 = (j == 0) ? MEDIAN_EDGE_LENGTH/2 : -MEDIAN_EDGE_LENGTH/2;
+		var s1 = -s0;
+		ep.position.set(-1*i+s0,
+				INITIAL_HEIGHT,0);
+		ep.angularDamping = 0.99;
+		ep.linearDamping = 0.99;
+		var pivotA = new CANNON.Vec3(0,
+					     s0,
+					     0);
+		var pivotB = new CANNON.Vec3(0,0,0);
+		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,CONSTRAINT_FORCE_LARGE*100);
+		
+		world.addConstraint(ca);
+		world.addBody(ep);
+		var endpointShape = new THREE.SphereGeometry(MEDIAN_EDGE_LENGTH/(MEMBER_FRACTION*2));
+		var mesh = new THREE.Mesh(endpointShape, cubeMaterial);
+		
+		//	    mesh.name = "obstacle-"+i;
+		scene.add(mesh);
+
+		mesh.geometry.verticesNeedUpdate = true;
+		mesh.geometry.elementsNeedUpdate = true;        
+		mesh.geometry.colorsNeedUpdate = true;
+		
+		push_body_mesh_pair(ep,mesh);
+
+	    }
+	    memBody["endpoints"] = endpoints;
 	}
     }
 }
@@ -1455,7 +1548,7 @@ function moveJointToPoint(x,y,z) {
 
     var body = mouseConstraint.attachedBody;
     
-    var w = MEDIAN_EDGE_LENGTH / 10;
+    var w = MEDIAN_EDGE_LENGTH / MEMBER_FRACTION;
     moveCnt++;
     //    if ((moveCnt % 10) == 0) {
     //	console.log(moveCnt);
@@ -1549,6 +1642,13 @@ function removeJointConstraint() {
     if (gravity_on) {
 	world.gravity.set(0,Y_GRAVITY_FORCE,0);
     }
+    update_constraints(robot.robot_members,link => {
+	var a = link.a;
+	var b = link.b;
+	var d = a.position.distanceTo(b.position);
+	return d;
+    });
+
 }
 
 function render_physical_model(id) {
@@ -2037,7 +2137,73 @@ function update_constraints(links,f) {
 	    b = t;
 	}
 	var d = f(link);
-	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_SMALL);
+	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_LARGE);
+	world.addConstraint(c);
+	// now we want to find the Cannon Object associated with these links,
+	// and put a distance constraint between the member object and the two
+	// joint objects.
+	var mem = joints_to_link_map[a.name][b.name]
+	if (!mem) {
+	    console.log("Can't find a.name, b.name "+a.name + b.name);
+	}
+
+	if (obstacles.length > 0) {
+//	if (a.name == "C" && b.name == "D") {
+	    var s = (d/2);
+	    {
+		var memShape = mem.shapes[0];
+		memShape.halfExtents.set(s,
+					 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION),
+					 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION));
+		memShape.updateConvexPolyhedronRepresentation();
+		mem.computeAABB();
+
+		// Note that the member links are coonected at the ends of the "z" axis.
+
+		// I have no idea why this should be done on the Y axis -- it must
+		// be some weird internal manipulation of the objects that is occuring before
+		// we get it, might have to look at quaternions!!!!
+		var pivotMEM = new CANNON.Vec3(0,s,0);
+		var pivotA = new CANNON.Vec3(0,0,0);
+		//		var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,pivotMEM,CONSTRAINT_FORCE_SMALL);
+		var ca = new CANNON.DistanceConstraint(a,mem.endpoints[0],0,CONSTRAINT_FORCE_LARGE/100);
+		world.addConstraint(ca);
+
+	    }
+	    // Note that the member links are coonected at the ends of the "z" axis.
+	    {
+
+		// I have no idea why this should be done on the Y axis -- it must
+		// be some weird internal manipulation of the objects that is occuring before
+		// we get it, might have to look at quaternions!!!!
+		var pivotMEM = new CANNON.Vec3(0,-s,0);
+		var pivotA = new CANNON.Vec3(0,0,0);
+//		var ca = new CANNON.PointToPointConstraint(b,pivotA,mem,pivotMEM,CONSTRAINT_FORCE_SMALL);
+		var ca = new CANNON.DistanceConstraint(b,mem.endpoints[1],0,CONSTRAINT_FORCE_LARGE/100);
+		world.addConstraint(ca);
+	    }
+//	}
+	}
+    }
+}
+
+
+function update_constraints_orig(links,f) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	world.removeConstraint();
+    }
+    for(var lin in links) {
+	var link = links[lin];  
+	var a = link.a;
+	var b = link.b;
+	if (a.name > b.name) {
+	    var t = a;
+	    a = b;
+	    b = t;
+	}
+	var d = f(link);
+	var c = new CANNON.DistanceConstraint(a,b,d,CONSTRAINT_FORCE_LARGE);
 	world.addConstraint(c);
 	// now we want to find the Cannon Object associated with these links,
 	// and put a distance constraint between the member object and the two
@@ -2055,13 +2221,15 @@ function update_constraints(links,f) {
 	mem.addShape(memShape);
 */
 //	if (a.name == "C" && b.name == "D") {
-
+	var s = (d/2);
 	var memShape = mem.shapes[0];
-	    memShape.halfExtents.set(d/2,MEDIAN_EDGE_LENGTH/20,MEDIAN_EDGE_LENGTH/20);
+	memShape.halfExtents.set(s,
+				 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION),
+				 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION));
 	memShape.updateConvexPolyhedronRepresentation();
 //	memShape.computeBoundingSphere();
 	mem.computeAABB();
-	    var s = (d/2);
+
 	// Note that the member links are coonected at the ends of the "z" axis.
 	{
 	    // Apply anti-quaternion to vector to tranform it into the local body coordinate system
@@ -2095,7 +2263,7 @@ function update_constraints(links,f) {
 	}
     }
 }
-		       
+
 function factor_size(f) {
     update_constraints(robot.robot_members,link => {
 	var a = link.a;
