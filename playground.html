@@ -334,7 +334,7 @@ var JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
 // This is temporary, while I debug my stuff.
 var obstacles = [];
-var obstacleSize = MEDIAN_EDGE_LENGTH;
+var obstacleSize = MEDIAN_EDGE_LENGTH*4;
 
 
 var jointGeo = new THREE.BoxGeometry( JOINT_RADIUS*2,JOINT_RADIUS*2,JOINT_RADIUS*2);
@@ -901,7 +901,7 @@ function updatePhysics(){
     // Unfortunately, we seem to need to slow the 1/60th of a second even furhter to reduce
     // jitter...possibly this is because my forces are too high?
     //    world.step(mirroredWorld.dt*0.2);
-        world.step(mirroredWorld.dt*0.5);
+        world.step(mirroredWorld.dt*0.2);
     var mem_cnt = 0;
 
     for(var i=0; i !== bodies.length; i++){
@@ -1025,7 +1025,7 @@ function add_ground_plane(world,scene) {
 function add_obstacle(world,scene) {
     // Materials
 
-    var num = 1;
+    var num = 4;
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
 	    obstacleSize/2,obstacleSize/(2*MEMBER_FRACTION),obstacleSize/(2*MEMBER_FRACTION)));
@@ -1043,7 +1043,7 @@ function add_obstacle(world,scene) {
 	OBSTACLE_BODY.angularDamping = 0.9;
 	OBSTACLE_BODY.linearDamping = 0.9;
 
-	var endpoints = [];
+/*	var endpoints = [];
 	var ep_mass = 1;
 	for (var j = 0; j < 2; j++) {
 	    var ep = new CANNON.Body({ mass: ep_mass,
@@ -1082,7 +1082,7 @@ function add_obstacle(world,scene) {
 
 	}
 	OBSTACLE_BODY["endpoints"] = endpoints;
-
+*/
 	world.addBody(OBSTACLE_BODY);
 	obstacles.push(OBSTACLE_BODY);
 
@@ -1270,6 +1270,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	boxBody.name = alphabetic_name(i);
 	joints_to_link_map[boxBody.name] = {};
 	robot.robot_joints.push(boxBody);
+	console.log("pushing joint: "+boxBody.name);
 	world.addBody(boxBody);
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
@@ -1306,7 +1307,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
 		var q = new THREE.Quaternion();
 		q.setFromUnitVectors(axis, vector.clone().normalize());
-//		memBody.quaternion.set(q.x,q.y,q.z,q.w);
+		memBody.quaternion.set(q.x,q.y,q.z,q.w);
 	    }
 
 	    var v_z = b_z.position;
@@ -1349,6 +1350,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 					     0);
 		var pivotB = new CANNON.Vec3(0,0,0);
 		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,CONSTRAINT_FORCE_LARGE*100);
+		ca["eternal"] = true;
 		
 		world.addConstraint(ca);
 		world.addBody(ep);
@@ -1492,7 +1494,8 @@ function updateMouseConstraints(body) {
 	    //	    }
 	    r = Math.max(r,0.4);
 	    var f = CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
-	    world.removeConstraint(c);
+	    if (!c["eternal"]) 
+		world.removeConstraint(c);
 	    var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
 	    world.addConstraint(n);
 
@@ -1682,7 +1685,7 @@ function get_body_by_name(name) {
     }
 }
 function set_constraints(am) {
-    update_constraints(link => {
+    update_constraints(robot.robot_members,link => {
 	var e = actuator_to_length(am[key]);	
 	return e;
     });
@@ -1695,9 +1698,10 @@ function interp(x,y,frac) {
 function set_interp_constraints(am0,am1,frac) {
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	world.removeConstraint(c);
+	if (!c["eternal"]) 
+	    world.removeConstraint(c);
     }
-    var links = {};
+    var links = [];
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
 	              var link  = find_bodies_from_actuator(key);
@@ -1705,7 +1709,7 @@ function set_interp_constraints(am0,am1,frac) {
             var b = get_body_by_name(link[1]);
 
             var d = a.position.distanceTo(b.position);
-    	    links[key] = { a: a, b: b, k: key};
+	    links.push({a: a, b: b, k: key });
 	}
     }
    update_constraints(links,link => {
@@ -1887,13 +1891,10 @@ function glog_is_executable(glog) {
 
 function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms) {
     var intertick = time_between_poses_ms / subdivisions;
-    console.log("cur:");
-    console.log(cur);
     if (!cur) {
 	cur = atom;
     }
-    console.log("atom:");
-    console.log(atom);    
+
     for(var j = 0; j < subdivisions; j++) {
 	setTimeout(function(am0,am1,frac) {
 	    set_interp_constraints(am0,am1,frac);
@@ -2125,8 +2126,11 @@ var fudge = 0.1;
 function update_constraints(links,f) {
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	world.removeConstraint();
+	if (!c["eternal"]) 
+	    world.removeConstraint(c);
+//	world.removeConstraint();
     }
+    console.log(links);
     for(var lin in links) {
 	var link = links[lin];  
 	var a = link.a;
@@ -2143,20 +2147,23 @@ function update_constraints(links,f) {
 	// and put a distance constraint between the member object and the two
 	// joint objects.
 	var mem = joints_to_link_map[a.name][b.name]
+	console.log(mem);
 	if (!mem) {
 	    console.log("Can't find a.name, b.name "+a.name + b.name);
 	}
-
-	if (obstacles.length > 0) {
+	console.log(a);
+	console.log(b);
+	console.log(d/2);
+//	if (obstacles.length > 0) {
 //	if (a.name == "C" && b.name == "D") {
 	    var s = (d/2);
+	    var memShape = mem.shapes[0];
+	    memShape.halfExtents.set(s,
+				     MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION),
+				     MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION));
+	    memShape.updateConvexPolyhedronRepresentation();
+	    mem.computeAABB();
 	    {
-		var memShape = mem.shapes[0];
-		memShape.halfExtents.set(s,
-					 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION),
-					 MEDIAN_EDGE_LENGTH/(2*MEMBER_FRACTION));
-		memShape.updateConvexPolyhedronRepresentation();
-		mem.computeAABB();
 
 		// Note that the member links are coonected at the ends of the "z" axis.
 
@@ -2166,7 +2173,7 @@ function update_constraints(links,f) {
 		var pivotMEM = new CANNON.Vec3(0,s,0);
 		var pivotA = new CANNON.Vec3(0,0,0);
 		//		var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,pivotMEM,CONSTRAINT_FORCE_SMALL);
-		var ca = new CANNON.DistanceConstraint(a,mem.endpoints[0],0,CONSTRAINT_FORCE_LARGE/100);
+		var ca = new CANNON.DistanceConstraint(a,mem.endpoints[0],0,CONSTRAINT_FORCE_LARGE);
 		world.addConstraint(ca);
 
 	    }
@@ -2179,11 +2186,11 @@ function update_constraints(links,f) {
 		var pivotMEM = new CANNON.Vec3(0,-s,0);
 		var pivotA = new CANNON.Vec3(0,0,0);
 //		var ca = new CANNON.PointToPointConstraint(b,pivotA,mem,pivotMEM,CONSTRAINT_FORCE_SMALL);
-		var ca = new CANNON.DistanceConstraint(b,mem.endpoints[1],0,CONSTRAINT_FORCE_LARGE/100);
+		var ca = new CANNON.DistanceConstraint(b,mem.endpoints[1],0,CONSTRAINT_FORCE_LARGE);
 		world.addConstraint(ca);
 	    }
 //	}
-	}
+//	}
     }
 }
 
@@ -2191,7 +2198,9 @@ function update_constraints(links,f) {
 function update_constraints_orig(links,f) {
     for(var i = 0; i < world.constraints.length; i++) {
 	var c = world.constraints[i];
-	world.removeConstraint();
+	if (!c["eternal"]) 
+	    world.removeConstraint(c);
+//	world.removeConstraint();
     }
     for(var lin in links) {
 	var link = links[lin];  
