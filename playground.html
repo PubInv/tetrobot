@@ -287,7 +287,7 @@ var groundMaterial = new CANNON.Material("groundMaterial");
 // Adjust constraint equation parameters for ground/ground contact
 var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
     friction: global_friction,
-    restitution: 0.3,
+    restitution: 0.7,
     contactEquationStiffness: 1e8,
     contactEquationRelaxation: 3,
     frictionEquationStiffness: 1e8,
@@ -347,9 +347,9 @@ var jointGeo = new THREE.SphereGeometry( JOINT_RADIUS, 32,32);
 var jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
 
 
-var INITIAL_HEIGHT = 0.5;
+var INITIAL_HEIGHT = 0.3;
 
-var Y_GRAVITY_FORCE = -5;
+var Y_GRAVITY_FORCE = -10;
 
 var vector_up = new THREE.Vector3(0,0,1);
 var vector_axis = new THREE.Vector3(0, 1, 0);
@@ -1217,7 +1217,7 @@ function load_NTetGlussBot(world,tets,pvec) {
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass*4, material : ground_ground_cm
+	var boxBody = new CANNON.Body({ mass: mass*10, material : ground_ground_cm
 					,
 				      	collisionFilterGroup: GROUP2,
 					collisionFilterMask: GROUP1 
@@ -1316,7 +1316,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 					     s0,
 					     0);
 		var pivotB = new CANNON.Vec3(0,0,0);
-		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,CONSTRAINT_FORCE_LARGE*100);
+		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,CONSTRAINT_FORCE_SMALL);
 		ca["eternal"] = true;
 		
 		world.addConstraint(ca);
@@ -1730,16 +1730,16 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
 }
 function set_standard_pose(num) {
     var pose = standard_objs[num];
     var constraints = pose.pose;
-    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
-    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,10,1000);
+    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1970,7 +1970,7 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 1000;
+var TIME_BETWEEN_POSES_MS = 3000;
 var GAIT_SUBDIVISIONS = 10;
 
 // Need to expand this machinergy so that at any time we can process
