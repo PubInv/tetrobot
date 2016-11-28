@@ -1476,7 +1476,7 @@ function updateMouseConstraints(body) {
 	    if (((c.bodyA == body) || (c.bodyB == body))
 		&& (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
 	       ) {
-		
+		 
 		c.disable();
 	    }
 	} else if (FORCE_REGIME == "NONE") {
