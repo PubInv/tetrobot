@@ -1032,6 +1032,10 @@ function add_obstacle(world,scene) {
     var num = 4;
     var mass = 3000;
     var FRACTION = 30;
+    var positions = [{x:0,y:INITIAL_HEIGHT,z:1},
+			  {x:1,y:INITIAL_HEIGHT,z:0},
+			  {x:0,y:INITIAL_HEIGHT,z:-1},
+			  {x:-1,y:INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
 	    obstacleSize/2,obstacleSize/(2*FRACTION),obstacleSize/(2*FRACTION)));
@@ -1045,9 +1049,16 @@ function add_obstacle(world,scene) {
 
 	OBSTACLE_BODY.name = "obstacle-"+i;
 	OBSTACLE_BODY.structureKind = "obstacle";
-	OBSTACLE_BODY.position.set(-1*i,INITIAL_HEIGHT,i*1);
+	OBSTACLE_BODY.position.set(positions[i].x,positions[i].y,positions[i].z);
 	OBSTACLE_BODY.angularDamping = 0.9;
 	OBSTACLE_BODY.linearDamping = 0.9;
+
+	var q = new THREE.Quaternion();
+	var vector = new THREE.Vector3(positions[i].x,positions[i].y,positions[i].z);
+	var axis = new THREE.Vector3(0,1,0);
+	q.setFromAxisAngle(axis,i*(Math.PI/2.0));
+	OBSTACLE_BODY.quaternion.set(q.x,q.y,q.z,q.w);
+	
 
 	world.addBody(OBSTACLE_BODY);
 	obstacles.push(OBSTACLE_BODY);
@@ -1066,7 +1077,6 @@ function add_obstacle(world,scene) {
 	push_body_mesh_pair(OBSTACLE_BODY,mesh);
 
     }
-//    add_obstacle_constraints(num);
 
     return [OBSTACLE_BODY,mesh];
 }
@@ -1076,23 +1086,6 @@ function remove_non_eternal_constraints(world) {
 	var c = world.constraints[i];
 	if (!c["eternal"]) 
 	    world.removeConstraint(c);
-    }
-}
-
-function add_obstacle_constraints() {
-    var len = obstacles.length;
-    for(var i = 0; i < len-1; i++) {
-	var a = obstacles[i % len];
-	var b = obstacles[(i+1) % len];
-    	var pivotA = new CANNON.Vec3(-obstacleSize,
-				     obstacleSize/MEMBER_FRACTION,
-				     obstacleSize/MEMBER_FRACTION);
-	var pivotB = new CANNON.Vec3(obstacleSize,
-				     obstacleSize/MEMBER_FRACTION,
-				     obstacleSize/MEMBER_FRACTION);
-	
-	var ca = new CANNON.PointToPointConstraint(a,pivotA,b,pivotB,CONSTRAINT_FORCE_LARGE);
-	world.addConstraint(ca);
     }
 }
 
@@ -1318,8 +1311,9 @@ function load_NTetGlussBot(world,tets,pvec) {
 		//	    ep.structureKind = "obstacle";
 		var s0 = (j == 0) ? MEDIAN_EDGE_LENGTH/2 : -MEDIAN_EDGE_LENGTH/2;
 		var s1 = -s0;
-		ep.position.set(-1*i+s0,
-				INITIAL_HEIGHT,0);
+		ep.position.set(memBody.position.x,
+				memBody.position.y,
+				memBody.position.z);
 		ep.angularDamping = 0.99;
 		ep.linearDamping = 0.99;
 		var pivotA = new CANNON.Vec3(0,
@@ -1334,7 +1328,6 @@ function load_NTetGlussBot(world,tets,pvec) {
 		var endpointShape = new THREE.SphereGeometry(MEDIAN_EDGE_LENGTH/(MEMBER_FRACTION*2));
 		var mesh = new THREE.Mesh(endpointShape, cubeMaterial);
 		
-		//	    mesh.name = "obstacle-"+i;
 		scene.add(mesh);
 
 		mesh.geometry.verticesNeedUpdate = true;
@@ -1476,7 +1469,7 @@ function updateMouseConstraints(body) {
 	    if (((c.bodyA == body) || (c.bodyB == body))
 		&& (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
 	       ) {
-		 
+		
 		c.disable();
 	    }
 	} else if (FORCE_REGIME == "NONE") {
