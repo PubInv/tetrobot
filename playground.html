@@ -606,8 +606,6 @@ function onMouseDown(e){
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
-    console.log(entity);
-    
     if (pos && (entity.object.geometry instanceof THREE.SphereGeometry
 		 ||
 		(entity.object.name.startsWith("obstacle"))
@@ -1073,6 +1071,14 @@ function add_obstacle(world,scene) {
     return [OBSTACLE_BODY,mesh];
 }
 
+function remove_non_eternal_constraints(world) {
+    for(var i = 0; i < world.constraints.length; i++) {
+	var c = world.constraints[i];
+	if (!c["eternal"]) 
+	    world.removeConstraint(c);
+    }
+}
+
 function add_obstacle_constraints() {
     var len = obstacles.length;
     for(var i = 0; i < len-1; i++) {
@@ -1458,11 +1464,7 @@ function updateMouseConstraints(body) {
 	    // The string of the spring should not increase as we exceed the length!!!
 	    // THIS IS FUNDAMENTALLY WRONG.
 	    var r = (d - MEDIAN_EDGE_LENGTH)/ ((MAX_EDGE_LENGTH - MIN_EDGE_LENGTH)/ 2);
-//	    if ((d < MAX_EDGE_LENGTH) && (d > MIN_EDGE_LENGTH)) {
-//		f = 0;
-//	    } else {
-//		f = CONSTRAINT_FORCE_SMALL*10;
-	    //	    }
+
 	    r = Math.max(r,0.4);
 	    var f = CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
 	    if (!c["eternal"]) 
@@ -1471,7 +1473,10 @@ function updateMouseConstraints(body) {
 	    world.addConstraint(n);
 
 	} else if (FORCE_REGIME == "DISABLE") {
-	    if ((c.bodyA == body) || (c.bodyB == body)) {
+	    if (((c.bodyA == body) || (c.bodyB == body))
+		&& (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
+	       ) {
+		
 		c.disable();
 	    }
 	} else if (FORCE_REGIME == "NONE") {
@@ -1667,11 +1672,7 @@ function interp(x,y,frac) {
     return x + (y-x)*frac;
 }
 function set_interp_constraints(am0,am1,frac) {
-    for(var i = 0; i < world.constraints.length; i++) {
-	var c = world.constraints[i];
-	if (!c["eternal"]) 
-	    world.removeConstraint(c);
-    }
+    remove_non_eternal_constraints(world);
     var links = [];
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
@@ -2095,13 +2096,7 @@ function auto_rectify_toggle() {
 }
 var fudge = 0.1;
 function update_constraints(links,f) {
-    for(var i = 0; i < world.constraints.length; i++) {
-	var c = world.constraints[i];
-	if (!c["eternal"]) 
-	    world.removeConstraint(c);
-//	world.removeConstraint();
-    }
-    console.log(links);
+    remove_non_eternal_constraints(world);
     for(var lin in links) {
 	var link = links[lin];  
 	var a = link.a;
@@ -2163,12 +2158,7 @@ function update_constraints(links,f) {
 
 
 function update_constraints_orig(links,f) {
-    for(var i = 0; i < world.constraints.length; i++) {
-	var c = world.constraints[i];
-	if (!c["eternal"]) 
-	    world.removeConstraint(c);
-//	world.removeConstraint();
-    }
+    remove_non_eternal_constraints(world);
     for(var lin in links) {
 	var link = links[lin];  
 	var a = link.a;
