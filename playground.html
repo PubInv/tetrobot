@@ -964,7 +964,9 @@ function updatePhysics(){
 	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
 
 	    // Experiment...
-	    body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
+	    if (body.name && !body.name.startsWith("endpoint")) {
+		body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
+	    }
 
             mesh.position.copy(bodies[i].position);
 	    mesh.quaternion.copy(bodies[i].quaternion);
@@ -1030,11 +1032,13 @@ function add_obstacle(world,scene) {
     // Materials
 
     var num = 4;
+    var mass = 3000;
+    var FRACTION = 30;
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-	    obstacleSize/2,obstacleSize/(2*MEMBER_FRACTION),obstacleSize/(2*MEMBER_FRACTION)));
+	    obstacleSize/2,obstacleSize/(2*FRACTION),obstacleSize/(2*FRACTION)));
 	
-	OBSTACLE_BODY = new CANNON.Body({ mass: 10, material: ground_ground_cm
+	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: ground_ground_cm
 					  ,
 					  collisionFilterGroup: GROUP1,
 					  collisionFilterMask: GROUP1 | GROUP2, 
@@ -1043,7 +1047,7 @@ function add_obstacle(world,scene) {
 
 	OBSTACLE_BODY.name = "obstacle-"+i;
 	OBSTACLE_BODY.structureKind = "obstacle";
-	OBSTACLE_BODY.position.set(-1*i,INITIAL_HEIGHT,0);
+	OBSTACLE_BODY.position.set(-1*i,INITIAL_HEIGHT,i*1);
 	OBSTACLE_BODY.angularDamping = 0.9;
 	OBSTACLE_BODY.linearDamping = 0.9;
 
@@ -1051,8 +1055,8 @@ function add_obstacle(world,scene) {
 	obstacles.push(OBSTACLE_BODY);
 
 	var cubeGeo = new THREE.BoxGeometry( obstacleSize,
-					     obstacleSize/MEMBER_FRACTION,
-					     obstacleSize/MEMBER_FRACTION );
+					     obstacleSize/FRACTION,
+					     obstacleSize/FRACTION );
 	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
 	mesh.name = "obstacle-"+i;
 	scene.add(mesh);
@@ -2494,7 +2498,7 @@ function build_world() {
     initCannon();
     add_floor();
     add_robot(world,scene);
-//    add_obstacle(world,scene);
+    add_obstacle(world,scene);
 
     update_constraints(robot.robot_members,
 		       link => {
