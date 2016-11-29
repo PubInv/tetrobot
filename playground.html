@@ -279,11 +279,13 @@ var MW = function() {
     this.GROUP1 = 1;
     this.GROUP2 = 2;
 
-    var groundMaterial = new CANNON.Material("groundMaterial");
-
+    this.groundMaterial = new CANNON.Material("groundMaterial");
+    
+    this.global_friction = 1.0;
+    
     // Adjust constraint equation parameters for ground/ground contact
-    this.ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
-	friction: global_friction,
+    this.ground_ground_cm = new CANNON.ContactMaterial(this.groundMaterial, this.groundMaterial, {
+	friction: this.global_friction,
 	restitution: 0.7,
 	contactEquationStiffness: 1e8,
 	contactEquationRelaxation: 3,
@@ -310,6 +312,13 @@ var MW = function() {
     this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
+
+    var jointGeo = new THREE.BoxGeometry( mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2);
+    var jointGeo = new THREE.SphereGeometry( mw.JOINT_RADIUS, 32,32);
+    this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
+
+
+
 };
 
 var mw = new MW();
@@ -330,13 +339,6 @@ var playgroundDimensions = {
 	h:3
 };
 
-
-
-
-var global_friction = 1.0;
-
-
-
 var camera, cameraOrtho, scene, sceneOrtho, renderer, gplane=false, clickMarker=false;
 var geometry, material, mesh;
 
@@ -345,10 +347,6 @@ var geometry, material, mesh;
 var obstacles = [];
 var obstacleSize = mw.MEDIAN_EDGE_LENGTH*4;
 
-
-var jointGeo = new THREE.BoxGeometry( mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2);
-var jointGeo = new THREE.SphereGeometry( mw.JOINT_RADIUS, 32,32);
-var jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
 
 
 var INITIAL_HEIGHT = 0.3;
@@ -363,9 +361,6 @@ var jointBody, constrainedBody, mouseConstraint;
 var container, camera, scene, renderer, projector;
 
 var grid_scene;
-
-
-
 
 var NUMBER_OF_TETRAHEDRA = 5;
 //var NUMBER_OF_TETRAHEDRA = 1;
@@ -1135,7 +1130,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
 
     for(var i = 0; i < robot.robot_joints.length; i++) {
 	var joint = robot.robot_joints[i];
-	process_vertex(joint,joint.position,results,jointGeo,jointMaterial);
+	process_vertex(joint,joint.position,results,jointGeo,mw.jointMaterial);
     }
 
 
