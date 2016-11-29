@@ -188,11 +188,6 @@
     <script src="./js/OrbitControls.js"></script>
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script>
-    // TODOS:
-    // Refactor to Create a function for "remove constraints".
-    // Understand why turning gravity on and off seems to make endpoints float away.
-    // Figure out why the Friction is not working any more --- this is a major bug.
-
 
 var standard_objs;
 var standard_ctx;
@@ -240,7 +235,7 @@ function one_time_conversion() {
     }
 }
 
-var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
+// var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
 
 var url_for_robot = "http://127.0.0.1:9000";
@@ -260,15 +255,15 @@ $("#poseurl").val(url_for_robot);
 // TODO: I hate global variables ---- I'd like to encapsulate this
 // into a class.
 
-var MirroredWorld = function() {
+var MW = function() {
     this.dt = 1/60;
-};
+    this.GROUND_PLANE_MESH;
+    this.GROUND_BODY;
+    this.meshes = [];
+    this.bodies = [];
+    this.cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
 
-
-
-var GROUND_PLANE_MESH;
-var GROUND_BODY;
 
 // Okay, so we have a few problems here.  All parts of the robot should
 // interact with floor and the obstacles, but until we implement a prismatic joint,
@@ -278,14 +273,14 @@ var GROUND_BODY;
 // The robots filter group is GROUP1 & GROUP2.
 
 // Collision filter groups - must be powers of 2!
-var GROUP1 = 1;
-var GROUP2 = 2;
-var GROUP3 = 4;
+this.GROUP1 = 1;
+this.GROUP2 = 2;
+// var GROUP3 = 4;
 
 var groundMaterial = new CANNON.Material("groundMaterial");
 
 // Adjust constraint equation parameters for ground/ground contact
-var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
+this.ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial, {
     friction: global_friction,
     restitution: 0.7,
     contactEquationStiffness: 1e8,
@@ -293,12 +288,19 @@ var ground_ground_cm = new CANNON.ContactMaterial(groundMaterial, groundMaterial
     frictionEquationStiffness: 1e8,
     frictionEquationRegularizationTime: 3,
 });
+    
+};
+
+var mw = new MW();
+
+
+
 
 
 
 var BASIC_BODY_MASS = 1; // This is kilograms.
 
-var mirroredWorld = new MirroredWorld();
+// var mirroredWorld = new MW();
 var world;
 
 var world_live = true;
@@ -360,7 +362,7 @@ var container, camera, scene, renderer, projector;
 
 var grid_scene;
 
-var meshes=[], bodies=[];
+
 
 
 var NUMBER_OF_TETRAHEDRA = 5;
@@ -396,14 +398,14 @@ var getTexture = function () {
 }
 
 function push_body_mesh_pair(body,mesh) {
-    meshes.push(mesh);
-    bodies.push(body);
+    mw.meshes.push(mesh);
+    mw.bodies.push(body);
 }
 function clear_non_floor_body_mesh_pairs() {
-    meshes = [];
-    bodies = [];
-    meshes.push(GROUND_PLANE_MESH);
-    bodies.push(GROUND_BODY);
+    mw.meshes = [];
+    mw.bodies = [];
+    mw.meshes.push(mw.GROUND_PLANE_MESH);
+    mw.bodies.push(mw.GROUND_BODY);
     
 }
 
@@ -602,7 +604,7 @@ function onMouseDown(e){
     mouse3D.sub(camera.position);
     mouse3D.project( camera );
     
-    var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,meshes);
+    var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,mw.meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
@@ -613,13 +615,13 @@ function onMouseDown(e){
 		(entity.object.name.startsWith("member"))
 		)
        ){
-        var idx = meshes.indexOf(entity.object);
+        var idx = mw.meshes.indexOf(entity.object);
 
 	if (e.shiftKey) {
 	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
 	    // and we will visually represent that by turning the joint red, I guess.
-	    console.log(bodies[idx]);
-	    var b = bodies[idx];
+	    console.log(mw.bodies[idx]);
+	    var b = mw.bodies[idx];
 	    b.fixed_in_world = !b.fixed_in_world;
 	    if (b.fixed_in_world) {
 		b.mass = 0;
@@ -639,7 +641,7 @@ function onMouseDown(e){
 
 
             if(idx !== -1){
-		addMouseConstraint(pos.x,pos.y,pos.z,bodies[idx]);
+		addMouseConstraint(pos.x,pos.y,pos.z,mw.bodies[idx]);
             }
 	}
     }
@@ -904,12 +906,12 @@ function updatePhysics(){
     // Unfortunately, we seem to need to slow the 1/60th of a second even furhter to reduce
     // jitter...possibly this is because my forces are too high?
     //    world.step(mirroredWorld.dt*0.2);
-        world.step(mirroredWorld.dt*0.2);
+        world.step(mw.dt*0.2);
     var mem_cnt = 0;
 
-    for(var i=0; i !== bodies.length; i++){
-	var mesh = meshes[i];
-	var body = bodies[i];
+    for(var i=0; i !== mw.bodies.length; i++){
+	var mesh = mw.meshes[i];
+	var body = mw.bodies[i];
 	// HACK : somewhere here we have to deal changing the actual
 	// objects.  Not sure how this will interact, but we have to do it somehow.
 	// May have to break down and make a two-part model of sliding parts
@@ -917,7 +919,7 @@ function updatePhysics(){
 
 	// eventually, I must restore the coloring function here!!!
 
-	if (bodies[i].structureKind == "member") {
+	if (mw.bodies[i].structureKind == "member") {
 	    mem_cnt++;
 	    var a = body.link_a;
 	    var b = body.link_z;
@@ -966,8 +968,8 @@ function updatePhysics(){
 		body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
 	    }
 
-            mesh.position.copy(bodies[i].position);
-	    mesh.quaternion.copy(bodies[i].quaternion);
+            mesh.position.copy(mw.bodies[i].position);
+	    mesh.quaternion.copy(mw.bodies[i].quaternion);
 	}
 	
 	mesh.geometry.verticesNeedUpdate = true;
@@ -991,16 +993,16 @@ function add_ground_plane(world,scene) {
     var floor_position = 0;
 
     
-    GROUND_BODY = new CANNON.Body({ mass: 0, material: ground_ground_cm
+    mw.GROUND_BODY = new CANNON.Body({ mass: 0, material: mw.ground_ground_cm
 				    ,
-				    collisionFilterGroup: GROUP1,
-				    collisionFilterMask: GROUP1 | GROUP2, 
+				    collisionFilterGroup: mw.GROUP1,
+				    collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
 				  });;
-    GROUND_BODY.addShape(groundShape);
-    GROUND_BODY.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+    mw.GROUND_BODY.addShape(groundShape);
+    mw.GROUND_BODY.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     groundShape.position = new CANNON.Vec3(0,0,0);
-    GROUND_BODY.name = "floor";
-    world.addBody(GROUND_BODY);
+    mw.GROUND_BODY.name = "floor";
+    world.addBody(mw.GROUND_BODY);
     
     // floor
     var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
@@ -1019,10 +1021,10 @@ function add_ground_plane(world,scene) {
     floorGeometry.position = new THREE.Vector3(0,0,0);
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     mesh = floor;
-    GROUND_PLANE_MESH = mesh;
-    scene.add(GROUND_PLANE_MESH);    
+    mw.GROUND_PLANE_MESH = mesh;
+    scene.add(mw.GROUND_PLANE_MESH);    
     
-    return [GROUND_BODY,mesh];
+    return [mw.GROUND_BODY,mesh];
 }
 
 
@@ -1040,10 +1042,10 @@ function add_obstacle(world,scene) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
 	    obstacleSize/2,obstacleSize/(2*FRACTION),obstacleSize/(2*FRACTION)));
 	
-	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: ground_ground_cm
+	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: mw.ground_ground_cm
 					  ,
-					  collisionFilterGroup: GROUP1,
-					  collisionFilterMask: GROUP1 | GROUP2, 
+					  collisionFilterGroup: mw.GROUP1,
+					  collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
 					});
 	OBSTACLE_BODY.addShape(obstacleShape);
 
@@ -1066,7 +1068,7 @@ function add_obstacle(world,scene) {
 	var cubeGeo = new THREE.BoxGeometry( obstacleSize,
 					     obstacleSize/FRACTION,
 					     obstacleSize/FRACTION );
-	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 	mesh.name = "obstacle-"+i;
 	scene.add(mesh);
 
@@ -1151,10 +1153,8 @@ function generate_mesh_pairings_from_robot(robot,scene)
 	// We might ahve to store a pointer to these objects and deallocated them
 	// separately.
 	var cubeGeo = new THREE.BoxGeometry( w,h,w );
-	var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
 
-
-	var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 	mesh.position.set(a.position.x,a.position.y+20,a.position.z);
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
@@ -1215,15 +1215,15 @@ function load_NTetGlussBot(world,tets,pvec) {
 
     var n = tets+3;    
     var mass = BASIC_BODY_MASS;
-//    world.addContactMaterial(ground_ground_cm);    
+//    world.addContactMaterial(mw.ground_ground_cm);    
 
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass*10, material : ground_ground_cm
+	var boxBody = new CANNON.Body({ mass: mass*10, material : mw.ground_ground_cm
 					,
-				      	collisionFilterGroup: GROUP2,
-					collisionFilterMask: GROUP1 
+				      	collisionFilterGroup: mw.GROUP2,
+					collisionFilterMask: mw.GROUP1 
 				      });
 	//	var boxBody = new CANNON.Body({ mass: mass});
 	// We have to use a Box to get the friction to work right!
@@ -1247,10 +1247,10 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    // Okay, here I also want to add a new body to represent the actuator
 	    // This may require some roation math, but for now let me just put it
 	    // in the cetner
-	    var memBody = new CANNON.Body({ mass: mass, material : ground_ground_cm
+	    var memBody = new CANNON.Body({ mass: mass, material : mw.ground_ground_cm
 					    ,
-					    collisionFilterGroup: GROUP2,
-					    collisionFilterMask: GROUP1,
+					    collisionFilterGroup: mw.GROUP2,
+					    collisionFilterMask: mw.GROUP1,
 					  });
 	    var memShape = new CANNON.Box(
 		new CANNON.Vec3(MEDIAN_EDGE_LENGTH/2,
@@ -1301,7 +1301,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 //	    var ep_mass = 1.0;
 	    for (var j = 0; j < 2; j++) {
 		var ep = new CANNON.Body({ mass: ep_mass,
-//					   material : ground_ground_cm,
+//					   material : mw.ground_ground_cm,
 					   collisionFilterGroup: 0,
 					   collisionFilterMask: 0, 
 					 });
@@ -1326,7 +1326,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		world.addConstraint(ca);
 		world.addBody(ep);
 		var endpointShape = new THREE.SphereGeometry(MEDIAN_EDGE_LENGTH/(MEMBER_FRACTION*2));
-		var mesh = new THREE.Mesh(endpointShape, cubeMaterial);
+		var mesh = new THREE.Mesh(endpointShape, mw.cubeMaterial);
 		
 		scene.add(mesh);
 
@@ -1370,7 +1370,7 @@ function initCannon(){
     // Setup our world
     world = new CANNON.World();
     // Add contact material to the world
-    world.addContactMaterial(ground_ground_cm);
+    world.addContactMaterial(mw.ground_ground_cm);
     
     world.quatNormalizeSkip = 0;
     world.quatNormalizeFast = false;
@@ -1389,9 +1389,9 @@ function initCannon(){
 
 function add_floor() {
     var item = add_ground_plane(world,scene)
-    GROUND_PLANE_MESH = item[1];
+    mw.GROUND_PLANE_MESH = item[1];
     push_body_mesh_pair(item[0],item[1]);
-    scene.add(GROUND_PLANE_MESH);
+    scene.add(mw.GROUND_PLANE_MESH);
 }
 
 
@@ -1524,9 +1524,9 @@ function moveJointToPoint(x,y,z) {
     moveCnt++;
     //    if ((moveCnt % 10) == 0) {
     //	console.log(moveCnt);
-    for(var i = 0; i < bodies.length; i++) {
-	var bx = bodies[i];
-	var mx = meshes[i];
+    for(var i = 0; i < mw.bodies.length; i++) {
+	var bx = mw.bodies[i];
+	var mx = mw.meshes[i];
 	if (bx.structureKind == "member") {
 	    var a = bx.link_a;
 	    var b = bx.link_z;
@@ -1544,11 +1544,11 @@ function moveJointToPoint(x,y,z) {
 		var h = a.position.distanceTo(b.position);
 		var cubeGeo = new THREE.BoxGeometry( w,h,w );
 
-		var mesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+		var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 
-		scene.remove(meshes[i]);
+		scene.remove(mw.meshes[i]);
 		scene.add(mesh);
-		meshes[i] = mesh;
+		mw.meshes[i] = mesh;
 		for(var j = 0; j < mesh.geometry.faces.length; j++) {
     		    mesh.geometry.faces[j].color.setStyle( color_scale(d) );
 		}
@@ -1644,8 +1644,8 @@ function render_actuator_model(form) {
     var command = $("#amodel").val(x);
 }
 function get_body_by_name(name) {
-    for(var i = 0; i < bodies.length; i++) {
-	var bx = bodies[i];
+    for(var i = 0; i < mw.bodies.length; i++) {
+	var bx = mw.bodies[i];
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    if (bx.name == name) {
 		return bx;
@@ -2005,8 +2005,8 @@ function interpolate_model(m1,m2,frac) {
 
 function extract_physical_node_model() {
     var nodes = [];
-    for(var i = 0; i < bodies.length; i++) {
-	var bx = bodies[i];
+    for(var i = 0; i < mw.bodies.length; i++) {
+	var bx = mw.bodies[i];
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    nodes.push({ name: bx.name,
 			 position: new CANNON.Vec3(bx.position.x,bx.position.y,bx.position.z) });
@@ -2033,6 +2033,7 @@ function flat() {
     assume_pose(flat_pose);
 }
 
+// TODO: This is not using the argument --- something is terribly wrong.
 function model_to_actuator_space(bodies) {
     var pose = {};
 
@@ -2397,11 +2398,11 @@ function actuator(b1,b2) {
 
 // Compute the actuator name between the two 
 function regenerate() {
-    for(var i = 0; i < bodies.length; i++) {
-	var bx = bodies[i];
-	var mx = meshes[i];
+    for(var i = 0; i < mw.bodies.length; i++) {
+	var bx = mw.bodies[i];
+	var mx = mw.meshes[i];
 	if (bx.name != "floor") {
-	    scene.remove(meshes[i]);
+	    scene.remove(mw.meshes[i]);
 	}
     }
 
@@ -2429,8 +2430,8 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 // remove_robot and remove_world are dead code but useful for creating
 // proper objects in the future.
 function remove_robot() {
-    meshes = [];
-    bodies = [];
+    mw.meshes = [];
+    mw.bodies = [];
     robot.robot_joints = [];
 // This is the cannon.js robot members.
     robot.robot_members = [];
@@ -2470,10 +2471,10 @@ function remove_world() {
     geometry = null;
     material = null;
     mesh = null;
-    meshes = [];
-    bodies = [];
-    GROUND_PLANE_MESH = null;
-    GROUND_BODY = null;
+    mw.meshes = [];
+    mw.bodies = [];
+    mw.GROUND_PLANE_MESH = null;
+    mw.GROUND_BODY = null;
 }
 
 function build_world() {
