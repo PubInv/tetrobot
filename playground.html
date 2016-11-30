@@ -189,28 +189,10 @@
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script>
 
-var standard_objs;
-var standard_ctx;
-var most_recent_constraints;
 
-$.getJSON( "./standard_gaits.json")
-    .done(function( json ) {
-	standard_objs = json;
-	standard_ctx = generate_context_from_standard(standard_objs);
 
-	var local_objs = [];
-	for (var i = 0; i < localStorage.length; i++){
-	    var obj = localStorage[localStorage.key(i)];
-	    var pobj = JSON.parse(obj);
-	    pobj["pose"] = convert_to_number(pobj["pose"])
-	    standard_ctx[localStorage.key(i)] = pobj;
-	}
-	update_standard_poses();	
-    })
-  .fail(function( jqxhr, textStatus, error ) {
-    var err = textStatus + ", " + error;
-    console.log( "Request Failed: " + err );
-  });
+
+
 
 function convert_to_number(obj) {
     for(var k in obj) {
@@ -297,6 +279,7 @@ var MW = function() {
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
 
+// This is sometimes useful for debugging.    
 //    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
     this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
@@ -309,7 +292,8 @@ var MW = function() {
 
     this.INITIAL_HEIGHT = 0.3;
     this.Y_GRAVITY_FORCE = -10;
-// This is where the cannon.js joints are storied
+
+    
     this.robot = {
 	robot_joints: [],
 	robot_members: []
@@ -320,10 +304,15 @@ var MW = function() {
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
-    
+
+    this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");    
+    this.ROBOT_PAIRINGS = null;
+
+    this.most_recent_constraints;    
 };
 
 var mw = new MW();
+
 
 
 var GUI = function() {
@@ -346,24 +335,45 @@ var GUI = function() {
 
     this.jointBody = null;
     this.mouseConstraint = null;
-
     this.projector = null;
-
     this.grid_scene = null;
-    
+
+    this.FORCE_REGIME = "DISABLE";
+
+    this.gravity_on = true;
+    this.world_container = $("#world");
+    this.standard_objs;
+    this.standard_ctx;
 };
+
 
 var gui = new GUI();
 
 
+$.getJSON( "./standard_gaits.json")
+    .done(function( json ) {
+	gui.standard_objs = json;
+	gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
+
+	var local_objs = [];
+	for (var i = 0; i < localStorage.length; i++){
+	    var obj = localStorage[localStorage.key(i)];
+	    var pobj = JSON.parse(obj);
+	    pobj["pose"] = convert_to_number(pobj["pose"])
+	    gui.standard_ctx[localStorage.key(i)] = pobj;
+	}
+	update_standard_poses();	
+    })
+  .fail(function( jqxhr, textStatus, error ) {
+    var err = textStatus + ", " + error;
+    console.log( "Request Failed: " + err );
+  });
 
 
-
-
-var getTexture = function () {
-    var texture = new THREE.TextureLoader("./logo-tight.png");
-    return texture;
-}
+// var getTexture = function () {
+//     var texture = new THREE.TextureLoader("./logo-tight.png");
+//     return texture;
+// }
 
 function push_body_mesh_pair(body,mesh) {
     mw.meshes.push(mesh);
@@ -388,14 +398,13 @@ function establish_controls(camera,container) {
 }
 function init_scene() {
     gui.projector = new THREE.Projector();
-    var world_container = $("#world");
 
-    while (world_container.get()[0].hasChildNodes()) {   
-	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
+    while (gui.world_container.get()[0].hasChildNodes()) {   
+	gui.world_container.get()[0].removeChild(gui.world_container.get()[0].firstChild);
     }
     
     gui.container = document.createElement( 'div' );
-    world_container.append( gui.container );	
+    gui.world_container.append( gui.container );	
 
     gui.container.style["max-height"] = 800;
 
@@ -952,7 +961,6 @@ function render() {
     gui.renderer.render(gui.grid_scene, gui.camera);
     gui.renderer.autoClear = false;
     // This is for the sprites....
-    // WARNING! Calling this is someohow causing a massive memorey leak and poor performance!
     gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
 }
 
@@ -975,11 +983,11 @@ function add_ground_plane(world,scene) {
     world.addBody(mw.GROUND_BODY);
     
     // floor
-    var floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
+//    mw.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
 
-    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
-    floorTexture.repeat.set( 10, 10 );
-    var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
+    mw.floorTexture.repeat.set( 10, 10 );
+    var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
 
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
@@ -1311,13 +1319,13 @@ function load_NTetGlussBot(world,tets,pvec) {
     }
 }
 
-var ROBOT_PAIRINGS;
+
 
 function add_robot(world,scene) {
     var pvec = new CANNON.Vec3(0,mw.INITIAL_HEIGHT,0);
     load_NTetGlussBot(world,gui.NUMBER_OF_TETRAHEDRA,pvec);
     var pairings = generate_mesh_pairings_from_robot(mw.robot,scene);
-    ROBOT_PAIRINGS = pairings;
+    gui.ROBOT_PAIRINGS = pairings;
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
     }
@@ -1366,23 +1374,23 @@ function add_floor() {
 
 
 function add_world_to_scene(scene) {
-    var pairings = ROBOT_PAIRINGS;
+    var pairings = gui.ROBOT_PAIRINGS;
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
     }
 
 }
 
-var FORCE_REGIME = "DISABLE";
+
 
 function disable_con() {
-    FORCE_REGIME = "DISABLE";
+    gui.FORCE_REGIME = "DISABLE";
 }
 function allow_con() {
-    FORCE_REGIME = "NONE";    
+    gui.FORCE_REGIME = "NONE";    
 }
 function step_con() {
-    FORCE_REGIME = "STEP";    
+    gui.FORCE_REGIME = "STEP";    
 }
 
 function step_con() {
@@ -1416,7 +1424,7 @@ function updateMouseConstraints(body) {
 	var c = mw.cworld.constraints[i];
 	if (c.name != "mouseConstraint"){
 	// Possibly we don't want to really disable these, but weaken them.
-	if (FORCE_REGIME == "STEP") {
+	if (gui.FORCE_REGIME == "STEP") {
 	    var d = c.bodyA.position.distanceTo(c.bodyB.position);
 
 	    var dp = Math.max(Math.min(d,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
@@ -1435,14 +1443,14 @@ function updateMouseConstraints(body) {
 	    var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
 	    world.addConstraint(n);
 
-	} else if (FORCE_REGIME == "DISABLE") {
+	} else if (gui.FORCE_REGIME == "DISABLE") {
 	    if (((c.bodyA == body) || (c.bodyB == body))
 		&& (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
 	       ) {
 		
 		c.disable();
 	    }
-	} else if (FORCE_REGIME == "NONE") {
+	} else if (gui.FORCE_REGIME == "NONE") {
 	}
 	}
     }
@@ -1482,7 +1490,6 @@ function addMouseConstraint(x,y,z,body) {
 
 // This functions moves the transparent joint body to a new postion in space
 
-var moveCnt = 0;
 function moveJointToPoint(x,y,z) {
     // Move the joint body to a new position
     gui.jointBody.position.set(x,y,z);
@@ -1491,9 +1498,7 @@ function moveJointToPoint(x,y,z) {
     var body = gui.mouseConstraint.attachedBody;
     
     var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-    moveCnt++;
-    //    if ((moveCnt % 10) == 0) {
-    //	console.log(moveCnt);
+
     for(var i = 0; i < mw.bodies.length; i++) {
 	var bx = mw.bodies[i];
 	var mx = mw.meshes[i];
@@ -1572,11 +1577,10 @@ function removeJointConstraint() {
 	}
     }
     gui.mouseConstraint = false;
-    moveCnt = 0;
 
     // Turn gravity back on...
     // We want to turn gravity offf while we are editing....
-    if (gravity_on) {
+    if (gui.gravity_on) {
 	mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
     }
     update_constraints(mw.robot.robot_members,link => {
@@ -1623,7 +1627,7 @@ function set_constraints(am) {
 	var e = actuator_to_length(am[key]);	
 	return e;
     });
-    most_recent_constraints = am;
+    mw.most_recent_constraints = am;
 }
 
 function interp(x,y,frac) {
@@ -1650,7 +1654,7 @@ function set_interp_constraints(am0,am1,frac) {
        return e;
     });
 
-    most_recent_constraints = am1;
+    mw.most_recent_contraints = am1;
 }
 
 function rectify(id) {
@@ -1693,16 +1697,16 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
+    execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,constraints.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_pose(num) {
-    var pose = standard_objs[num];
+    var pose = gui.standard_objs[num];
     var constraints = pose.pose;
-    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
+    execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,pose.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_gait(num) {
-    var gait = standard_objs[num];
-    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
+    var gait = gui.standard_objs[num];
+    execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,gait.gait,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1865,13 +1869,13 @@ function execute_atom_dummy(ctx,glog) {
 function test_execute_0() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(standard_objs,most_recent_constraints,execute_atom_dummy,glog,10,1000);
+    execute(gui.standard_objs,mw.most_recent_contraints,execute_atom_dummy,glog,10,1000);
 }
 
 function test_execute_1() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(standard_objs,most_recent_constraints,execute_atom,glog,10,1000);
+    execute(gui.standard_objs,mw.most_recent_contraints,execute_atom,glog,10,1000);
 }
 
 function generate_context_from_standard(objects) {
@@ -1889,17 +1893,17 @@ function generate_context_from_standard(objects) {
 
 
 function test_execute_2() {
-    var n0 = standard_objs[5].name;
-    var n1 = standard_objs[6].name;
+    var n0 = gui.standard_objs[5].name;
+    var n1 = gui.standard_objs[6].name;
     var glog = [n0,n1];
-//    standard_ctx = generate_context_from_standard(standard_objs);
-    execute(standard_ctx,most_recent_constraints,execute_atom,glog,10,1000);
+//    gui.standard_ctx = generate_context_from_standard(standard_objs);
+    execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,glog,10,1000);
 }
 
 function test_execute_3() {
     var glog = ["thinwalk"];
-//    standard_ctx = generate_context_from_standard(standard_objs);
-    execute(standard_ctx,most_recent_constraints,execute_atom,glog,10,1000);
+//    gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
+    execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,glog,10,1000);
 }
 
 // The purpose of this is to return the context with more definitions...
@@ -1920,12 +1924,12 @@ function update_poses() {
 function update_standard_poses() {
     var poses = "";
     var gaits = "";    
-    for (var i = 0; i < standard_objs.length; i++){
-	var obj = standard_objs[i];
+    for (var i = 0; i < gui.standard_objs.length; i++){
+	var obj = gui.standard_objs[i];
 	if (obj.type == "pose") {
-	    poses += '<button type="button" onclick="set_standard_pose('+i+')">' + standard_objs[i].name + '</button>';
+	    poses += '<button type="button" onclick="set_standard_pose('+i+')">' + gui.standard_objs[i].name + '</button>';
 	} else if (obj.type == "gait") {
-	    gaits += '<button type="button" onclick="set_standard_gait('+i+')">' + standard_objs[i].name + '</button>';
+	    gaits += '<button type="button" onclick="set_standard_gait('+i+')">' + gui.standard_objs[i].name + '</button>';
 	}
     }
     $("#stdposes").html(poses);
@@ -1940,8 +1944,8 @@ function update_standard_poses() {
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.trim().split(" ");
-    var initial = get_first_executable(standard_ctx,pose_names[0]);
-    execute(standard_ctx,initial[0],execute_atom,pose_names,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
+    var initial = get_first_executable(gui.standard_ctx,pose_names[0]);
+    execute(gui.standard_ctx,initial[0],execute_atom,pose_names,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
@@ -2020,14 +2024,14 @@ function small_size() {
     fixed_size(mw.MIN_EDGE_LENGTH);
 }
 
-var gravity_on = true;
+
 function toggle_gravity() {
-    if (gravity_on) {
-	gravity_on = false;
+    if (gui.gravity_on) {
+	gui.gravity_on = false;
 	mw.cworld.gravity.set(0,0,0);	
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
-	gravity_on = true;
+	gui.gravity_on = true;
 	mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
 	$("#gravity_ctl").html("Turn Gravity Off");
     }
@@ -2372,10 +2376,9 @@ function remove_robot() {
 }
 
 function remove_world() {
-    var world_container = $("#world");
     mw.world_live = false;
-    while (world_container.get()[0].hasChildNodes()) {   
-	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
+    while (gui.world_container.get()[0].hasChildNodes()) {   
+	gui.world_container.get()[0].removeChild(gui.world_container.get()[0].firstChild);
     }
 
     remove_robot();
