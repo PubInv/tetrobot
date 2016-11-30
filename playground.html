@@ -2162,25 +2162,22 @@ function update_constraints_orig(links,f) {
 	memShape.updateConvexPolyhedronRepresentation();
 
 	mem.computeAABB();
-
-	{
-	    // I have no idea why this should be done on the Y axis -- it must
-	    // be some weird internal manipulation of the objects that is occuring before
-	    // we get it, might have to look at quaternions!!!!
-	    var pivotMEM = new CANNON.Vec3(0,s,0);
-	    var pivotA = new CANNON.Vec3(0,0,0);
+	var pivotA = new CANNON.Vec3(0,0,0);
+	// I have no idea why in pivotMEM this should be done on the Y axis -- it must
+	// be some weird internal manipulation of the objects that is occuring before
+	// we get it, might have to look at quaternions!!!!
+	// Or maybe I should check the Cannon code to make sure there is not a bug...
+	function add_p2p_constraint(a,pivotA,mem,pivotMEM) {
 	    var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,pivotMEM,mw.CONSTRAINT_FORCE_SMALL);
 	    mw.cworld.addConstraint(ca);
 	}
-	{
-	    // I have no idea why this should be done on the Y axis -- it must
-	    // be some weird internal manipulation of the objects that is occuring before
-	    // we get it, might have to look at quaternions!!!!
-	    var pivotMEM = new CANNON.Vec3(0,-s,0);
-	    var pivotA = new CANNON.Vec3(0,0,0);
-	    var ca = new CANNON.PointToPointConstraint(b,pivotA,mem,pivotMEM,mw.CONSTRAINT_FORCE_SMALL);
-	    mw.cworld.addConstraint(ca);
-	}
+
+	add_p2p_constraint(a,pivotA,mem,
+			   // Why do I add to the Y axis here?
+			   new CANNON.Vec3(0,s,0));
+	add_p2p_constraint(a,pivotA,mem,
+			   // Why do I add to the Y axis here?			   
+			   new CANNON.Vec3(0,-s,0));
     }
 }
 
