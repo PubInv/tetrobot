@@ -2099,87 +2099,23 @@ function update_constraints(links,f) {
 				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
 				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
 	    memShape.updateConvexPolyhedronRepresentation();
-	    mem.computeAABB();
-	    {
-
-		// Note that the member links are coonected at the ends of the "z" axis.
-
-		// I have no idea why this should be done on the Y axis -- it must
-		// be some weird internal manipulation of the objects that is occuring before
-		// we get it, might have to look at quaternions!!!!
-		var pivotMEM = new CANNON.Vec3(0,s,0);
-		var pivotA = new CANNON.Vec3(0,0,0);
-		//		var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,pivotMEM,mw.CONSTRAINT_FORCE_SMALL);
-		var ca = new CANNON.DistanceConstraint(a,mem.endpoints[0],0,mw.CONSTRAINT_FORCE_LARGE);
-		mw.cworld.addConstraint(ca);
-
-	    }
-	    // Note that the member links are coonected at the ends of the "z" axis.
-	    {
-
-		// I have no idea why this should be done on the Y axis -- it must
-		// be some weird internal manipulation of the objects that is occuring before
-		// we get it, might have to look at quaternions!!!!
-		var pivotMEM = new CANNON.Vec3(0,-s,0);
-		var pivotA = new CANNON.Vec3(0,0,0);
-//		var ca = new CANNON.PointToPointConstraint(b,pivotA,mem,pivotMEM,mw.CONSTRAINT_FORCE_SMALL);
-		var ca = new CANNON.DistanceConstraint(b,mem.endpoints[1],0,mw.CONSTRAINT_FORCE_LARGE);
-		mw.cworld.addConstraint(ca);
-	    }
-//	}
-//	}
-    }
-}
-
-
-function update_constraints_orig(links,f) {
-    remove_non_eternal_constraints(mw.cworld);
-    for(var lin in links) {
-	var link = links[lin];  
-	var a = link.a;
-	var b = link.b;
-	if (a.name > b.name) {
-	    var t = a;
-	    a = b;
-	    b = t;
-	}
-	var d = f(link);
-	var c = new CANNON.DistanceConstraint(a,b,d,mw.CONSTRAINT_FORCE_LARGE);
-	mw.cworld.addConstraint(c);
-	// now we want to find the Cannon Object associated with these links,
-	// and put a distance constraint between the member object and the two
-	// joint objects.
-	var mem = joints_to_link_map[a.name][b.name]
-	if (!mem) {
-	    console.log("Can't find a.name, b.name "+a.name + b.name);
-	}
-
-	var s = (d/2);
-	var memShape = mem.shapes[0];
-	memShape.halfExtents.set(s,
-				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
-				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
-	memShape.updateConvexPolyhedronRepresentation();
-
 	mem.computeAABB();
 	var pivotA = new CANNON.Vec3(0,0,0);
 	// I have no idea why in pivotMEM this should be done on the Y axis -- it must
 	// be some weird internal manipulation of the objects that is occuring before
 	// we get it, might have to look at quaternions!!!!
 	// Or maybe I should check the Cannon code to make sure there is not a bug...
-	function add_p2p_constraint(a,pivotA,mem,pivotMEM) {
-	    var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,pivotMEM,mw.CONSTRAINT_FORCE_SMALL);
+	function add_p2p_constraint(a,mem) {
+	    var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,0,mw.CONSTRAINT_FORCE_LARGE);
 	    mw.cworld.addConstraint(ca);
 	}
 
-	add_p2p_constraint(a,pivotA,mem,
-			   // Why do I add to the Y axis here?
-			   new CANNON.Vec3(0,s,0));
-	add_p2p_constraint(a,pivotA,mem,
-			   // Why do I add to the Y axis here?			   
-			   new CANNON.Vec3(0,-s,0));
+	add_p2p_constraint(a,mem.endpoints[0]);
+	add_p2p_constraint(b,mem.endpoints[1]);
+
     }
 }
+
 
 function factor_size(f) {
     update_constraints(mw.robot.robot_members,link => {
@@ -2355,15 +2291,18 @@ function actuator(b1,b2) {
 
 // Compute the actuator name between the two 
 function regenerate() {
+
+    // TODO: does forEach has an index variable?
     for(var i = 0; i < mw.bodies.length; i++) {
 	var bx = mw.bodies[i];
-//	var mx = mw.meshes[i];
+	var mx = mw.meshes[i];
 	if (bx.name != "floor") {
-	    gui.scene.remove(mw.meshes[i]);
+	    gui.scene.remove(mx);
 	}
     }
 
     var pairings = generate_mesh_pairings_from_robot(mw.robot,gui.scene);
+    // TODO: replace with forEach
     for(var i = 0; i < pairings.length; i++) {
 	gui.scene.add(pairings[i][1]);
     }
@@ -2450,6 +2389,8 @@ build_world(gui,mw);
 // Initialize Three.js
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
+
+// TODO: Move this to a separate file!  This is mostly not my code anyway.
 
 
 //----------------------------------------------------------------------------
