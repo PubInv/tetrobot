@@ -52,7 +52,7 @@
 	    <button type="button" onclick="step_con()">
 	      Use STEP MODE
 	    </button>
-	    <button type="button" onclick="reset_to_default()">
+	    <button type="button" onclick="reset_to_default(gui,mw)">
 	      Reset to Default
 	    </button>
     </div>
@@ -204,8 +204,6 @@ function convert_to_number(obj) {
 }
 
 
-var url_for_robot = "http://127.0.0.1:9000";
-$("#poseurl").val(url_for_robot);
 
 // A "robot" is really a graph of vertices with connections.
 // In physical realization, the connections are actuators with length limits.
@@ -308,8 +306,24 @@ var MW = function() {
     this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");    
     this.ROBOT_PAIRINGS = null;
 
-    this.most_recent_constraints;    
+    this.most_recent_constraints;
+
+    
 };
+
+MW.prototype.push_body_mesh_pair = function(body,mesh) {
+    this.meshes.push(mesh);
+    this.bodies.push(body);
+}
+
+MW.prototype.clear_non_floor_body_mesh_pairs = function() {
+    mw.meshes = [];
+    mw.bodies = [];
+    mw.meshes.push(mw.GROUND_PLANE_MESH);
+    mw.bodies.push(mw.GROUND_BODY);
+    
+}
+
 
 var mw = new MW();
 
@@ -344,11 +358,14 @@ var GUI = function() {
     this.world_container = $("#world");
     this.standard_objs;
     this.standard_ctx;
+    this.url_for_robot = "http://127.0.0.1:9000";    
 };
 
 
 var gui = new GUI();
 
+
+$("#poseurl").val(gui.url_for_robot);
 
 $.getJSON( "./standard_gaits.json")
     .done(function( json ) {
@@ -370,24 +387,8 @@ $.getJSON( "./standard_gaits.json")
   });
 
 
-// var getTexture = function () {
-//     var texture = new THREE.TextureLoader("./logo-tight.png");
-//     return texture;
-// }
 
-function push_body_mesh_pair(body,mesh) {
-    mw.meshes.push(mesh);
-    mw.bodies.push(body);
-}
-function clear_non_floor_body_mesh_pairs() {
-    mw.meshes = [];
-    mw.bodies = [];
-    mw.meshes.push(mw.GROUND_PLANE_MESH);
-    mw.bodies.push(mw.GROUND_BODY);
-    
-}
-
-function establish_controls(camera,container) {
+function establish_controls(gui,camera,container) {
     gui.controls = new THREE.OrbitControls( camera, container );
     //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
     gui.controls.enableDamping = true;
@@ -396,7 +397,8 @@ function establish_controls(camera,container) {
     gui.controls.enabled = true;
 
 }
-function init_scene() {
+
+function init_scene(gui) {
     gui.projector = new THREE.Projector();
 
     while (gui.world_container.get()[0].hasChildNodes()) {   
@@ -435,7 +437,7 @@ function init_scene() {
 
     gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
 
-    establish_controls(gui.camera,gui.container);
+    establish_controls(gui,gui.camera,gui.container);
     
     gui.scene.add(gui.camera);
 
@@ -1054,7 +1056,7 @@ function add_obstacle(world,scene) {
 	mesh.geometry.elementsNeedUpdate = true;        
 	mesh.geometry.colorsNeedUpdate = true;
 
-	push_body_mesh_pair(OBSTACLE_BODY,mesh);
+	mw.push_body_mesh_pair(OBSTACLE_BODY,mesh);
 
     }
 
@@ -1311,7 +1313,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		mesh.geometry.elementsNeedUpdate = true;        
 		mesh.geometry.colorsNeedUpdate = true;
 		
-		push_body_mesh_pair(ep,mesh);
+		mw.push_body_mesh_pair(ep,mesh);
 
 	    }
 	    memBody["endpoints"] = endpoints;
@@ -1332,7 +1334,7 @@ function add_robot(world,scene) {
     
     // The timing here is making this asynchronous, which is not ideal...
     pairings.forEach(function (item) {
-	push_body_mesh_pair(item[0],item[1]);
+	mw.push_body_mesh_pair(item[0],item[1]);
     });
     //
     update_constraints(mw.robot.robot_members,
@@ -1368,7 +1370,7 @@ function initCannon(){
 function add_floor() {
     var item = add_ground_plane(mw.cworld,gui.scene)
     mw.GROUND_PLANE_MESH = item[1];
-    push_body_mesh_pair(item[0],item[1]);
+    mw.push_body_mesh_pair(item[0],item[1]);
     gui.scene.add(mw.GROUND_PLANE_MESH);
 }
 
@@ -1401,8 +1403,8 @@ function do_test() {
     var pmodel = extract_physical_node_model();
     var am = model_to_actuator_space(pmodel);
     var x = JSON.stringify(am,null,2);
-    url_for_robot = $("#poseurl").val();
-    $.ajax({url: url_for_robot,
+    gui.url_for_robot = $("#poseurl").val();
+    $.ajax({url: gui.url_for_robot,
 	    crossDomain: true,
 	    beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
 	    data: x,
@@ -1465,7 +1467,7 @@ function addMouseConstraint(x,y,z,body) {
 
     // Apply anti-quaternion to vector to tranform it into the local body coordinate system
     var antiRot = constrainedBody.quaternion.inverse();
-    pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
+    var pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
 
     // Move the cannon click marker particle to the click position
     gui.jointBody.position.set(x,y,z);
@@ -2353,7 +2355,7 @@ function regenerate() {
     
     // The timing here is making this asynchronous, which is not ideal...
     pairings.forEach(function (item) {
-	push_body_mesh_pair(item[0],item[1]);
+	mw.push_body_mesh_pair(item[0],item[1]);
     });
 
     var STEPS_TO_TAKE = 3;
@@ -2409,30 +2411,29 @@ function remove_world() {
     mw.GROUND_BODY = null;
 }
 
-function build_world() {
-    var scene = init_scene();
-    gui.scene = scene;
+function build_world(gui,mw) {
+    gui.scene = init_scene(gui);
     initCannon();
     add_floor();
-    add_robot(mw.cworld,scene);
-    add_obstacle(mw.cworld,scene);
+    add_robot(mw.cworld,gui.scene);
+    add_obstacle(mw.cworld,gui.scene);
 
     update_constraints(mw.robot.robot_members,
 		       link => {
 			   return mw.MEDIAN_EDGE_LENGTH;
 		       });
 
-    finish_scene_preparation(scene);
+    finish_scene_preparation(gui.scene);
     update_poses();
     mw.world_live = true;
     animate();
 }
 
-build_world();
+build_world(gui,mw);
 
-function reset_to_default() {
+function reset_to_default(gui,mw) {
     remove_world();
-    build_world();
+    build_world(gui,mw);
 }
 
 $(document).on('click', '.panel-heading span.clickable', function(e){
