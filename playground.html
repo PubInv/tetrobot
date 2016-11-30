@@ -221,22 +221,6 @@ function convert_to_number(obj) {
     return obj;
 }
 
-function one_time_conversion() {
-    for (var i = 0; i < localStorage.length; i++){
-	var name = localStorage.key(i);
-	var obj_str = localStorage[name];
-	var obj = JSON.parse(obj_str);
-	var pose = {};
-	pose["type"] = "pose";
-	pose["name"] = name;
-	pose["geometry"] = "5TetGlussBot";
-	pose["pose"] = obj;
-	localStorage.setItem(name,JSON.stringify(pose));
-    }
-}
-
-// var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, vertexColors: THREE.FaceColors } );
-
 
 var url_for_robot = "http://127.0.0.1:9000";
 $("#poseurl").val(url_for_robot);
@@ -286,7 +270,7 @@ var MW = function() {
     // Adjust constraint equation parameters for ground/ground contact
     this.ground_ground_cm = new CANNON.ContactMaterial(this.groundMaterial, this.groundMaterial, {
 	friction: this.global_friction,
-	restitution: 0.7,
+	restitution: 0.2,
 	contactEquationStiffness: 1e8,
 	contactEquationRelaxation: 3,
 	frictionEquationStiffness: 1e8,
@@ -313,75 +297,66 @@ var MW = function() {
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
 
-    var jointGeo = new THREE.BoxGeometry( mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2,mw.JOINT_RADIUS*2);
-    var jointGeo = new THREE.SphereGeometry( mw.JOINT_RADIUS, 32,32);
+//    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
+    this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
 
+    this.playgroundDimensions = {
+	w:10,
+	d:10,
+	h:3
+    };
 
+    this.INITIAL_HEIGHT = 0.3;
+    this.Y_GRAVITY_FORCE = -10;
+// This is where the cannon.js joints are storied
+    this.robot = {
+	robot_joints: [],
+	robot_members: []
+    };
 
+    this.obstacles = [];
+    this.obstacleSize = this.MEDIAN_EDGE_LENGTH*4;
+
+    this.vector_up = new THREE.Vector3(0,0,1);
+    this.vector_axis = new THREE.Vector3(0, 1, 0);
+    
 };
 
 var mw = new MW();
 
 
+var GUI = function() {
+    this.controls = null;
+    this.SCREEN_WIDTH = window.innerWidth;
+    this.SCREEN_HEIGHT = 1*window.innerHeight/2.0;
+    this.TIME_BETWEEN_POSES_MS = 3000;
+    this.GAIT_SUBDIVISIONS = 10;
+    this.cameraOrtho = null;
+    this.sceneOrtho = null;
+    this.renderer = null;
+    this.gplane=false;
+    this.clickMarker=false;
+    this.container = null;
+    this.camera = null;
+    this.scene = null;
 
-// var constraintDown = false;
-var controls,time = Date.now();
+    this.NUMBER_OF_TETRAHEDRA = 5;
+    //    this.NUMBER_OF_TETRAHEDRA = 1;
 
-var MARGIN = 0;
-var SCREEN_WIDTH = window.innerWidth;
-var SCREEN_HEIGHT = 1*window.innerHeight/2.0;
+    this.jointBody = null;
+    this.mouseConstraint = null;
 
+    this.projector = null;
 
-var playgroundDimensions = {
-	w:10,
-	d:10,
-	h:3
+    this.grid_scene = null;
+    
 };
 
-var camera, cameraOrtho, scene, sceneOrtho, renderer, gplane=false, clickMarker=false;
-var geometry, material, mesh;
-
-
-// This is temporary, while I debug my stuff.
-var obstacles = [];
-var obstacleSize = mw.MEDIAN_EDGE_LENGTH*4;
+var gui = new GUI();
 
 
 
-var INITIAL_HEIGHT = 0.3;
-
-var Y_GRAVITY_FORCE = -10;
-
-var vector_up = new THREE.Vector3(0,0,1);
-var vector_axis = new THREE.Vector3(0, 1, 0);
-
-var jointBody, constrainedBody, mouseConstraint;
-
-var container, camera, scene, renderer, projector;
-
-var grid_scene;
-
-var NUMBER_OF_TETRAHEDRA = 5;
-//var NUMBER_OF_TETRAHEDRA = 1;
-
-// This is where the cannon.js joints are storied
-var robot = {
-    robot_joints: [],
-    robot_members: []
-};
-// This is a map of the robot links.
-// var links_map = [];
-
-// An array of joints declared to be fixed in space,
-// accomplished with a constraint to a massless body, I guess.
-
-/*
-TODO: I need to increase the friction interactions somehow.
-
-Need a way to control the constraint force, in some time we want it to be much weaker than it currently is.
-
-*/
 
 
 
@@ -403,65 +378,65 @@ function clear_non_floor_body_mesh_pairs() {
 }
 
 function establish_controls(camera,container) {
-    controls = new THREE.OrbitControls( camera, container );
+    gui.controls = new THREE.OrbitControls( camera, container );
     //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.25;
-    controls.enableZoom = true;
-    controls.enabled = true;
+    gui.controls.enableDamping = true;
+    gui.controls.dampingFactor = 0.25;
+    gui.controls.enableZoom = true;
+    gui.controls.enabled = true;
 
 }
 function init_scene() {
-    projector = new THREE.Projector();
+    gui.projector = new THREE.Projector();
     var world_container = $("#world");
 
     while (world_container.get()[0].hasChildNodes()) {   
 	world_container.get()[0].removeChild(world_container.get()[0].firstChild);
     }
     
-    container = document.createElement( 'div' );
-    world_container.append( container );	
+    gui.container = document.createElement( 'div' );
+    world_container.append( gui.container );	
 
-    container.style["max-height"] = 800;
+    gui.container.style["max-height"] = 800;
 
-    container.style.backgroundColor = "blue";
+    gui.container.style.backgroundColor = "blue";
 
     // scene
-    scene = new THREE.Scene();
-    scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+    gui.scene = new THREE.Scene();
+    gui.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
 
-    sceneOrtho = new THREE.Scene();
+    gui.sceneOrtho = new THREE.Scene();
 
 
-    grid_scene = new THREE.Scene();
-    grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    gui.grid_scene = new THREE.Scene();
+    gui.grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
     //
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setClearColor( scene.fog.color );
+    gui.renderer = new THREE.WebGLRenderer( { antialias: true } );
+    gui.renderer.setClearColor( gui.scene.fog.color );
     // After we do this, we want to start using renderer.getSize.
-    renderer.setSize( window.innerWidth,  window.innerHeight*(1/2)  );    
+    gui.renderer.setSize( window.innerWidth,  window.innerHeight*(1/2)  );    
 
     // camera
-    camera = new THREE.PerspectiveCamera( 35, renderer.getSize().width / (renderer.getSize().height), 0.5, 10000 );
-    camera.position.set(3, 0.25, 0);
+    gui.camera = new THREE.PerspectiveCamera( 35, gui.renderer.getSize().width / (gui.renderer.getSize().height), 0.5, 10000 );
+    gui.camera.position.set(3, 0.25, 0);
     var origin = new THREE.Vector3(0,0,0);
-    camera.lookAt(origin);
-    camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
+    gui.camera.lookAt(origin);
+    gui.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
 
-    cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
+    gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
 
-    establish_controls(camera,container);
+    establish_controls(gui.camera,gui.container);
     
-    scene.add(camera);
+    gui.scene.add(gui.camera);
 
     // lights
     var light, materials;
-    scene.add( new THREE.AmbientLight( 0x666666 ) );
+    gui.scene.add( new THREE.AmbientLight( 0x666666 ) );
 
-    scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+    gui.scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
 
-    grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    gui.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
     
     addShadowedLight( 1, 1, 1, 0xffffff, 1.35 );
     addShadowedLight( 0.5, 1, -1, 0xffaa00, 1 );
@@ -506,18 +481,18 @@ function init_scene() {
     light.shadow.CameraNear = d;
     light.shadow.Darkness = 0.5;
 
-    scene.add( light );
+    gui.scene.add( light );
 
-    grid_scene.add(light);
-    gridInit(grid_scene,playgroundDimensions);
+    gui.grid_scene.add(light);
+    gridInit(gui.grid_scene,mw.playgroundDimensions);
 
-    return scene;
+    return gui.scene;
 }
 
 function addShadowedLight( x, y, z, color, intensity ) {
     var directionalLight = new THREE.DirectionalLight( color, intensity );
     directionalLight.position.set( x, y, z );
-    scene.add( directionalLight );
+    gui.scene.add( directionalLight );
     directionalLight.castShadow = true;
     var d = 1;
     directionalLight.shadow.camera.left = -d;
@@ -537,16 +512,16 @@ function finish_scene_preparation(schen) {
     material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
 
-    while (container.hasChildNodes()) {   
-	container.removeChild(container.firstChild);
+    while (gui.container.hasChildNodes()) {   
+	gui.container.removeChild(gui.container.firstChild);
     }
     
-    container.appendChild( renderer.domElement );
+    gui.container.appendChild( gui.renderer.domElement );
 
     
-    renderer.gammaInput = true;
-    renderer.gammaOutput = true;
-    renderer.shadowMap.Enabled = true;
+    gui.renderer.gammaInput = true;
+    gui.renderer.gammaOutput = true;
+    gui.renderer.shadowMap.Enabled = true;
 
     window.addEventListener( 'resize', onWindowResize, false );
 
@@ -556,32 +531,32 @@ function finish_scene_preparation(schen) {
 }
 
 function setClickMarker(x,y,z) {
-    if(!clickMarker){
+    if(!gui.clickMarker){
         var shape = new THREE.SphereGeometry(mw.JOINT_RADIUS/4, 8, 8);
-        clickMarker = new THREE.Mesh(shape, markerMaterial);
-        scene.add(clickMarker);
+        gui.clickMarker = new THREE.Mesh(shape, markerMaterial);
+        gui.scene.add(gui.clickMarker);
     }
-    clickMarker.visible = true;
-    clickMarker.position.set(x,y,z);
+    gui.clickMarker.visible = true;
+    gui.clickMarker.position.set(x,y,z);
 }
 
 function removeClickMarker(){
-    clickMarker.visible = false;
+    gui.clickMarker.visible = false;
 }
 
 function onMouseMove(e){
     // Move and project on the plane
-    if (gplane && mouseConstraint) {
+    if (gui.gplane && gui.mouseConstraint) {
 
-	var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
+	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
 	
-	mouse3D.unproject( camera );
+	mouse3D.unproject( gui.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gplane,camera);
+        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
-            setClickMarker(pos.x,pos.y,pos.z,scene);
+            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     }
@@ -590,14 +565,14 @@ function onMouseMove(e){
 function onMouseDown(e){
     // Find mesh from a ray
 
-    var mouse3D = new THREE.Vector3( ( e.clientX / renderer.getSize().width ) * 2 - 1,   //x
-				     -( e.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( e.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
-    mouse3D.unproject( camera );
-    mouse3D.sub(camera.position);
-    mouse3D.project( camera );
+    mouse3D.unproject( gui.camera );
+    mouse3D.sub(gui.camera.position);
+    mouse3D.project( gui.camera );
     
-    var entity = findNearestIntersectingObject(e.clientX,e.clientY,camera,mw.meshes);
+    var entity = findNearestIntersectingObject(e.clientX,e.clientY,gui.camera,mw.meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
@@ -627,10 +602,10 @@ function onMouseDown(e){
 	} else {
 //            constraintDown = true;
             // Set marker on contact point
-            setClickMarker(pos.x,pos.y,pos.z,scene);
+            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
 
             // Set the movement plane
-            setScreenPerpCenter(pos,camera);
+            setScreenPerpCenter(pos,gui.camera);
 
 
             if(idx !== -1){
@@ -643,7 +618,7 @@ function onMouseDown(e){
 // This function creates a virtual movement plane for the mouseJoint to move in
 function setScreenPerpCenter(point, camera) {
     // If it does not exist, create a new one
-    if(!gplane) {
+    if(!gui.gplane) {
 	// We need to be precese about what these coordinates are!
         var planeGeo = new THREE.PlaneGeometry(4000,4000);
 	// Something has change in three.js, apparently ray casting only
@@ -653,33 +628,33 @@ function setScreenPerpCenter(point, camera) {
 	plane_material.transparent = true;
 	plane_material.opacity = 0.0;
 	
-        var plane = gplane = new THREE.Mesh(planeGeo,plane_material);
+        var plane = gui.gplane = new THREE.Mesh(planeGeo,plane_material);
 	//        plane.visible = false; // Hide it..
 	// ????
 	
-        scene.add(gplane);
+        gui.scene.add(gui.gplane);
     }
-    gplane.visible = true;
-    gplane.name = "movementplane";
-    controls.enabled = false;
+    gui.gplane.visible = true;
+    gui.gplane.name = "movementplane";
+    gui.controls.enabled = false;
 
     // Center at mouse position
-    gplane.position.copy(point);
+    gui.gplane.position.copy(point);
 
     // Make it face toward the camera
-    gplane.quaternion.copy(camera.quaternion);
+    gui.gplane.quaternion.copy(camera.quaternion);
 }
 
 function onMouseUp(e) {
-	var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
+	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
 	
-	mouse3D.unproject( camera );
+	mouse3D.unproject( gui.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gplane,camera);
+        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
-            setClickMarker(pos.x,pos.y,pos.z,scene);
+            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     
@@ -694,12 +669,12 @@ function onMouseUp(e) {
     do_test();
 
 
-    if (gplane.visible == true) {
-	gplane.visible = false;
+    if (gui.gplane.visible == true) {
+	gui.gplane.visible = false;
 	// We need to re-establish the controls because I don't have
 	// any good way of exiting the active state...
-	controls.dispose();
-	establish_controls(camera,container);
+	gui.controls.dispose();
+	establish_controls(gui.camera,gui.container);
     }
 
 }
@@ -722,13 +697,13 @@ function projectOntoPlane(screenX,screenY,thePlane,camera) {
     else return false;
 }
 function findNearestIntersectingObject(clientX,clientY,camera,objects) {
-    var mouse3D = new THREE.Vector3( ( event.clientX / renderer.getSize().width ) * 2 - 1,   //x
-                                     -( event.clientY / (renderer.getSize().height) ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+                                     -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
                                      0.5 );                                            //z
     
     var mouse = new THREE.Vector2();
-    mouse.x = (event.clientX / renderer.getSize().width) * 2 - 1;
-    mouse.y = -(event.clientY / (renderer.getSize().height)) * 2 + 1; 
+    mouse.x = (event.clientX / gui.renderer.getSize().width) * 2 - 1;
+    mouse.y = -(event.clientY / (gui.renderer.getSize().height)) * 2 + 1; 
 
     var raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
@@ -751,22 +726,22 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
 function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
     var mouse3D = new THREE.Vector3();
     // Get 3D point form the client x y
-    mouse3D.x = (screenX / renderer.getSize().width) * 2 - 1;
-    mouse3D.y = -(screenY / renderer.getSize().height) * 2 + 1;
+    mouse3D.x = (screenX / gui.renderer.getSize().width) * 2 - 1;
+    mouse3D.y = -(screenY / gui.renderer.getSize().height) * 2 + 1;
     mouse3D.z = 0.5;
     return projector.pickingRay(mouse3D, camera);
 }
 
 function onWindowResize() {
-    renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
+    gui.renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
     
-    camera.updateProjectionMatrix();
+    gui.camera.updateProjectionMatrix();
 
-    SCREEN_WIDTH = renderer.getSize().width;
-    SCREEN_HEIGHT = renderer.getSize().height;
-    camera.radius = ( SCREEN_WIDTH + SCREEN_HEIGHT ) / 4;
+    gui.SCREEN_WIDTH = gui.renderer.getSize().width;
+    gui.SCREEN_HEIGHT = gui.renderer.getSize().height;
+    gui.camera.radius = ( gui.SCREEN_WIDTH + gui.SCREEN_HEIGHT ) / 4;
 
-    cameraOrtho = new THREE.OrthographicCamera( 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, - 10, 10 );
+    gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
 }
 function animate() {
     if (mw.world_live) {
@@ -827,8 +802,8 @@ var sprite_controls = new function () {
     this.rotateSystem = true;
 
     this.clear = function (x,y) {
-        sceneOrtho.children.forEach(function (child) {
-            if (child instanceof THREE.Sprite) sceneOrtho.remove(child);
+        gui.sceneOrtho.children.forEach(function (child) {
+            if (child instanceof THREE.Sprite) gui.sceneOrtho.remove(child);
         })
     };
 
@@ -869,7 +844,7 @@ var sprite_controls = new function () {
 	sprite.scale.set(this.size, this.size, this.size);
 	sprite.position.set(x, y, 0);
 	
-	sceneOrtho.add(sprite);
+	gui.sceneOrtho.add(sprite);
 	return sprite;
     };
 };
@@ -903,6 +878,7 @@ function updatePhysics(){
     mw.cworld.step(mw.dt*0.2);
     var mem_cnt = 0;
 
+
     for(var i=0; i !== mw.bodies.length; i++){
 	var mesh = mw.meshes[i];
 	var body = mw.bodies[i];
@@ -924,8 +900,8 @@ function updatePhysics(){
 
 
 	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-	    mesh.up = vector_up;
-	    var axis = vector_axis;
+	    mesh.up = mw.vector_up;
+	    var axis = mw.vector_axis;
 	    var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
 	    mesh.position.copy(mid);
 
@@ -952,10 +928,10 @@ function updatePhysics(){
 
 	var p = body.position;
 	    var p3 = new THREE.Vector3(p.x,p.y,p.z);
-	    var p3 = p3.project(camera);
-	    var x = (p3.x*renderer.getSize().width/2.0)+renderer.getSize().width/2;
+	    var p3 = p3.project(gui.camera);
+	    var x = (p3.x*gui.renderer.getSize().width/2.0)+gui.renderer.getSize().width/2;
 
-	    var y = (p3.y*renderer.getSize().height/2.0)+renderer.getSize().height/2;
+	    var y = (p3.y*gui.renderer.getSize().height/2.0)+gui.renderer.getSize().height/2;
 
 	    // Experiment...
 	    if (body.name && !body.name.startsWith("endpoint")) {
@@ -972,12 +948,12 @@ function updatePhysics(){
    }
 }
 function render() {
-    renderer.render(scene, camera);
-    renderer.render(grid_scene, camera);
-    renderer.autoClear = false;
+    gui.renderer.render(gui.scene, gui.camera);
+    gui.renderer.render(gui.grid_scene, gui.camera);
+    gui.renderer.autoClear = false;
     // This is for the sprites....
     // WARNING! Calling this is someohow causing a massive memorey leak and poor performance!
-    renderer.render(sceneOrtho, cameraOrtho);
+    gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
 }
 
 function add_ground_plane(world,scene) {
@@ -1008,13 +984,13 @@ function add_ground_plane(world,scene) {
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
     
-    var floorGeometry = new THREE.PlaneGeometry(playgroundDimensions.w,
-						playgroundDimensions.d,
+    var floorGeometry = new THREE.PlaneGeometry(mw.playgroundDimensions.w,
+						mw.playgroundDimensions.d,
 						10,
 						10);
     floorGeometry.position = new THREE.Vector3(0,0,0);
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    mesh = floor;
+    var mesh = floor;
     mw.GROUND_PLANE_MESH = mesh;
     scene.add(mw.GROUND_PLANE_MESH);    
     
@@ -1028,13 +1004,13 @@ function add_obstacle(world,scene) {
     var num = 4;
     var mass = 3000;
     var FRACTION = 30;
-    var positions = [{x:0,y:INITIAL_HEIGHT,z:1},
-			  {x:1,y:INITIAL_HEIGHT,z:0},
-			  {x:0,y:INITIAL_HEIGHT,z:-1},
-			  {x:-1,y:INITIAL_HEIGHT,z:0}];
+    var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
+			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
+			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
+			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-	    obstacleSize/2,obstacleSize/(2*FRACTION),obstacleSize/(2*FRACTION)));
+	    mw.obstacleSize/2,mw.obstacleSize/(2*FRACTION),mw.obstacleSize/(2*FRACTION)));
 	
 	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: mw.ground_ground_cm
 					  ,
@@ -1057,11 +1033,11 @@ function add_obstacle(world,scene) {
 	
 
 	world.addBody(OBSTACLE_BODY);
-	obstacles.push(OBSTACLE_BODY);
+	mw.obstacles.push(OBSTACLE_BODY);
 
-	var cubeGeo = new THREE.BoxGeometry( obstacleSize,
-					     obstacleSize/FRACTION,
-					     obstacleSize/FRACTION );
+	var cubeGeo = new THREE.BoxGeometry( mw.obstacleSize,
+					     mw.obstacleSize/FRACTION,
+					     mw.obstacleSize/FRACTION );
 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 	mesh.name = "obstacle-"+i;
 	scene.add(mesh);
@@ -1116,7 +1092,6 @@ function generate_mesh_pairings_from_robot(robot,scene)
     // Totally not understanding this...
 
     function process_vertex(joint,v,results,geo,mat) {
-
 	var mesh = new THREE.Mesh(geo, mat);
 	mesh.name = "joint";
 	mesh.castShadow = true;
@@ -1130,7 +1105,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
 
     for(var i = 0; i < robot.robot_joints.length; i++) {
 	var joint = robot.robot_joints[i];
-	process_vertex(joint,joint.position,results,jointGeo,mw.jointMaterial);
+	process_vertex(joint,joint.position,results,mw.jointGeo,mw.jointMaterial);
     }
 
 
@@ -1231,7 +1206,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	boxBody.linearDamping = 0.9;
 	boxBody.name = alphabetic_name(i);
 	joints_to_link_map[boxBody.name] = {};
-	robot.robot_joints.push(boxBody);
+	mw.robot.robot_joints.push(boxBody);
 	console.log("pushing joint: "+boxBody.name);
 	world.addBody(boxBody);
 
@@ -1256,8 +1231,8 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    memBody.angularDamping = 0.80;
 	    memBody.linearDamping = 0.80;
 
-	    var b_z = robot.robot_joints[i];
-	    var b_a = robot.robot_joints[h];
+	    var b_z = mw.robot.robot_joints[i];
+	    var b_a = mw.robot.robot_joints[h];
 	    {
 		var ap = b_a.position;
 		var bp = b_z.position;
@@ -1265,7 +1240,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		memBody.position = ap.vadd(bp).scale(0.5);
 
 		var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-		var axis = vector_axis;
+		var axis = mw.vector_axis;
 		var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
 		var q = new THREE.Quaternion();
 		q.setFromUnitVectors(axis, vector.clone().normalize());
@@ -1276,7 +1251,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    var v_avg = v_z.vadd(b_a.position);
 	    v_avg.scale(0.5);
 	    var link = { a: b_a, b: b_z, body: memBody};
-	    robot.robot_members.push(link);
+	    mw.robot.robot_members.push(link);
 	    memBody.structureKind = "member";
 	    memBody.link_a = b_a;
 	    memBody.link_z = b_z;
@@ -1322,7 +1297,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		var endpointShape = new THREE.SphereGeometry(mw.MEDIAN_EDGE_LENGTH/(mw.MEMBER_FRACTION*2));
 		var mesh = new THREE.Mesh(endpointShape, mw.cubeMaterial);
 		
-		scene.add(mesh);
+		gui.scene.add(mesh);
 
 		mesh.geometry.verticesNeedUpdate = true;
 		mesh.geometry.elementsNeedUpdate = true;        
@@ -1339,9 +1314,9 @@ function load_NTetGlussBot(world,tets,pvec) {
 var ROBOT_PAIRINGS;
 
 function add_robot(world,scene) {
-    var pvec = new CANNON.Vec3(0,INITIAL_HEIGHT,0);
-    load_NTetGlussBot(world,NUMBER_OF_TETRAHEDRA,pvec);
-    var pairings = generate_mesh_pairings_from_robot(robot,scene);
+    var pvec = new CANNON.Vec3(0,mw.INITIAL_HEIGHT,0);
+    load_NTetGlussBot(world,gui.NUMBER_OF_TETRAHEDRA,pvec);
+    var pairings = generate_mesh_pairings_from_robot(mw.robot,scene);
     ROBOT_PAIRINGS = pairings;
     for(var i = 0; i < pairings.length; i++) {
 	scene.add(pairings[i][1]);
@@ -1352,7 +1327,7 @@ function add_robot(world,scene) {
 	push_body_mesh_pair(item[0],item[1]);
     });
     //
-    update_constraints(robot.robot_members,
+    update_constraints(mw.robot.robot_members,
 		       link => {
 			   return mw.MEDIAN_EDGE_LENGTH;
 		       });
@@ -1370,23 +1345,23 @@ function initCannon(){
     mw.cworld.quatNormalizeSkip = 0;
     mw.cworld.quatNormalizeFast = false;
 
-    mw.cworld.gravity.set(0,Y_GRAVITY_FORCE,0);
+    mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
     mw.cworld.broadphase = new CANNON.NaiveBroadphase();
 
     // Joint body
     var shape = new CANNON.Box(new CANNON.Vec3(mw.JOINT_RADIUS/2,mw.JOINT_RADIUS/2,mw.JOINT_RADIUS/2));
-    jointBody = new CANNON.Body({ mass: 0 });
-    jointBody.addShape(shape);
-    jointBody.collisionFilterGroup = 0;
-    jointBody.collisionFilterMask = 0;
-    mw.cworld.addBody(jointBody);
+    gui.jointBody = new CANNON.Body({ mass: 0 });
+    gui.jointBody.addShape(shape);
+    gui.jointBody.collisionFilterGroup = 0;
+    gui.jointBody.collisionFilterMask = 0;
+    mw.cworld.addBody(gui.jointBody);
 }
 
 function add_floor() {
-    var item = add_ground_plane(mw.cworld,scene)
+    var item = add_ground_plane(mw.cworld,gui.scene)
     mw.GROUND_PLANE_MESH = item[1];
     push_body_mesh_pair(item[0],item[1]);
-    scene.add(mw.GROUND_PLANE_MESH);
+    gui.scene.add(mw.GROUND_PLANE_MESH);
 }
 
 
@@ -1475,7 +1450,7 @@ function updateMouseConstraints(body) {
 
 function addMouseConstraint(x,y,z,body) {
     // The cannon body constrained by the mouse joint
-    constrainedBody = body;
+    var constrainedBody = body;
 
     // Vector to the clicked point, relative to the body
     var v1 = new CANNON.Vec3(x,y,z).vsub(constrainedBody.position);
@@ -1485,19 +1460,19 @@ function addMouseConstraint(x,y,z,body) {
     pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
 
     // Move the cannon click marker particle to the click position
-    jointBody.position.set(x,y,z);
+    gui.jointBody.position.set(x,y,z);
 
     updateMouseConstraints(body);
 
     // Create a new constraint
-    // The pivot for the jointBody is zero
-    mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, jointBody, new CANNON.Vec3(0,0,0));
-    mouseConstraint.name = "mouseConstraint";
-    mouseConstraint.attachedBody = body;
+    // The pivot for the gui.jointBody is zero
+    gui.mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, gui.jointBody, new CANNON.Vec3(0,0,0));
+    gui.mouseConstraint.name = "mouseConstraint";
+    gui.mouseConstraint.attachedBody = body;
 
 
     // Add the constriant to world
-    mw.cworld.addConstraint(mouseConstraint);
+    mw.cworld.addConstraint(gui.mouseConstraint);
     // We want to turn gravity offf while we are editing....
     mw.cworld.gravity.set(0,0,0);
 }
@@ -1510,10 +1485,10 @@ function addMouseConstraint(x,y,z,body) {
 var moveCnt = 0;
 function moveJointToPoint(x,y,z) {
     // Move the joint body to a new position
-    jointBody.position.set(x,y,z);
+    gui.jointBody.position.set(x,y,z);
 
 
-    var body = mouseConstraint.attachedBody;
+    var body = gui.mouseConstraint.attachedBody;
     
     var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
     moveCnt++;
@@ -1541,8 +1516,8 @@ function moveJointToPoint(x,y,z) {
 
 		var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 
-		scene.remove(mw.meshes[i]);
-		scene.add(mesh);
+		gui.scene.remove(mw.meshes[i]);
+		gui.scene.add(mesh);
 		mw.meshes[i] = mesh;
 		for(var j = 0; j < mesh.geometry.faces.length; j++) {
     		    mesh.geometry.faces[j].color.setStyle( color_scale(d) );
@@ -1563,7 +1538,7 @@ function moveJointToPoint(x,y,z) {
     }
 
     updateMouseConstraints(null);
-    mouseConstraint.update();
+    gui.mouseConstraint.update();
 }
 
 function render_constraints() {
@@ -1575,18 +1550,17 @@ function render_constraints() {
 
 function removeJointConstraint() {
     // Remove constriant from world
-    if (!mouseConstraint) {
+    if (!gui.mouseConstraint) {
 	return;
     }
-    mw.cworld.removeConstraint(mouseConstraint);
+    mw.cworld.removeConstraint(gui.mouseConstraint);
     // Now we want to disable all attached length constraints (and actually add others)
 
-    var body = mouseConstraint.attachedBody;
+    var body = gui.mouseConstraint.attachedBody;
     if (body) {
 	
 	for(var i = 0; i < mw.cworld.constraints.length; i++) {
 	    var c = mw.cworld.constraints[i];
-//	    if ((c.bodyA == body) || (c.bodyB == body)) {
 		var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
 		// HACK: This is an experiment...
 		if (auto_rectify_on) {
@@ -1595,21 +1569,17 @@ function removeJointConstraint() {
 		c.distance = newrestlength;
 		c.update();
 		c.enable();	    
-//	    } else {
-//	    	c.enable();
-//	    }
 	}
     }
-//    render_constraints();
-    mouseConstraint = false;
+    gui.mouseConstraint = false;
     moveCnt = 0;
 
     // Turn gravity back on...
     // We want to turn gravity offf while we are editing....
     if (gravity_on) {
-	mw.cworld.gravity.set(0,Y_GRAVITY_FORCE,0);
+	mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
     }
-    update_constraints(robot.robot_members,link => {
+    update_constraints(mw.robot.robot_members,link => {
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
@@ -1649,7 +1619,7 @@ function get_body_by_name(name) {
     }
 }
 function set_constraints(am) {
-    update_constraints(robot.robot_members,link => {
+    update_constraints(mw.robot.robot_members,link => {
 	var e = actuator_to_length(am[key]);	
 	return e;
     });
@@ -1723,16 +1693,16 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
+    execute(standard_ctx,most_recent_constraints,execute_atom,constraints.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_pose(num) {
     var pose = standard_objs[num];
     var constraints = pose.pose;
-    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
+    execute(standard_ctx,most_recent_constraints,execute_atom,pose.pose,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_gait(num) {
     var gait = standard_objs[num];
-    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
+    execute(standard_ctx,most_recent_constraints,execute_atom,gait.gait,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1963,8 +1933,6 @@ function update_standard_poses() {
 }
 
 
-var TIME_BETWEEN_POSES_MS = 3000;
-var GAIT_SUBDIVISIONS = 10;
 
 // Need to expand this machinergy so that at any time we can process
 // a pose or a gait mixed generically.
@@ -1972,16 +1940,8 @@ var GAIT_SUBDIVISIONS = 10;
 function execute_gait() {
     var gait = $("#gait").val();
     var pose_names = gait.trim().split(" ");
-
-    // var pose_lists = [];
-    // for(var i = 0; i < pose_names.length; i++) {
-    // 	var am = pose_names[i];
-    // 	var pose = JSON.parse(localStorage.getItem(am));
-    // 	pose_lists[i] = pose;
-    // }
-//    standard_ctx = generate_context_from_standard(standard_objs);
     var initial = get_first_executable(standard_ctx,pose_names[0]);
-    execute(standard_ctx,initial[0],execute_atom,pose_names,GAIT_SUBDIVISIONS,TIME_BETWEEN_POSES_MS);
+    execute(standard_ctx,initial[0],execute_atom,pose_names,gui.GAIT_SUBDIVISIONS,gui.TIME_BETWEEN_POSES_MS);
 }
 
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
@@ -2032,8 +1992,8 @@ function flat() {
 function model_to_actuator_space(bodies) {
     var pose = {};
 
-    for(var lin in robot.robot_members) {
-	var mem = robot.robot_members[lin];  
+    for(var lin in mw.robot.robot_members) {
+	var mem = mw.robot.robot_members[lin];  
 	var a = mem.a;
 	var b = mem.b;
 	// invert actually returns strings, for some reason, probably for css...
@@ -2068,7 +2028,7 @@ function toggle_gravity() {
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
 	gravity_on = true;
-	mw.cworld.gravity.set(0,Y_GRAVITY_FORCE,0);
+	mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
 	$("#gravity_ctl").html("Turn Gravity Off");
     }
 }
@@ -2105,7 +2065,7 @@ function update_constraints(links,f) {
 	if (!mem) {
 	    console.log("Can't find a.name, b.name "+a.name + b.name);
 	}
-//	if (obstacles.length > 0) {
+//	if (mw.obstacles.length > 0) {
 //	if (a.name == "C" && b.name == "D") {
 	    var s = (d/2);
 	    var memShape = mem.shapes[0];
@@ -2199,7 +2159,7 @@ function update_constraints_orig(links,f) {
 }
 
 function factor_size(f) {
-    update_constraints(robot.robot_members,link => {
+    update_constraints(mw.robot.robot_members,link => {
 	var a = link.a;
 	var b = link.b;
 	var d = a.position.distanceTo(b.position);
@@ -2208,7 +2168,7 @@ function factor_size(f) {
 }
 
 function fixed_size(s) {
-    update_constraints(robot.robot_members,link => {
+    update_constraints(mw.robot.robot_members,link => {
 	return s;
     });
 
@@ -2217,7 +2177,7 @@ function fixed_size(s) {
 
 function assume_pose(pose) {
 
-    update_constraints(robot.robot_members,link => {
+    update_constraints(mw.robot.robot_members,link => {
 	var d = actuator_to_length(pose[act]);
 	return d;
     });
@@ -2376,13 +2336,13 @@ function regenerate() {
 	var bx = mw.bodies[i];
 	var mx = mw.meshes[i];
 	if (bx.name != "floor") {
-	    scene.remove(mw.meshes[i]);
+	    gui.scene.remove(mw.meshes[i]);
 	}
     }
 
-    var pairings = generate_mesh_pairings_from_robot(robot,scene);
+    var pairings = generate_mesh_pairings_from_robot(mw.robot,gui.scene);
     for(var i = 0; i < pairings.length; i++) {
-	scene.add(pairings[i][1]);
+	gui.scene.add(pairings[i][1]);
     }
 
     clear_non_floor_body_mesh_pairs();
@@ -2406,9 +2366,9 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 function remove_robot() {
     mw.meshes = [];
     mw.bodies = [];
-    robot.robot_joints = [];
+    mw.robot.robot_joints = [];
 // This is the cannon.js robot members.
-    robot.robot_members = [];
+    mw.robot.robot_members = [];
 }
 
 function remove_world() {
@@ -2420,31 +2380,26 @@ function remove_world() {
 
     remove_robot();
 
-//    world = null;
-    jointBody = null;
-    constrainedBody = null;
-    mouseConstraint = null;
+    gui.jointBody = null;
 
-    container = null;
-    camera = null;
-    scene = null;
-    renderer = null;
-    projector = null;
+    gui.mouseConstraint = null;
 
-    grid_scene = null;
+    gui.container = null;
+    gui.camera = null;
+    gui.scene = null;
+    gui.renderer = null;
+    gui.projector = null;
 
-    camera = null;
-    cameraOrtho = null;
-    scene = null;
+    gui.grid_scene = null;
+
+    gui.cameraOrtho = null;
     
     sprite_controls.clear();
     
-    sceneOrtho = null;
-    renderer = null;
-    gplane=false, clickMarker=false;
-    geometry = null;
-    material = null;
-    mesh = null;
+    gui.sceneOrtho = null;
+    gui.gplane=false;
+    gui.clickMarker=false;
+
     mw.meshes = [];
     mw.bodies = [];
     mw.GROUND_PLANE_MESH = null;
@@ -2453,12 +2408,13 @@ function remove_world() {
 
 function build_world() {
     var scene = init_scene();
+    gui.scene = scene;
     initCannon();
     add_floor();
     add_robot(mw.cworld,scene);
     add_obstacle(mw.cworld,scene);
 
-    update_constraints(robot.robot_members,
+    update_constraints(mw.robot.robot_members,
 		       link => {
 			   return mw.MEDIAN_EDGE_LENGTH;
 		       });
