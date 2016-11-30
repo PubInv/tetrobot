@@ -124,7 +124,7 @@
 	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
-            <button type="button" onclick="do_test()">
+            <button type="button" onclick="send_to_robot_url()">
 	      Send Pose to Robot
 	    </button>
 	    Send Poses To URL:
@@ -323,13 +323,20 @@ MW.prototype.clear_non_floor_body_mesh_pairs = function() {
     mw.bodies.push(mw.GROUND_BODY);
     
 }
+MW.prototype.remove_robot = function() {
+    mw.meshes = [];
+    mw.bodies = [];
+    mw.robot.robot_joints = [];
+    mw.robot.robot_members = [];
+}
 
 
 var mw = new MW();
 
 
 
-var GUI = function() {
+var GUI = function(mw) {
+    this.mw = mw;
     this.controls = null;
     this.SCREEN_WIDTH = window.innerWidth;
     this.SCREEN_HEIGHT = 1*window.innerHeight/2.0;
@@ -359,37 +366,57 @@ var GUI = function() {
     this.standard_objs;
     this.standard_ctx;
     this.url_for_robot = "http://127.0.0.1:9000";    
+    this.auto_rectify_on = false;
+
+    this.material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
+    this.markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+    
 };
 
 
-var gui = new GUI();
+GUI.prototype.remove_world = function() {
+    mw.world_live = false;
+    while (gui.world_container.get()[0].hasChildNodes()) {   
+	gui.world_container.get()[0].removeChild(gui.world_container.get()[0].firstChild);
+    }
+
+    mw.remove_robot();
+
+    gui.jointBody = null;
+
+    gui.mouseConstraint = null;
+
+    gui.container = null;
+    gui.camera = null;
+    gui.scene = null;
+    gui.renderer = null;
+    gui.projector = null;
+
+    gui.grid_scene = null;
+
+    gui.cameraOrtho = null;
+    
+    sprite_controls.clear();
+    
+    gui.sceneOrtho = null;
+    gui.gplane=false;
+    gui.clickMarker=false;
+
+    mw.meshes = [];
+    mw.bodies = [];
+    mw.GROUND_PLANE_MESH = null;
+    mw.GROUND_BODY = null;
+}
 
 
-$("#poseurl").val(gui.url_for_robot);
-
-$.getJSON( "./standard_gaits.json")
-    .done(function( json ) {
-	gui.standard_objs = json;
-	gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
-
-	var local_objs = [];
-	for (var i = 0; i < localStorage.length; i++){
-	    var obj = localStorage[localStorage.key(i)];
-	    var pobj = JSON.parse(obj);
-	    pobj["pose"] = convert_to_number(pobj["pose"])
-	    gui.standard_ctx[localStorage.key(i)] = pobj;
-	}
-	update_standard_poses();	
-    })
-  .fail(function( jqxhr, textStatus, error ) {
-    var err = textStatus + ", " + error;
-    console.log( "Request Failed: " + err );
-  });
+var gui = new GUI(mw);
 
 
 
-function establish_controls(gui,camera,container) {
-    gui.controls = new THREE.OrbitControls( camera, container );
+
+
+function establish_controls(gui) {
+    gui.controls = new THREE.OrbitControls( gui.camera, gui.container );
     //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
     gui.controls.enableDamping = true;
     gui.controls.dampingFactor = 0.25;
@@ -437,7 +464,7 @@ function init_scene(gui) {
 
     gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
 
-    establish_controls(gui,gui.camera,gui.container);
+    establish_controls(gui);
     
     gui.scene.add(gui.camera);
 
@@ -449,8 +476,8 @@ function init_scene(gui) {
 
     gui.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
     
-    addShadowedLight( 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight( 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(gui, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(gui, 0.5, 1, -1, 0xffaa00, 1 );
     
     light = new THREE.DirectionalLight( 0xffffff, 1.75 );
     var d = 200;
@@ -500,7 +527,7 @@ function init_scene(gui) {
     return gui.scene;
 }
 
-function addShadowedLight( x, y, z, color, intensity ) {
+function addShadowedLight(gui, x, y, z, color, intensity ) {
     var directionalLight = new THREE.DirectionalLight( color, intensity );
     directionalLight.position.set( x, y, z );
     gui.scene.add( directionalLight );
@@ -519,9 +546,7 @@ function addShadowedLight( x, y, z, color, intensity ) {
 
 
 // This needs to be changed to init the floor and ground together...
-function finish_scene_preparation(schen) {
-    material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
-    markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+function finish_scene_preparation(gui) {
 
     while (gui.container.hasChildNodes()) {   
 	gui.container.removeChild(gui.container.firstChild);
@@ -541,17 +566,17 @@ function finish_scene_preparation(schen) {
     window.addEventListener("mouseup", onMouseUp, false );
 }
 
-function setClickMarker(x,y,z) {
+function setClickMarker(gui,mw,x,y,z) {
     if(!gui.clickMarker){
         var shape = new THREE.SphereGeometry(mw.JOINT_RADIUS/4, 8, 8);
-        gui.clickMarker = new THREE.Mesh(shape, markerMaterial);
+        gui.clickMarker = new THREE.Mesh(shape, gui.markerMaterial);
         gui.scene.add(gui.clickMarker);
     }
     gui.clickMarker.visible = true;
     gui.clickMarker.position.set(x,y,z);
 }
 
-function removeClickMarker(){
+function removeClickMarker(gui){
     gui.clickMarker.visible = false;
 }
 
@@ -567,7 +592,7 @@ function onMouseMove(e){
 
         var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
-            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     }
@@ -613,10 +638,10 @@ function onMouseDown(e){
 	} else {
 //            constraintDown = true;
             // Set marker on contact point
-            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
 
             // Set the movement plane
-            setScreenPerpCenter(pos,gui.camera);
+            setScreenPerpCenter(pos,gui);
 
 
             if(idx !== -1){
@@ -627,7 +652,7 @@ function onMouseDown(e){
 }
 
 // This function creates a virtual movement plane for the mouseJoint to move in
-function setScreenPerpCenter(point, camera) {
+function setScreenPerpCenter(point, gui) {
     // If it does not exist, create a new one
     if(!gui.gplane) {
 	// We need to be precese about what these coordinates are!
@@ -653,7 +678,7 @@ function setScreenPerpCenter(point, camera) {
     gui.gplane.position.copy(point);
 
     // Make it face toward the camera
-    gui.gplane.quaternion.copy(camera.quaternion);
+    gui.gplane.quaternion.copy(gui.camera.quaternion);
 }
 
 function onMouseUp(e) {
@@ -665,19 +690,18 @@ function onMouseUp(e) {
 
         var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
-            setClickMarker(pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     
-//    constraintDown = false;
     // remove the marker
-    removeClickMarker();
+    removeClickMarker(gui);
 
     // Send the remove mouse joint to server
     removeJointConstraint();
 
         // This is an experimental positioning
-    do_test();
+    send_to_robot_url();
 
 
     if (gui.gplane.visible == true) {
@@ -685,7 +709,7 @@ function onMouseUp(e) {
 	// We need to re-establish the controls because I don't have
 	// any good way of exiting the active state...
 	gui.controls.dispose();
-	establish_controls(gui.camera,gui.container);
+	establish_controls(gui);
     }
 
 }
@@ -743,6 +767,7 @@ function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
     return projector.pickingRay(mouse3D, camera);
 }
 
+// TODO: This does not wseem to work correctly!
 function onWindowResize() {
     gui.renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
     
@@ -754,52 +779,52 @@ function onWindowResize() {
 
     gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
 }
-function animate() {
+// TODO: Would like to remove global here, but not sure how to do that ...
+function animate(mw,gui) {
     if (mw.world_live) {
-	requestAnimationFrame( animate );
+	requestAnimationFrame( function() { animate(mw,gui); });
 	mw.world_dead = false;
     } else {
-	mw.// TODO: All of this needs to be put in a mirrored world object so that we don't have
-// global variables!
-	world_dead = true;
+	mw.world_dead = true;
     }
-    //    controls.update();
-    updatePhysics();
-    render();
+    updatePhysics(mw);
+    render(gui);
 }
 
-var cylinderMesh = function( pointX, pointY )
-{
-    // edge from X to Y
-    var direction = new THREE.Vector3().subVectors( pointY, pointX );
-    var arrow = new THREE.ArrowHelper( direction, pointX );
+// var cylinderMesh = function( pointX, pointY )
+// {
+//     // edge from X to Y
+//     var direction = new THREE.Vector3().subVectors( pointY, pointX );
+//     var arrow = new THREE.ArrowHelper( direction, pointX );
 
-    var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
+//     var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
 
-    var edge = new THREE.Mesh( edgeGeometry, 
-			       new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
-    edge.rotation = arrow.rotation.clone();
-    edge.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
-    return edge;
-}
+//     var edge = new THREE.Mesh( edgeGeometry, 
+// 			       new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
+//     edge.rotation = arrow.rotation.clone();
+//     edge.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
+//     return edge;
+// }
 
 // orientMesh from X to Y at Midpoint
-function orientMesh( mesh, pointX, pointY )
-{
-    // edge from X to Y
-    var direction = new THREE.Vector3().subVectors( pointY, pointX );
-    var arrow = new THREE.ArrowHelper( direction, pointX );
+// function orientMesh( mesh, pointX, pointY )
+// {
+//     // edge from X to Y
+//     var direction = new THREE.Vector3().subVectors( pointY, pointX );
+//     var arrow = new THREE.ArrowHelper( direction, pointX );
 
-    // cylinder: radiusAtTop, radiusAtBottom, 
-    //     height, radiusSegments, heightSegments
-    var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
+//     // cylinder: radiusAtTop, radiusAtBottom, 
+//     //     height, radiusSegments, heightSegments
+//     var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
 
-    //     var edge = new THREE.Mesh( edgeGeometry, 
-    //        new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
-    mesh.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
-    mesh.rotation = arrow.rotation.clone();
-    return mesh;
-}
+//     //     var edge = new THREE.Mesh( edgeGeometry, 
+//     //        new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
+//     mesh.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
+//     mesh.rotation = arrow.rotation.clone();
+//     return mesh;
+// }
+
+
 function clear_text() {
     $("p").remove();
 }
@@ -881,7 +906,7 @@ function get_member_color(len) {
 
 
 
-function updatePhysics(){
+function updatePhysics(mw){
 
     // Unfortunately, we seem to need to slow the 1/60th of a second even furhter to reduce
     // jitter...possibly this is because my forces are too high?
@@ -956,9 +981,9 @@ function updatePhysics(){
 	mesh.geometry.verticesNeedUpdate = true;
 	mesh.geometry.elementsNeedUpdate = true;        
 	mesh.geometry.colorsNeedUpdate = true;    
-   }
+	}
 }
-function render() {
+function render(gui) {
     gui.renderer.render(gui.scene, gui.camera);
     gui.renderer.render(gui.grid_scene, gui.camera);
     gui.renderer.autoClear = false;
@@ -985,8 +1010,6 @@ function add_ground_plane(world,scene) {
     world.addBody(mw.GROUND_BODY);
     
     // floor
-//    mw.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
-
     mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
     mw.floorTexture.repeat.set( 10, 10 );
     var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
@@ -1064,11 +1087,10 @@ function add_obstacle(world,scene) {
 }
 
 function remove_non_eternal_constraints(world) {
-    for(var i = 0; i < world.constraints.length; i++) {
-	var c = world.constraints[i];
+    world.constraints.forEach(function (c) {
 	if (!c["eternal"]) 
 	    world.removeConstraint(c);
-    }
+    });
 }
 
 var spring = [];
@@ -1113,10 +1135,9 @@ function generate_mesh_pairings_from_robot(robot,scene)
     //    var links_map = new Map();
     var links = [];
 
-    for(var i = 0; i < robot.robot_joints.length; i++) {
-	var joint = robot.robot_joints[i];
+    robot.robot_joints.forEach(function (joint) {
 	process_vertex(joint,joint.position,results,mw.jointGeo,mw.jointMaterial);
-    }
+    });
 
 
     // This in fact needs to be a lot more complicated...but one step at a time.
@@ -1323,20 +1344,20 @@ function load_NTetGlussBot(world,tets,pvec) {
 
 
 
-function add_robot(world,scene) {
+function add_robot(cworld,scene) {
     var pvec = new CANNON.Vec3(0,mw.INITIAL_HEIGHT,0);
-    load_NTetGlussBot(world,gui.NUMBER_OF_TETRAHEDRA,pvec);
-    var pairings = generate_mesh_pairings_from_robot(mw.robot,scene);
-    gui.ROBOT_PAIRINGS = pairings;
-    for(var i = 0; i < pairings.length; i++) {
-	scene.add(pairings[i][1]);
-    }
     
-    // The timing here is making this asynchronous, which is not ideal...
-    pairings.forEach(function (item) {
+    load_NTetGlussBot(cworld,
+		      gui.NUMBER_OF_TETRAHEDRA,
+		      pvec);
+    
+    gui.ROBOT_PAIRINGS = generate_mesh_pairings_from_robot(mw.robot,scene);
+    
+    gui.ROBOT_PAIRINGS.forEach(function (item) {
+	scene.add(item[1]);
 	mw.push_body_mesh_pair(item[0],item[1]);
     });
-    //
+
     update_constraints(mw.robot.robot_members,
 		       link => {
 			   return mw.MEDIAN_EDGE_LENGTH;
@@ -1346,7 +1367,7 @@ function add_robot(world,scene) {
 
 
 // TODO: make world local here...
-function initCannon(){
+function initCannon(mw,gui){
     // Setup our world
     mw.cworld = new CANNON.World();
     // Add contact material to the world
@@ -1367,7 +1388,7 @@ function initCannon(){
     mw.cworld.addBody(gui.jointBody);
 }
 
-function add_floor() {
+function add_floor(mw,gui) {
     var item = add_ground_plane(mw.cworld,gui.scene)
     mw.GROUND_PLANE_MESH = item[1];
     mw.push_body_mesh_pair(item[0],item[1]);
@@ -1375,13 +1396,13 @@ function add_floor() {
 }
 
 
-function add_world_to_scene(scene) {
-    var pairings = gui.ROBOT_PAIRINGS;
-    for(var i = 0; i < pairings.length; i++) {
-	scene.add(pairings[i][1]);
-    }
+// function add_world_to_scene(scene) {
+//     var pairings = gui.ROBOT_PAIRINGS;
+//     for(var i = 0; i < pairings.length; i++) {
+// 	scene.add(pairings[i][1]);
+//     }
 
-}
+// }
 
 
 
@@ -1398,7 +1419,7 @@ function step_con() {
 function step_con() {
 		       }
 
-function do_test() {
+function send_to_robot_url() {
     // Right now, we are just sending the current config
     var pmodel = extract_physical_node_model();
     var am = model_to_actuator_space(pmodel);
@@ -1421,41 +1442,39 @@ function do_test() {
 		       
 
 function updateMouseConstraints(body) {
-        // Now we want to disable all attached length constraints (and actually add others)
-    for(var i = 0; i < mw.cworld.constraints.length; i++) {
-	var c = mw.cworld.constraints[i];
+    // Now we want to disable all attached length constraints (and actually add others)
+    mw.cworld.constraints.forEach(function (c) {
 	if (c.name != "mouseConstraint"){
-	// Possibly we don't want to really disable these, but weaken them.
-	if (gui.FORCE_REGIME == "STEP") {
-	    var d = c.bodyA.position.distanceTo(c.bodyB.position);
+	    // Possibly we don't want to really disable these, but weaken them.
+	    if (gui.FORCE_REGIME == "STEP") {
+		var d = c.bodyA.position.distanceTo(c.bodyB.position);
 
-	    var dp = Math.max(Math.min(d,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
-	    var f;
-	    // r should be 1.0 when at the edge.
+		var dp = Math.max(Math.min(d,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
+		// r should be 1.0 when at the edge.
 
-	    // NOTE: This approach is fundamentally limited, and probably conceptually wrong!
-	    // The string of the spring should not increase as we exceed the length!!!
-	    // THIS IS FUNDAMENTALLY WRONG.
-	    var r = (d - mw.MEDIAN_EDGE_LENGTH)/ ((mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH)/ 2);
+		// NOTE: This approach is fundamentally limited, and probably conceptually wrong!
+		// The string of the spring should not increase as we exceed the length!!!
+		// THIS IS FUNDAMENTALLY WRONG.
+		var r = (d - mw.MEDIAN_EDGE_LENGTH)/ ((mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH)/ 2);
 
-	    r = Math.max(r,0.4);
-	    var f = mw.CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
-	    if (!c["eternal"]) 
-		mw.cworld.removeConstraint(c);
-	    var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
-	    world.addConstraint(n);
+		r = Math.max(r,0.4);
+		var f = mw.CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
+		if (!c["eternal"]) 
+		    mw.cworld.removeConstraint(c);
+		var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
+		world.addConstraint(n);
 
-	} else if (gui.FORCE_REGIME == "DISABLE") {
-	    if (((c.bodyA == body) || (c.bodyB == body))
-		&& (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
-	       ) {
-		
-		c.disable();
+	    } else if (gui.FORCE_REGIME == "DISABLE") {
+		if (((c.bodyA == body) || (c.bodyB == body))
+		    && (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
+		   ) {
+		    
+		    c.disable();
+		}
+	    } else if (gui.FORCE_REGIME == "NONE") {
 	    }
-	} else if (gui.FORCE_REGIME == "NONE") {
 	}
-	}
-    }
+    });
 }
 
 function addMouseConstraint(x,y,z,body) {
@@ -1503,7 +1522,7 @@ function moveJointToPoint(x,y,z) {
 
     for(var i = 0; i < mw.bodies.length; i++) {
 	var bx = mw.bodies[i];
-	var mx = mw.meshes[i];
+//	var mx = mw.meshes[i];
 	if (bx.structureKind == "member") {
 	    var a = bx.link_a;
 	    var b = bx.link_z;
@@ -1549,10 +1568,9 @@ function moveJointToPoint(x,y,z) {
 }
 
 function render_constraints() {
-    for(var i = 0; i < mw.cworld.constraints.length; i++) {
-	var c = mw.cworld.constraints[i];
-	console.log("("+c.bodyA.name+","+c.bodyB.name+") = "+c.distance);	    	
-    }
+    mw.cworld.constraints.forEach(function (c) {
+	console.log("("+c.bodyA.name+","+c.bodyB.name+") = "+c.distance);
+    });
 }
 
 function removeJointConstraint() {
@@ -1565,18 +1583,16 @@ function removeJointConstraint() {
 
     var body = gui.mouseConstraint.attachedBody;
     if (body) {
-	
-	for(var i = 0; i < mw.cworld.constraints.length; i++) {
-	    var c = mw.cworld.constraints[i];
-		var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
-		// HACK: This is an experiment...
-		if (auto_rectify_on) {
-		    newrestlength = Math.max(Math.min(newrestlength,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
-		}
-		c.distance = newrestlength;
-		c.update();
-		c.enable();	    
-	}
+	mw.cworld.constraints.forEach(function (c) {
+	    var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
+	    // HACK: This is an experiment...
+	    if (gui.auto_rectify_on) {
+		newrestlength = Math.max(Math.min(newrestlength,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
+	    }
+	    c.distance = newrestlength;
+	    c.update();
+	    c.enable();
+	});
     }
     gui.mouseConstraint = false;
 
@@ -1614,16 +1630,20 @@ function render_actuator_model(form) {
 	x = '"'+x.replace(/"/gi,'\\"')+'"';
     var command = $("#amodel").val(x);
 }
+
+// TODO: This can be better.
 function get_body_by_name(name) {
-    for(var i = 0; i < mw.bodies.length; i++) {
-	var bx = mw.bodies[i];
+    var retval;
+    mw.bodies.forEach(function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    if (bx.name == name) {
-		return bx;
+		retval = bx;
 	    }
 	}
-    }
+    });
+    return retval;
 }
+
 function set_constraints(am) {
     update_constraints(mw.robot.robot_members,link => {
 	var e = actuator_to_length(am[key]);	
@@ -2026,7 +2046,7 @@ function small_size() {
     fixed_size(mw.MIN_EDGE_LENGTH);
 }
 
-
+// TODO: Can thse bee done with some sort of macro?
 function toggle_gravity() {
     if (gui.gravity_on) {
 	gui.gravity_on = false;
@@ -2039,17 +2059,17 @@ function toggle_gravity() {
     }
 }
 
-var auto_rectify_on = false;
+
 function auto_rectify_toggle() {
-    if (auto_rectify_on) {
-	auto_rectify_on = false;
+    if (gui.auto_rectify_on) {
+	gui.auto_rectify_on = false;
 	$("#auto_rectify_ctl").html("Turn Auto Rectify On");	
     } else {
-	auto_rectify_on = true;
+	gui.auto_rectify_on = true;
 	$("#auto_rectify_ctl").html("Turn Auto Rectify Off");	
     }
 }
-var fudge = 0.1;
+
 function update_constraints(links,f) {
     remove_non_eternal_constraints(mw.cworld);
     for(var lin in links) {
@@ -2190,7 +2210,7 @@ function assume_pose(pose) {
     
     var STEPS_TO_TAKE = 30;
     for(var j = 0; j < STEPS_TO_TAKE; j++) {
-	updatePhysics();
+	updatePhysics(mw);
     }
 }
 
@@ -2340,7 +2360,7 @@ function actuator(b1,b2) {
 function regenerate() {
     for(var i = 0; i < mw.bodies.length; i++) {
 	var bx = mw.bodies[i];
-	var mx = mw.meshes[i];
+//	var mx = mw.meshes[i];
 	if (bx.name != "floor") {
 	    gui.scene.remove(mw.meshes[i]);
 	}
@@ -2360,61 +2380,16 @@ function regenerate() {
 
     var STEPS_TO_TAKE = 3;
     for(var j = 0; j < STEPS_TO_TAKE; j++) {
-	updatePhysics();
+	updatePhysics(mw);
     }
 }
 
-// Initialize Three.js
-if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-// remove_robot and remove_world are dead code but useful for creating
-// proper objects in the future.
-function remove_robot() {
-    mw.meshes = [];
-    mw.bodies = [];
-    mw.robot.robot_joints = [];
-// This is the cannon.js robot members.
-    mw.robot.robot_members = [];
-}
-
-function remove_world() {
-    mw.world_live = false;
-    while (gui.world_container.get()[0].hasChildNodes()) {   
-	gui.world_container.get()[0].removeChild(gui.world_container.get()[0].firstChild);
-    }
-
-    remove_robot();
-
-    gui.jointBody = null;
-
-    gui.mouseConstraint = null;
-
-    gui.container = null;
-    gui.camera = null;
-    gui.scene = null;
-    gui.renderer = null;
-    gui.projector = null;
-
-    gui.grid_scene = null;
-
-    gui.cameraOrtho = null;
-    
-    sprite_controls.clear();
-    
-    gui.sceneOrtho = null;
-    gui.gplane=false;
-    gui.clickMarker=false;
-
-    mw.meshes = [];
-    mw.bodies = [];
-    mw.GROUND_PLANE_MESH = null;
-    mw.GROUND_BODY = null;
-}
 
 function build_world(gui,mw) {
     gui.scene = init_scene(gui);
-    initCannon();
-    add_floor();
+    initCannon(mw,gui);
+    add_floor(mw,gui);
     add_robot(mw.cworld,gui.scene);
     add_obstacle(mw.cworld,gui.scene);
 
@@ -2423,19 +2398,20 @@ function build_world(gui,mw) {
 			   return mw.MEDIAN_EDGE_LENGTH;
 		       });
 
-    finish_scene_preparation(gui.scene);
+    finish_scene_preparation(gui);
     update_poses();
     mw.world_live = true;
-    animate();
+    animate(mw,gui);
 }
 
-build_world(gui,mw);
+
 
 function reset_to_default(gui,mw) {
-    remove_world();
+    gui.remove_world();
     build_world(gui,mw);
 }
 
+// TODO: Organize these into an init function.
 $(document).on('click', '.panel-heading span.clickable', function(e){
     var $this = $(this);
     if(!$this.hasClass('panel-collapsed')) {
@@ -2449,7 +2425,34 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     }
 });
 
+$("#poseurl").val(gui.url_for_robot);
+
+$.getJSON( "./standard_gaits.json")
+    .done(function( json ) {
+	gui.standard_objs = json;
+	gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
+
+	var local_objs = [];
+	for (var i = 0; i < localStorage.length; i++){
+	    var obj = localStorage[localStorage.key(i)];
+	    var pobj = JSON.parse(obj);
+	    pobj["pose"] = convert_to_number(pobj["pose"])
+	    gui.standard_ctx[localStorage.key(i)] = pobj;
+	}
+	update_standard_poses();	
+    })
+  .fail(function( jqxhr, textStatus, error ) {
+    var err = textStatus + ", " + error;
+    console.log( "Request Failed: " + err );
+  });
+
 $('.panel-heading span.clickable').click();
+
+build_world(gui,mw);
+
+// Initialize Three.js
+if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
 
 
 //----------------------------------------------------------------------------
