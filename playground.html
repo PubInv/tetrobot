@@ -360,6 +360,8 @@ var GUI = function(mw) {
     this.url_for_robot = "http://127.0.0.1:9000";    
     this.auto_rectify_on = false;
 
+    this.movedButNotSent = false;
+
     this.material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     this.markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
     this.color_scale = d3.scale.quantile().domain([this.mw.MIN_EDGE_LENGTH, this.mw.MAX_EDGE_LENGTH])
@@ -563,6 +565,7 @@ function setClickMarker(gui,mw,x,y,z) {
     }
     gui.clickMarker.visible = true;
     gui.clickMarker.position.set(x,y,z);
+    gui.movedButNotSent = true;
 }
 
 function removeClickMarker(gui){
@@ -689,8 +692,12 @@ function onMouseUp(e) {
     // Send the remove mouse joint to server
     removeJointConstraint();
 
-        // This is an experimental positioning
-    send_to_robot_url();
+    // This is an experimental positioning
+    // TODO: This needs to be called only if we have moved an object.
+    if (gui.movedButNotSent) {
+	send_to_robot_url();
+	gui.movedButNotSent = false;
+    }
 
 
     if (gui.gplane.visible == true) {
@@ -726,14 +733,18 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
     mouse.y = -(event.clientY / (gui.renderer.getSize().height)) * 2 + 1; 
 
     var raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects( objects );        
-    var closest = false;
-    if (intersects.length > 0) {
-        closest = intersects[0];
+    try {
+	raycaster.setFromCamera(mouse, camera);
+	var intersects = raycaster.intersectObjects( objects );        
+	var closest = false;
+	if (intersects.length > 0) {
+            closest = intersects[0];
+	}
+	return closest;
+    } catch (err) {
+	console.log("Error: "+err);
+	return null;
     }
-
-    return closest;
 }
 
 // Function that returns a raycaster to use to find intersecting objects
@@ -2307,10 +2318,6 @@ function initiation_stuff() {
 }
 
 initiation_stuff();
-
-
-// TODO: Move this to a separate file!  This is mostly not my code anyway.
-
 
 
         </script>
