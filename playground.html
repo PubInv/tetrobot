@@ -166,6 +166,7 @@
       </div>
     </body>
 
+    <script src="./js/axes.js"></script>
     <script src="./js/three.js"></script>
         <script src="./js/Detector.js"></script>
     <script src="./js/cannon.js"></script>
@@ -189,11 +190,6 @@
      <script type="text/javascript" src="./js/dat.gui.js"></script> 
     <script>
 
-
-
-
-
-
 function convert_to_number(obj) {
     for(var k in obj) {
 	if (typeof obj[k] == "string") {
@@ -202,8 +198,6 @@ function convert_to_number(obj) {
     }
     return obj;
 }
-
-
 
 // A "robot" is really a graph of vertices with connections.
 // In physical realization, the connections are actuators with length limits.
@@ -607,11 +601,13 @@ function onMouseDown(e){
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
-    if (pos && (entity.object.geometry instanceof THREE.SphereGeometry
-		 ||
-		(entity.object.name.startsWith("obstacle"))
-		||
-		(entity.object.name.startsWith("member"))
+    if (pos &&
+	(
+		(entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
 		)
        ){
         var idx = mw.meshes.indexOf(entity.object);
@@ -659,9 +655,7 @@ function setScreenPerpCenter(point, gui) {
 	plane_material.transparent = true;
 	plane_material.opacity = 0.0;
 	
-        var plane = gui.gplane = new THREE.Mesh(planeGeo,plane_material);
-	//        plane.visible = false; // Hide it..
-	// ????
+	gui.gplane = new THREE.Mesh(planeGeo,plane_material);
 	
         gui.scene.add(gui.gplane);
     }
@@ -734,11 +728,6 @@ function findNearestIntersectingObject(clientX,clientY,camera,objects) {
     var raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObjects( objects );        
-    // Change color if hit block
-    // if ( intersects.length > 0 ) {
-    // 	if (intersects[0].object.name != "movementplane") 
-    // 	    intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
-    // }
     var closest = false;
     if (intersects.length > 0) {
         closest = intersects[0];
@@ -923,7 +912,7 @@ function updatePhysics(mw){
 	    var y = (p3.y*gui.renderer.getSize().height/2.0)+gui.renderer.getSize().height/2;
 
 	    // Experiment...
-	    if (body.name && !body.name.startsWith("endpoint")) {
+	    if (body.name && body.structureKind == "joint") {
 		body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
 	    }
 
@@ -1026,6 +1015,7 @@ function add_obstacle(world,scene) {
 					     mw.obstacleSize/FRACTION );
 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 	mesh.name = "obstacle-"+i;
+	mesh.structureKind = "obstacle";
 	scene.add(mesh);
 
 	mesh.geometry.verticesNeedUpdate = true;
@@ -1078,6 +1068,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
     function process_vertex(joint,v,results,geo,mat) {
 	var mesh = new THREE.Mesh(geo, mat);
 	mesh.name = "joint";
+	mesh.structureKind = "joint";
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	results.unshift([joint,mesh]);
@@ -1111,6 +1102,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	mesh.name = "member";
+	mesh.structureKind = "member";
 	results.unshift([link.body,mesh]);
 	mem_cnt++;
     }
@@ -1182,6 +1174,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 	var boxShape = new CANNON.Box(new CANNON.Vec3(s,s,s));
 	//	var boxShape = new CANNON.Sphere(mw.JOINT_RADIUS);	
 	boxBody.addShape(boxShape);
+	boxBody.structureKind = "joint";	
 	boxBody.position.set(v.x,v.y,v.z);
 	boxBody.mass = 1;
 	boxBody.angularDamping = 0.9;
@@ -1189,7 +1182,6 @@ function load_NTetGlussBot(world,tets,pvec) {
 	boxBody.name = alphabetic_name(i);
 	joints_to_link_map[boxBody.name] = {};
 	mw.robot.robot_joints.push(boxBody);
-	console.log("pushing joint: "+boxBody.name);
 	world.addBody(boxBody);
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
@@ -1258,7 +1250,7 @@ function load_NTetGlussBot(world,tets,pvec) {
 		endpoints.push(ep);
 		ep.addShape(new CANNON.Particle());
 		ep.name = "endpoint-"+i+"-"+j;
-		//	    ep.structureKind = "obstacle";
+		ep.structureKind = "endpoint";
 		var s0 = (j == 0) ? mw.MEDIAN_EDGE_LENGTH/2 : -mw.MEDIAN_EDGE_LENGTH/2;
 		var s1 = -s0;
 		ep.position.set(memBody.position.x,
@@ -1405,8 +1397,8 @@ function updateMouseConstraints(body) {
 
 	    } else if (gui.FORCE_REGIME == "DISABLE") {
 		if (((c.bodyA == body) || (c.bodyB == body))
-		    && (!(c.bodyA.name.startsWith("endpoint") || c.bodyB.name.startsWith("endpoint") ))
-		   ) {
+		    && (!(c.bodyA.structureKind =="endpoint") || (c.bodyB.structureKind == "endpoint")) 
+		    ) {
 		    
 		    c.disable();
 		}
@@ -2319,214 +2311,6 @@ initiation_stuff();
 
 // TODO: Move this to a separate file!  This is mostly not my code anyway.
 
-
-//----------------------------------------------------------------------------
-// opts
-// {
-//  height: width, 
-//  width: depth,
-//  linesHeight: b,
-//  linesWidth: c,
-//  color: 0xcccccc
-// }
-//
-//____________________________________________________________________________
-function createAGrid(opts) {
-  var config = opts || {
-    height: 500,
-    width: 500,
-    linesHeight: 10,
-    linesWidth: 10,
-    color: 0xDD006C
-  };
-
-  var material = new THREE.LineBasicMaterial({
-    color: config.color,
-      opacity: 0.2,
-      linewidth: 2
-  });
-
-  var gridObject = new THREE.Object3D(),
-    gridGeo = new THREE.Geometry(),
-    stepw = 2 * config.width / config.linesWidth,
-    steph = 2 * config.height / config.linesHeight;
-
-  //width
-  for (var i = -config.width; i <= config.width; i += stepw) {
-    gridGeo.vertices.push(new THREE.Vector3(-config.height, i, 0));
-    gridGeo.vertices.push(new THREE.Vector3(config.height, i, 0));
-
-  }
-  //height
-  for (var i = -config.height; i <= config.height; i += steph) {
-    gridGeo.vertices.push(new THREE.Vector3(i, -config.width, 0));
-    gridGeo.vertices.push(new THREE.Vector3(i, config.width, 0));
-  }
-
-  var line = new THREE.Line(gridGeo, material, THREE.LinePieces);
-  gridObject.add(line);
-
-  return gridObject;
-}
-
-function labelAxis(width, data, direction){
-
-  var separator = 2*width/data.length,
-			p = {
-				x:0,
-				y:0,
-				z:0
-			},
-			dobj = new THREE.Object3D();
-
-  for ( var i = 0; i < data.length; i ++ ) {
-      var label = makeTextSprite(data[i],{fontsize: 50 });
-
-		label.position.set(p.x,p.y,p.z);
-
-		dobj.add( label );
-		if (direction=="y"){
-			p[direction]+=separator;
-		}else{
-			p[direction]-=separator;
-		}
-
-  }
-  return dobj;
-}
-
-
-// This was written by Lee Stemkoski
-// https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html
-function makeTextSprite( message, parameters )
-{
-	if ( parameters === undefined ) parameters = {};
-
-	var fontface = parameters["fontface"] || "Helvetica";
-        var fontsize = parameters["fontsize"] || 70;
-	var canvas = document.createElement('canvas');
-	var context = canvas.getContext('2d');
-	context.font = fontsize + "px " + fontface;
-
-	// get size data (height depends only on font size)
-	var metrics = context.measureText( message );
-	var textWidth = metrics.width;
-
-
-	// text color
-        context.fillStyle = "yellow";
-
-	context.fillText( message, 0, fontsize);
-
-	// canvas contents will be used for a texture
-	var texture = new THREE.Texture(canvas)
-			texture.minFilter = THREE.LinearFilter;
-			texture.needsUpdate = true;
-
-	var spriteMaterial = new THREE.SpriteMaterial({ map: texture, useScreenCoordinates: false});
-	var sprite = new THREE.Sprite( spriteMaterial );
-	return sprite;
-}
-
-function getMeterScale(sep,meters) {
-    var scale = [];
-    var n = meters/sep;
-    for(var i = 0; i < n; i++) {
-	scale.push(""+i*sep+"m");
-    }
-    return scale;
-}
-
-function gridInit(glScene,gDimensions){
-
-    var tickSeparationMeters = 0.5;
-
-    // Y is the vertical dimension!
-    // x is width, z is distance away
-    var data = {
-  labels: {
-      y: getMeterScale(tickSeparationMeters,gDimensions.h),
-      x: getMeterScale(tickSeparationMeters,gDimensions.w),
-    z: getMeterScale(tickSeparationMeters,gDimensions.d)
-  }
-};
-
-
-      var graphDimensions = {
-	  w:gDimensions.w,
-	  d:gDimensions.d,
-	  h:gDimensions.h
-      };
-
-	var boundingGrid = new THREE.Object3D(),
-			depth = graphDimensions.d/2, //depth
-			width = graphDimensions.w/2, //width
-			height = graphDimensions.h/2, //height
-			a =data.labels.y.length,
-			b= data.labels.x.length,
-			c= data.labels.z.length;
-
-	//pink
-	var newGridXY = createAGrid({
-				height: width,
-				width: height,
-				linesHeight: b,
-				linesWidth: a,
-				color: 0xcc0000
-			});
-			//newGridXY.position.y = height;
-    newGridXY.position.z = -depth;
-    newGridXY.position.y = height;
-			boundingGrid.add(newGridXY);
-
-    //blue
-	var newGridYZ = createAGrid({
-				height: width,
-				width: depth,
-				linesHeight: b,
-				linesWidth: c,
-				color: 0x0000cc
-			});
-	 		newGridYZ.rotation.x = Math.PI/2;
-//	 		newGridYZ.position.y = -height;
-			boundingGrid.add(newGridYZ);
-
-	//green
-	var newGridXZ = createAGrid({
-				height: depth,
-				width: height,
-				linesHeight:c,
-				linesWidth: a,
-				color: 0x00cc00
-			});
-
-    newGridXZ.position.x = width;
-        newGridXZ.position.y = height;
-			//newGridXZ.position.y = height;
-	 		newGridXZ.rotation.y = Math.PI/2;
-			boundingGrid.add(newGridXZ);
-
-    glScene.add(boundingGrid);
-
-    var margin = 0.4;
-	var labelsW = labelAxis(width, data.labels.x,"x");
-			labelsW.position.x = width;
-			labelsW.position.y = 0;
-    			labelsW.position.z = -margin + -depth;
-			glScene.add(labelsW);
-
-	var labelsH = labelAxis(height, data.labels.y,"y");
-			labelsH.position.x = width;
-                        labelsH.position.y = -margin/2;
-			labelsH.position.z = -depth;
-			glScene.add(labelsH);
-
-	var labelsD = labelAxis(depth, data.labels.z, "z");
-                        labelsD.position.x = width;
-                        labelsD.position.y = 0;
-			labelsD.position.z = -margin + depth;
-			glScene.add(labelsD);
-};
 
 
         </script>
