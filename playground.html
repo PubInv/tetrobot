@@ -762,7 +762,9 @@ function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
 // TODO: This does not wseem to work correctly!
 function onWindowResize() {
     gui.renderer.setSize( window.innerWidth, (1*window.innerHeight)/2 );
-    
+
+    gui.camera.aspect = gui.renderer.getSize().width / (gui.renderer.getSize().height);
+
     gui.camera.updateProjectionMatrix();
 
     gui.SCREEN_WIDTH = gui.renderer.getSize().width;
