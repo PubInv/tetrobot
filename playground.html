@@ -370,6 +370,8 @@ var GUI = function(mw) {
 
     this.material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
     this.markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+    this.color_scale = d3.scale.quantile().domain([this.mw.MIN_EDGE_LENGTH, this.mw.MAX_EDGE_LENGTH])
+    .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
     
 };
 
@@ -714,7 +716,6 @@ function onMouseUp(e) {
 
 }
 
-var lastx,lasty,last;
 function projectOntoPlane(screenX,screenY,thePlane,camera) {
     var x = screenX;
     var y = screenY;
@@ -724,9 +725,6 @@ function projectOntoPlane(screenX,screenY,thePlane,camera) {
     // this means that we can only fold an object on itself.
     // I think this would work if you have
     var hit = findNearestIntersectingObject(screenX,screenY,camera,[thePlane]);
-    lastx = x;
-    lasty = y;
-    last = now;
     if(hit)
         return hit.point;
     else return false;
@@ -791,40 +789,6 @@ function animate(mw,gui) {
     render(gui);
 }
 
-// var cylinderMesh = function( pointX, pointY )
-// {
-//     // edge from X to Y
-//     var direction = new THREE.Vector3().subVectors( pointY, pointX );
-//     var arrow = new THREE.ArrowHelper( direction, pointX );
-
-//     var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
-
-//     var edge = new THREE.Mesh( edgeGeometry, 
-// 			       new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
-//     edge.rotation = arrow.rotation.clone();
-//     edge.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
-//     return edge;
-// }
-
-// orientMesh from X to Y at Midpoint
-// function orientMesh( mesh, pointX, pointY )
-// {
-//     // edge from X to Y
-//     var direction = new THREE.Vector3().subVectors( pointY, pointX );
-//     var arrow = new THREE.ArrowHelper( direction, pointX );
-
-//     // cylinder: radiusAtTop, radiusAtBottom, 
-//     //     height, radiusSegments, heightSegments
-//     var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
-
-//     //     var edge = new THREE.Mesh( edgeGeometry, 
-//     //        new THREE.MeshBasicMaterial( { color: 0xff00ff } ) );
-//     mesh.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
-//     mesh.rotation = arrow.rotation.clone();
-//     return mesh;
-// }
-
-
 function clear_text() {
     $("p").remove();
 }
@@ -885,11 +849,7 @@ var sprite_controls = new function () {
     };
 };
 
-// var color_scale = d3_scale.scaleRainbow().domain([MIN_EDGE_LENGTH, mw.MAX_EDGE_LENGTH]);
-// var color_scale = d3_scale.scalePlasma();
 
-var color_scale = d3.scale.quantile().domain([mw.MIN_EDGE_LENGTH, mw.MAX_EDGE_LENGTH])
-    .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
 
 
 
@@ -900,7 +860,7 @@ function get_member_color(len) {
 	return d3.rgb("black");
     else {
 	var p = (len - mw.MIN_EDGE_LENGTH) / (mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH);
-	return d3.rgb(color_scale(len));
+	return d3.rgb(gui.color_scale(len));
     }
 }
 
@@ -1533,7 +1493,7 @@ function moveJointToPoint(x,y,z) {
 		var bp = b.position;
 		var len = ap.distanceTo(bp);
 		
-		var cd3 = d3.rgb(color_scale(len));
+		var cd3 = d3.rgb(gui.color_scale(len));
 		
 		var d = len;
 		
@@ -1546,7 +1506,7 @@ function moveJointToPoint(x,y,z) {
 		gui.scene.add(mesh);
 		mw.meshes[i] = mesh;
 		for(var j = 0; j < mesh.geometry.faces.length; j++) {
-    		    mesh.geometry.faces[j].color.setStyle( color_scale(d) );
+    		    mesh.geometry.faces[j].color.setStyle( gui.color_scale(d) );
 		}
 		
 		mesh.position.set(a.position.x,a.position.y,a.position.z);
@@ -2091,20 +2051,15 @@ function update_constraints(links,f) {
 	if (!mem) {
 	    console.log("Can't find a.name, b.name "+a.name + b.name);
 	}
-//	if (mw.obstacles.length > 0) {
-//	if (a.name == "C" && b.name == "D") {
-	    var s = (d/2);
-	    var memShape = mem.shapes[0];
-	    memShape.halfExtents.set(s,
-				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
-				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
-	    memShape.updateConvexPolyhedronRepresentation();
+	var s = (d/2);
+	var memShape = mem.shapes[0];
+	memShape.halfExtents.set(s,
+				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
+				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
+	memShape.updateConvexPolyhedronRepresentation();
 	mem.computeAABB();
 	var pivotA = new CANNON.Vec3(0,0,0);
-	// I have no idea why in pivotMEM this should be done on the Y axis -- it must
-	// be some weird internal manipulation of the objects that is occuring before
-	// we get it, might have to look at quaternions!!!!
-	// Or maybe I should check the Cannon code to make sure there is not a bug...
+
 	function add_p2p_constraint(a,mem) {
 	    var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,0,mw.CONSTRAINT_FORCE_LARGE);
 	    mw.cworld.addConstraint(ca);
@@ -2135,7 +2090,6 @@ function fixed_size(s) {
 
 
 function assume_pose(pose) {
-
     update_constraints(mw.robot.robot_members,link => {
 	var d = actuator_to_length(pose[act]);
 	return d;
@@ -2201,7 +2155,6 @@ function find_bodies_from_actuator(name) {
 
 }
 function test_find_bodies_from_actuator() {
-    
     for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
 	var a = "A"+i;
 	var bs = find_bodies_from_actuator(a);
