@@ -218,6 +218,8 @@ function convert_to_number(obj) {
 // and the Three.js world of renderable shapes and meshes.
 var MW = function() {
     this.dt = 1/60;
+    // Warning, this is a big of a hack --- it is unclear what should be used here.
+    this.time_factor = 1.0;
     this.GROUND_PLANE_MESH;
     this.GROUND_BODY;
     this.meshes = [];
@@ -333,7 +335,7 @@ var GUI = function(mw) {
     this.SCREEN_WIDTH = window.innerWidth;
     this.SCREEN_HEIGHT = 1*window.innerHeight/2.0;
     this.TIME_BETWEEN_POSES_MS = 3000;
-    this.GAIT_SUBDIVISIONS = 10;
+    this.GAIT_SUBDIVISIONS = 30;
     this.cameraOrtho = null;
     this.sceneOrtho = null;
     this.renderer = null;
@@ -579,8 +581,7 @@ function onMouseMove(e){
 	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
 					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
-	
-	mouse3D.unproject( gui.camera );
+		mouse3D.unproject( gui.camera );
 
         var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
@@ -861,12 +862,7 @@ function get_member_color(len) {
 
 function updatePhysics(mw){
 
-    // Unfortunately, we seem to need to slow the 1/60th of a second even furhter to reduce
-    // jitter...possibly this is because my forces are too high?
-    //    world.step(mirroredWorld.dt*0.2);
-    mw.cworld.step(mw.dt*0.2);
-    var mem_cnt = 0;
-
+    mw.cworld.step(mw.dt * mw.time_factor);
 
     for(var i=0; i !== mw.bodies.length; i++){
 	var mesh = mw.meshes[i];
@@ -879,7 +875,6 @@ function updatePhysics(mw){
 	// eventually, I must restore the coloring function here!!!
 
 	if (mw.bodies[i].structureKind == "member") {
-	    mem_cnt++;
 	    var a = body.link_a;
 	    var b = body.link_z;
 	    var ap = a.position;
@@ -1071,7 +1066,6 @@ function generate_mesh_pairings_from_robot(robot,scene)
     var vertex_index = 0;
 
     var body_cnt = 0;
-    var mem_cnt = 0;
     // This is not yet physically modeling our system.
     var size = mw.JOINT_RADIUS;
     // Totally not understanding this...
@@ -1115,7 +1109,6 @@ function generate_mesh_pairings_from_robot(robot,scene)
 	mesh.name = "member";
 	mesh.structureKind = "member";
 	results.unshift([link.body,mesh]);
-	mem_cnt++;
     }
     return results;
 }
