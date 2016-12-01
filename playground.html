@@ -333,8 +333,6 @@ MW.prototype.remove_robot = function() {
 
 var mw = new MW();
 
-
-
 var GUI = function(mw) {
     this.mw = mw;
     this.controls = null;
@@ -413,13 +411,8 @@ GUI.prototype.remove_world = function() {
 
 var gui = new GUI(mw);
 
-
-
-
-
 function establish_controls(gui) {
     gui.controls = new THREE.OrbitControls( gui.camera, gui.container );
-    //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
     gui.controls.enableDamping = true;
     gui.controls.dampingFactor = 0.25;
     gui.controls.enableZoom = true;
@@ -1053,8 +1046,6 @@ function remove_non_eternal_constraints(world) {
     });
 }
 
-var spring = [];
-
 Object.size = function(obj) {
     var size = 0, key;
     for (key in obj) {
@@ -1067,6 +1058,7 @@ Object.size = function(obj) {
 function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
+
 function generate_mesh_pairings_from_robot(robot,scene)
 {
     var results = [];
@@ -1175,7 +1167,6 @@ function load_NTetGlussBot(world,tets,pvec) {
 
     var n = tets+3;    
     var mass = mw.BASIC_BODY_MASS;
-//    world.addContactMaterial(mw.ground_ground_cm);    
 
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,mw.MEDIAN_EDGE_LENGTH);
@@ -1261,7 +1252,6 @@ function load_NTetGlussBot(world,tets,pvec) {
 //	    var ep_mass = 1.0;
 	    for (var j = 0; j < 2; j++) {
 		var ep = new CANNON.Body({ mass: ep_mass,
-//					   material : mw.ground_ground_cm,
 					   collisionFilterGroup: 0,
 					   collisionFilterMask: 0, 
 					 });
@@ -1354,17 +1344,6 @@ function add_floor(mw,gui) {
     mw.push_body_mesh_pair(item[0],item[1]);
     gui.scene.add(mw.GROUND_PLANE_MESH);
 }
-
-
-// function add_world_to_scene(scene) {
-//     var pairings = gui.ROBOT_PAIRINGS;
-//     for(var i = 0; i < pairings.length; i++) {
-// 	scene.add(pairings[i][1]);
-//     }
-
-// }
-
-
 
 function disable_con() {
     gui.FORCE_REGIME = "DISABLE";
@@ -1480,9 +1459,8 @@ function moveJointToPoint(x,y,z) {
     
     var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
 
-    for(var i = 0; i < mw.bodies.length; i++) {
+    mw.bodies.forEach(function (bx,i) {
 	var bx = mw.bodies[i];
-//	var mx = mw.meshes[i];
 	if (bx.structureKind == "member") {
 	    var a = bx.link_a;
 	    var b = bx.link_z;
@@ -1519,9 +1497,8 @@ function moveJointToPoint(x,y,z) {
 
 	    }
 	}
-	//	}	
-	
-    }
+    });
+
 
     updateMouseConstraints(null);
     gui.mouseConstraint.update();
@@ -1654,11 +1631,8 @@ function rectify(id) {
 
 function load_pose(id) {
     var pose_string = $("#amodel").val();
-
     var unescaped = pose_string.replace(/\\\"/g,"\"");
-    
     var actuator_model = JSON.parse(unescaped);
-    
     set_constraints(actuator_model);
 }
 
@@ -1878,13 +1852,11 @@ function test_execute_2() {
     var n0 = gui.standard_objs[5].name;
     var n1 = gui.standard_objs[6].name;
     var glog = [n0,n1];
-//    gui.standard_ctx = generate_context_from_standard(standard_objs);
     execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,glog,10,1000);
 }
 
 function test_execute_3() {
     var glog = ["thinwalk"];
-//    gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
     execute(gui.standard_ctx,mw.most_recent_contraints,execute_atom,glog,10,1000);
 }
 
@@ -1946,13 +1918,12 @@ function interpolate_model(m1,m2,frac) {
 
 function extract_physical_node_model() {
     var nodes = [];
-    for(var i = 0; i < mw.bodies.length; i++) {
-	var bx = mw.bodies[i];
+    mw.bodies.forEach( function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    nodes.push({ name: bx.name,
 			 position: new CANNON.Vec3(bx.position.x,bx.position.y,bx.position.z) });
 	}
-    }
+    });
     return nodes;
 }
 
@@ -2246,19 +2217,18 @@ function actuator(b1,b2) {
 function regenerate() {
 
     // TODO: does forEach has an index variable?
-    for(var i = 0; i < mw.bodies.length; i++) {
-	var bx = mw.bodies[i];
-	var mx = mw.meshes[i];
+    mw.bodies.forEach(function (bx,index) {
+	var mx = mw.meshes[index];
 	if (bx.name != "floor") {
 	    gui.scene.remove(mx);
 	}
-    }
+    });
 
     var pairings = generate_mesh_pairings_from_robot(mw.robot,gui.scene);
     // TODO: replace with forEach
-    for(var i = 0; i < pairings.length; i++) {
-	gui.scene.add(pairings[i][1]);
-    }
+    pairings.forEach(function (item) {	
+	gui.scene.add(item[1]);
+    });
 
     clear_non_floor_body_mesh_pairs();
     
@@ -2300,47 +2270,51 @@ function reset_to_default(gui,mw) {
     build_world(gui,mw);
 }
 
-// TODO: Organize these into an init function.
-$(document).on('click', '.panel-heading span.clickable', function(e){
-    var $this = $(this);
-    if(!$this.hasClass('panel-collapsed')) {
-	$this.parents('.panel').find('.panel-body').slideUp();
-	$this.addClass('panel-collapsed');
-	$this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
-    } else {
-	$this.parents('.panel').find('.panel-body').slideDown();
-	$this.removeClass('panel-collapsed');
-	$this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
-    }
-});
-
-$("#poseurl").val(gui.url_for_robot);
-
-$.getJSON( "./standard_gaits.json")
-    .done(function( json ) {
-	gui.standard_objs = json;
-	gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
-
-	var local_objs = [];
-	for (var i = 0; i < localStorage.length; i++){
-	    var obj = localStorage[localStorage.key(i)];
-	    var pobj = JSON.parse(obj);
-	    pobj["pose"] = convert_to_number(pobj["pose"])
-	    gui.standard_ctx[localStorage.key(i)] = pobj;
+function initiation_stuff() {
+    // TODO: Organize these into an init function.
+    $(document).on('click', '.panel-heading span.clickable', function(e){
+	var $this = $(this);
+	if(!$this.hasClass('panel-collapsed')) {
+	    $this.parents('.panel').find('.panel-body').slideUp();
+	    $this.addClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+	} else {
+	    $this.parents('.panel').find('.panel-body').slideDown();
+	    $this.removeClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
 	}
-	update_standard_poses();	
-    })
-  .fail(function( jqxhr, textStatus, error ) {
-    var err = textStatus + ", " + error;
-    console.log( "Request Failed: " + err );
-  });
+    });
 
-$('.panel-heading span.clickable').click();
+    $("#poseurl").val(gui.url_for_robot);
 
-build_world(gui,mw);
+    $.getJSON( "./standard_gaits.json")
+	.done(function( json ) {
+	    gui.standard_objs = json;
+	    gui.standard_ctx = generate_context_from_standard(gui.standard_objs);
 
-// Initialize Three.js
-if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+	    var local_objs = [];
+	    for (var i = 0; i < localStorage.length; i++){
+		var obj = localStorage[localStorage.key(i)];
+		var pobj = JSON.parse(obj);
+		pobj["pose"] = convert_to_number(pobj["pose"])
+		gui.standard_ctx[localStorage.key(i)] = pobj;
+	    }
+	    update_standard_poses();	
+	})
+	.fail(function( jqxhr, textStatus, error ) {
+	    var err = textStatus + ", " + error;
+	    console.log( "Request Failed: " + err );
+	});
+
+    $('.panel-heading span.clickable').click();
+
+    build_world(gui,mw);
+
+    // Initialize Three.js
+    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+}
+
+initiation_stuff();
 
 
 // TODO: Move this to a separate file!  This is mostly not my code anyway.
