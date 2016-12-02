@@ -294,7 +294,8 @@ var MW = function() {
     };
 
     this.obstacles = [];
-    this.obstacleSize = this.MEDIAN_EDGE_LENGTH*4;
+    this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
+    this.OBSTACLE_FRACTION = 5;   
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
@@ -345,8 +346,8 @@ var GUI = function(mw) {
     this.camera = null;
     this.scene = null;
 
-    this.NUMBER_OF_TETRAHEDRA = 5;
-    //    this.NUMBER_OF_TETRAHEDRA = 1;
+//    this.NUMBER_OF_TETRAHEDRA = 5;
+    this.NUMBER_OF_TETRAHEDRA = 1;
 
     this.jointBody = null;
     this.mouseConstraint = null;
@@ -986,14 +987,14 @@ function add_obstacle(world,scene) {
 
     var num = 4;
     var mass = 3000;
-    var FRACTION = 30;
+
     var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
 			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
 			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
 			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-	    mw.obstacleSize/2,mw.obstacleSize/(2*FRACTION),mw.obstacleSize/(2*FRACTION)));
+	    mw.obstacleSize/2,mw.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
 	
 	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: mw.ground_ground_cm
 					  ,
@@ -1019,8 +1020,8 @@ function add_obstacle(world,scene) {
 	mw.obstacles.push(OBSTACLE_BODY);
 
 	var cubeGeo = new THREE.BoxGeometry( mw.obstacleSize,
-					     mw.obstacleSize/FRACTION,
-					     mw.obstacleSize/FRACTION );
+					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
+					     mw.obstacleSize/mw.OBSTACLE_FRACTION );
 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 	mesh.name = "obstacle-"+i;
 	mesh.structureKind = "obstacle";
@@ -1105,7 +1106,7 @@ function generate_mesh_pairings_from_robot(robot,scene)
 	var cubeGeo = new THREE.BoxGeometry( w,h,w );
 
 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-	mesh.position.set(a.position.x,a.position.y+20,a.position.z);
+	mesh.position.set(a.position.x,a.position.y,a.position.z);
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	mesh.name = "member";
@@ -1172,7 +1173,8 @@ function load_NTetGlussBot(world,tets,pvec) {
 	var boxBody = new CANNON.Body({ mass: mass*10, material : mw.ground_ground_cm
 					,
 				      	collisionFilterGroup: mw.GROUP2,
-					collisionFilterMask: mw.GROUP1 
+					collisionFilterMask: mw.GROUP1
+//					collisionFilterMask: 0 					
 				      });
 	//	var boxBody = new CANNON.Body({ mass: mass});
 	// We have to use a Box to get the friction to work right!
@@ -1203,8 +1205,8 @@ function load_NTetGlussBot(world,tets,pvec) {
 					  });
 	    var memShape = new CANNON.Box(
 		new CANNON.Vec3(mw.MEDIAN_EDGE_LENGTH/2,
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION*10)),
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION*10))));
+				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION)),
+				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION))));
 	    memBody.addShape(memShape);
     	    memBody.position = v_avg;
 	    memBody.mass = mass;
@@ -1595,7 +1597,7 @@ function set_interp_constraints(am0,am1,frac) {
     var links = [];
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
-	              var link  = find_bodies_from_actuator(key);
+	    var link  = find_bodies_from_actuator(key);
             var a = get_body_by_name(link[0]);
             var b = get_body_by_name(link[1]);
 
@@ -1603,12 +1605,12 @@ function set_interp_constraints(am0,am1,frac) {
 	    links.push({a: a, b: b, k: key });
 	}
     }
-   update_constraints(links,link => {
-       var a = link.a;
-       var b = link.b;
-       var key = link.k;
-       var e = actuator_to_length(interp(am0[key],am1[key],frac));
-       return e;
+    update_constraints(links,link => {
+	var a = link.a;
+	var b = link.b;
+	var key = link.k;
+	var e = actuator_to_length(interp(am0[key],am1[key],frac));
+	return e;
     });
 
     mw.most_recent_contraints = am1;
