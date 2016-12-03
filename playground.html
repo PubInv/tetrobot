@@ -295,7 +295,7 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 5;   
+    this.OBSTACLE_FRACTION = 30;   
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
@@ -346,8 +346,8 @@ var GUI = function(mw) {
     this.camera = null;
     this.scene = null;
 
-//    this.NUMBER_OF_TETRAHEDRA = 5;
-    this.NUMBER_OF_TETRAHEDRA = 1;
+    this.NUMBER_OF_TETRAHEDRA = 5;
+//    this.NUMBER_OF_TETRAHEDRA = 1;
 
     this.jointBody = null;
     this.mouseConstraint = null;
@@ -1058,63 +1058,63 @@ function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
 
-function generate_mesh_pairings_from_robot(robot,scene)
-{
-    var results = [];
+// function generate_mesh_pairings_from_robot(robot,scene)
+// {
+//     var results = [];
     
-    var vindex = 0;
-    var mass = mw.BASIC_BODY_MASS;
-    var index_map = {};
+//     var vindex = 0;
+//     var mass = mw.BASIC_BODY_MASS;
+//     var index_map = {};
 
-    var vertex_index = 0;
+//     var vertex_index = 0;
 
-    var body_cnt = 0;
-    // This is not yet physically modeling our system.
-    var size = mw.JOINT_RADIUS;
-    // Totally not understanding this...
+//     var body_cnt = 0;
+//     // This is not yet physically modeling our system.
+//     var size = mw.JOINT_RADIUS;
+//     // Totally not understanding this...
 
-    function process_vertex(joint,v,results,geo,mat) {
-	var mesh = new THREE.Mesh(geo, mat);
-	mesh.name = "joint";
-	mesh.structureKind = "joint";
-	mesh.castShadow = true;
-	mesh.receiveShadow = true;
-	results.unshift([joint,mesh]);
-	body_cnt++;
-    };
+//     function process_vertex(joint,v,results,geo,mat) {
+// 	var mesh = new THREE.Mesh(geo, mat);
+// 	mesh.name = "joint";
+// 	mesh.structureKind = "joint";
+// 	mesh.castShadow = true;
+// 	mesh.receiveShadow = true;
+// 	results.unshift([joint,mesh]);
+// 	body_cnt++;
+//     };
 
-    //    var links_map = new Map();
-    var links = [];
+//     //    var links_map = new Map();
+//     var links = [];
 
-    robot.robot_joints.forEach(function (joint) {
-	process_vertex(joint,joint.position,results,mw.jointGeo,mw.jointMaterial);
-    });
+//     robot.robot_joints.forEach(function (joint) {
+// 	process_vertex(joint,joint.position,results,mw.jointGeo,mw.jointMaterial);
+//     });
 
 
-    // This in fact needs to be a lot more complicated...but one step at a time.
-    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-    for(var lin in robot.robot_members) {
-	var link = robot.robot_members[lin];
-	var a = link.a;
-	var b = link.b;
-	var h = link.a.position.distanceTo(b.position);
-	// Possibly this represents a memory leak.
-	// When a Mesh is deallocated, it is not clear that
-	// the Geometry and material are deallocated properly.
-	// We might ahve to store a pointer to these objects and deallocated them
-	// separately.
-	var cubeGeo = new THREE.BoxGeometry( w,h,w );
+//     // This in fact needs to be a lot more complicated...but one step at a time.
+//     var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
+//     for(var lin in robot.robot_members) {
+// 	var link = robot.robot_members[lin];
+// 	var a = link.a;
+// 	var b = link.b;
+// 	var h = link.a.position.distanceTo(b.position);
+// 	// Possibly this represents a memory leak.
+// 	// When a Mesh is deallocated, it is not clear that
+// 	// the Geometry and material are deallocated properly.
+// 	// We might ahve to store a pointer to these objects and deallocated them
+// 	// separately.
+// 	var cubeGeo = new THREE.BoxGeometry( w,h,w );
 
-	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-	mesh.position.set(a.position.x,a.position.y,a.position.z);
-	mesh.castShadow = true;
-	mesh.receiveShadow = true;
-	mesh.name = "member";
-	mesh.structureKind = "member";
-	results.unshift([link.body,mesh]);
-    }
-    return results;
-}
+// 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
+// 	mesh.position.set(a.position.x,a.position.y,a.position.z);
+// 	mesh.castShadow = true;
+// 	mesh.receiveShadow = true;
+// 	mesh.name = "member";
+// 	mesh.structureKind = "member";
+// 	results.unshift([link.body,mesh]);
+//     }
+//     return results;
+// }
 
 
 function ccw_tetrahelix_vertex(n,edge_length) {
@@ -1174,13 +1174,11 @@ function load_NTetGlussBot(world,tets,pvec) {
 					,
 				      	collisionFilterGroup: mw.GROUP2,
 					collisionFilterMask: mw.GROUP1
-//					collisionFilterMask: 0 					
 				      });
-	//	var boxBody = new CANNON.Body({ mass: mass});
 	// We have to use a Box to get the friction to work right!
 	var s = mw.JOINT_RADIUS * 0.9;
 	var boxShape = new CANNON.Box(new CANNON.Vec3(s,s,s));
-	//	var boxShape = new CANNON.Sphere(mw.JOINT_RADIUS);	
+
 	boxBody.addShape(boxShape);
 	boxBody.structureKind = "joint";	
 	boxBody.position.set(v.x,v.y,v.z);
@@ -1191,6 +1189,14 @@ function load_NTetGlussBot(world,tets,pvec) {
 	joints_to_link_map[boxBody.name] = {};
 	mw.robot.robot_joints.push(boxBody);
 	world.addBody(boxBody);
+
+	var mesh = new THREE.Mesh(mw.jointGeo, mw.jointMaterial);
+	mesh.name = "joint";
+	mesh.structureKind = "joint";
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	gui.scene.add(mesh);
+	mw.push_body_mesh_pair(boxBody,mesh);	
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
@@ -1244,7 +1250,28 @@ function load_NTetGlussBot(world,tets,pvec) {
 	    }
 	    memBody.name = b_a.name + " " + b_z.name;
 	    joints_to_link_map[b_a.name][b_z.name] = memBody;
+	    
 	    world.addBody(memBody);
+	    
+	    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
+	    var a = link.a;
+	    var b = link.b;
+	    var h = link.a.position.distanceTo(b.position);
+	    // Possibly this represents a memory leak.
+	    // When a Mesh is deallocated, it is not clear that
+	    // the Geometry and material are deallocated properly.
+	    // We might ahve to store a pointer to these objects and deallocated them
+	    // separately.
+	    var cubeGeo = new THREE.BoxGeometry( w,h,w );
+
+	    var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
+	    mesh.position.set(a.position.x,a.position.y,a.position.z);
+	    mesh.castShadow = true;
+	    mesh.receiveShadow = true;
+	    mesh.name = "member";
+	    mesh.structureKind = "member";
+	    gui.scene.add(mesh);
+	    mw.push_body_mesh_pair(memBody,mesh);
 
 	    // Now we will attempt to add the endpoints
 	    var endpoints = [];
@@ -1301,12 +1328,12 @@ function add_robot(cworld,scene) {
 		      gui.NUMBER_OF_TETRAHEDRA,
 		      pvec);
     
-    gui.ROBOT_PAIRINGS = generate_mesh_pairings_from_robot(mw.robot,scene);
+//    gui.ROBOT_PAIRINGS = generate_mesh_pairings_from_robot(mw.robot,scene);
     
-    gui.ROBOT_PAIRINGS.forEach(function (item) {
-	scene.add(item[1]);
-	mw.push_body_mesh_pair(item[0],item[1]);
-    });
+//    gui.ROBOT_PAIRINGS.forEach(function (item) {
+//	scene.add(item[1]);
+//	mw.push_body_mesh_pair(item[0],item[1]);
+//    });
 
     update_constraints(mw.robot.robot_members,
 		       link => {
