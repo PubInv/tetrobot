@@ -24,8 +24,11 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   </head>
     <body>
+    <div id="container"></div>    
     <div id="world"></div>
     <div id="worldspace"></div>
+
+    
     <div id="control" class="robscroll">
 	<div class="panel panel-default">
 	  <div class="panel-heading">
@@ -167,8 +170,12 @@
     </body>
 
     <script src="./js/axes.js"></script>
+    
     <script src="./js/three.js"></script>
-        <script src="./js/Detector.js"></script>
+    <script src="./js/ammo.js"></script>
+    <script src="./js/OrbitControls.js"></script>    
+    <script src="./js/Detector.js"></script>
+    <script src="./js/stats.min.js"></script>    
     <script src="./js/cannon.js"></script>
     	<script src="./js/Projector.js"></script>	
     <script src="./js/STLLoader.js"></script>
@@ -246,7 +253,7 @@ var MW = function() {
     // Adjust constraint equation parameters for ground/ground contact
     this.ground_ground_cm = new CANNON.ContactMaterial(this.groundMaterial, this.groundMaterial, {
 	friction: this.global_friction,
-	restitution: 0.2,
+	restitution: 0.8,
 	contactEquationStiffness: 1e8,
 	contactEquationRelaxation: 3,
 	frictionEquationStiffness: 1e8,
@@ -284,6 +291,12 @@ var MW = function() {
 	h:3
     };
 
+    this.am_playgroundDimensions = {
+	w:10,
+	d:10,
+	h:3
+    };
+
     this.INITIAL_HEIGHT = 0.3;
     this.Y_GRAVITY_FORCE = -10;
 
@@ -295,7 +308,8 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 30;   
+    this.OBSTACLE_FRACTION = 30;
+    this.OBSTACLE_MASS = 300;
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
@@ -353,6 +367,7 @@ var GUI = function(mw) {
     this.mouseConstraint = null;
     this.projector = null;
     this.grid_scene = null;
+    this.am_grid_scene = null;    
 
     this.FORCE_REGIME = "DISABLE";
 
@@ -470,8 +485,8 @@ function init_scene(gui) {
 
     gui.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
     
-    addShadowedLight(gui, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(gui, 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(gui.scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(gui.scene, 0.5, 1, -1, 0xffaa00, 1 );
     
     light = new THREE.DirectionalLight( 0xffffff, 1.75 );
     var d = 200;
@@ -521,10 +536,10 @@ function init_scene(gui) {
     return gui.scene;
 }
 
-function addShadowedLight(gui, x, y, z, color, intensity ) {
+function addShadowedLight(scene, x, y, z, color, intensity ) {
     var directionalLight = new THREE.DirectionalLight( color, intensity );
     directionalLight.position.set( x, y, z );
-    gui.scene.add( directionalLight );
+    scene.add( directionalLight );
     directionalLight.castShadow = true;
     var d = 1;
     directionalLight.shadow.camera.left = -d;
@@ -986,7 +1001,7 @@ function add_obstacle(world,scene) {
     // Materials
 
     var num = 4;
-    var mass = 3000;
+
 
     var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
 			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
@@ -996,7 +1011,7 @@ function add_obstacle(world,scene) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
 	    mw.obstacleSize/2,mw.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
 	
-	OBSTACLE_BODY = new CANNON.Body({ mass: mass, material: mw.ground_ground_cm
+	OBSTACLE_BODY = new CANNON.Body({ mass: mw.OBSTACLE_MASS, material: mw.ground_ground_cm
 					  ,
 					  collisionFilterGroup: mw.GROUP1,
 					  collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
@@ -1201,13 +1216,15 @@ function load_NTetGlussBot(world,tets,pvec) {
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
 
-	    // Okay, here I also want to add a new body to represent the actuator
-	    // This may require some roation math, but for now let me just put it
-	    // in the cetner
-	    var memBody = new CANNON.Body({ mass: mass, material : mw.ground_ground_cm
+	    // Sadly, increasing the mass of the members seems to be
+	    // necessary to keep the edges from passing through the obstacles.
+	    // This is a very unfortunate tuning...I suspect it is a weakness
+	    // in the solver of physics engine.
+	    var mass_factor = 100;
+	    var memBody = new CANNON.Body({ mass: mass*mass_factor, material : mw.ground_ground_cm
 					    ,
 					    collisionFilterGroup: mw.GROUP2,
-					    collisionFilterMask: mw.GROUP1,
+					    collisionFilterMask: mw.GROUP1 | mw.GROUP1,
 					  });
 	    var memShape = new CANNON.Box(
 		new CANNON.Vec3(mw.MEDIAN_EDGE_LENGTH/2,
@@ -1355,6 +1372,7 @@ function initCannon(mw,gui){
 
     mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
     mw.cworld.broadphase = new CANNON.NaiveBroadphase();
+    mw.cworld.broadphase = new CANNON.SAPBroadphase(mw.cworld);
 
     // Joint body
     var shape = new CANNON.Box(new CANNON.Vec3(mw.JOINT_RADIUS/2,mw.JOINT_RADIUS/2,mw.JOINT_RADIUS/2));
@@ -2342,6 +2360,552 @@ function initiation_stuff() {
 }
 
 initiation_stuff();
+
+
+// Here begins my attempt to integrate the AMMO.js port of the Bullet Physics engine
+
+
+// Detects webgl
+if ( ! Detector.webgl ) {
+    Detector.addGetWebGLMessage();
+    document.getElementById( 'container' ).innerHTML = "";
+}
+
+// - Global variables -
+
+// Graphics variables
+var am_container, am_stats;
+var am_camera, am_controls, am_scene, am_renderer;
+var am_textureLoader;
+var am_clock = new THREE.Clock();
+var am_clickRequest = false;
+var am_mouseCoords = new THREE.Vector2();
+var am_raycaster = new THREE.Raycaster();
+var am_ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
+var am_pos = new THREE.Vector3();
+var am_quat = new THREE.Quaternion();
+
+// Physics variables
+var am_gravityConstant = -9.8;
+var am_collisionConfiguration;
+var am_dispatcher;
+var am_broadphase;
+var am_solver;
+var am_physicsWorld;
+var am_rigidBodies = [];
+var am_softBodies = [];
+var am_margin = 0.05;
+var am_hinge;
+var am_transformAux1 = new Ammo.btTransform();
+var am_softBodyHelpers = new Ammo.btSoftBodyHelpers();
+
+var am_armMovement = 0;
+
+var am_window_height_factor = 1/4.0;
+
+var am_grid_scene = null;
+
+// - Main code -
+
+am_init();
+am_animate();
+
+
+// - Functions -
+
+function am_init() {
+
+    am_initGraphics();
+
+    am_initPhysics();
+
+    am_createObjects();
+
+    am_initInput();
+
+}
+
+function am_initGraphics() {
+
+    am_container = document.getElementById( 'container' );
+
+    am_camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
+
+    am_scene = new THREE.Scene();
+    am_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+
+    am_camera.position.x = -7;
+    am_camera.position.y = 5;
+    am_camera.position.z =  8;
+
+    am_controls = new THREE.OrbitControls( am_camera );
+    am_controls.target.y = 2;
+
+    am_renderer = new THREE.WebGLRenderer( { antialias: true } );
+    am_renderer.setClearColor( am_scene.fog.color );
+    
+//    am_renderer.setClearColor( 0xbfd1e5 );
+    am_renderer.setPixelRatio( window.devicePixelRatio );
+    am_renderer.setSize( window.innerWidth, window.innerHeight*am_window_height_factor );
+    am_renderer.shadowMap.enabled = true;
+
+    am_textureLoader = new THREE.TextureLoader();
+
+    var ambientLight = new THREE.AmbientLight( 0x404040 );
+    am_scene.add( ambientLight );
+
+    // lights
+    var light, materials;
+    am_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am_scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+
+    addShadowedLight(am_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am_scene, 0.5, 1, -1, 0xffaa00, 1 );
+
+
+    am_grid_scene = new THREE.Scene();
+    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    
+    am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    
+    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
+    var d = 20;
+
+    light.position.set( -d, d, -d );
+
+    light.castShadow = true;
+    //light.shadow.CameraVisible = true;
+
+    light.shadow.MapWidth = 1024;
+    light.shadow.MapHeight = 1024;
+
+    light.shadow.CameraLeft = -d;
+    light.shadow.CameraRight = d;
+    light.shadow.CameraTop = d;
+    light.shadow.CameraBottom = -d;
+
+    light.shadow.CameraFar = 3*d;
+    light.shadow.CameraNear = d;
+    light.shadow.Darkness = 0.5;
+    
+    am_grid_scene.add(light);
+    am_scene.add(light);    
+//    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+    am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
+
+    addShadowedLight(am_grid_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am_grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    
+    // HACK:  These diemensions are probably not right here!
+    gridInit(am_grid_scene,mw.am_playgroundDimensions);
+    
+    am_container.innerHTML = "";
+
+    am_container.appendChild( am_renderer.domElement );
+
+//    am_stats = new Stats();
+//    am_stats.domElement.style.position = 'absolute';
+//    am_stats.domElement.style.top = '0px';
+//    am_container.appendChild( am_stats.domElement );
+
+
+    window.addEventListener( 'resize', am_onWindowResize, false );
+
+}
+
+function am_initPhysics() {
+
+    // Physics configuration
+
+    am_collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    am_dispatcher = new Ammo.btCollisionDispatcher( am_collisionConfiguration );
+    am_broadphase = new Ammo.btDbvtBroadphase();
+    am_solver = new Ammo.btSequentialImpulseConstraintSolver();
+    am_softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    am_physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am_dispatcher, am_broadphase, am_solver, am_collisionConfiguration, am_softBodySolver);
+    am_physicsWorld.setGravity( new Ammo.btVector3( 0, am_gravityConstant, 0 ) );
+    am_physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am_gravityConstant, 0 ) );
+
+}
+
+function am_createObjects() {
+
+    // Ground
+    am_pos.set( 0, - 0.5, 0 );
+    am_quat.set( 0, 0, 0, 1 );
+    var ground = am_createParalellepiped( 40, 1, 40, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
+    ground.castShadow = true;
+    ground.receiveShadow = true;
+    am_textureLoader.load( "textures/grid.png", function( texture ) {
+	texture.wrapS = THREE.RepeatWrapping;
+	texture.wrapT = THREE.RepeatWrapping;
+	texture.repeat.set( 40, 40 );
+	ground.material.map = texture;
+	ground.material.needsUpdate = true;
+    } );
+
+
+    // Create soft volumes
+    var volumeMass = 15;
+
+    var sphereGeometry = new THREE.SphereBufferGeometry( 1.5, 40, 25 );
+    sphereGeometry.translate( 5, 5, 0 );
+    am_createSoftVolume( sphereGeometry, volumeMass, 250 );
+
+    var boxGeometry = new THREE.BufferGeometry().fromGeometry( new THREE.BoxGeometry( 1, 1, 5, 4, 4, 20 ) );
+    boxGeometry.translate( -2, 5, 0 );
+    am_createSoftVolume( boxGeometry, volumeMass, 120 );
+
+    // Ramp
+    am_pos.set( 3, 1, 0 );
+    am_quat.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), 30 * Math.PI / 180 );
+    var obstacle = am_createParalellepiped( 10, 1, 4, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0x606060 } ) );
+    obstacle.castShadow = true;
+    obstacle.receiveShadow = true;
+
+}
+
+function am_processGeometry( bufGeometry ) {
+
+    // Obtain a Geometry
+    var geometry = new THREE.Geometry().fromBufferGeometry( bufGeometry );
+
+    // Merge the vertices so the triangle soup is converted to indexed triangles
+    var vertsDiff = geometry.mergeVertices();
+
+    // Convert again to BufferGeometry, indexed
+    var indexedBufferGeom = am_createIndexedBufferGeometryFromGeometry( geometry );
+
+    // Create index arrays mapping the indexed vertices to bufGeometry vertices
+    am_mapIndices( bufGeometry, indexedBufferGeom );
+
+}
+
+function am_createIndexedBufferGeometryFromGeometry( geometry ) {
+
+    var numVertices = geometry.vertices.length;
+    var numFaces = geometry.faces.length;
+
+    var bufferGeom = new THREE.BufferGeometry();
+    var vertices = new Float32Array( numVertices * 3 );
+    var indices = new ( numFaces * 3 > 65535 ? Uint32Array : Uint16Array )( numFaces * 3 );
+
+    for ( var i = 0; i < numVertices; i++ ) {
+
+	var p = geometry.vertices[ i ];
+
+	var i3 = i * 3;
+
+	vertices[ i3 ] = p.x;
+	vertices[ i3 + 1 ] = p.y;
+	vertices[ i3 + 2 ] = p.z;
+
+    }
+
+    for ( var i = 0; i < numFaces; i++ ) {
+
+	var f = geometry.faces[ i ];
+
+	var i3 = i * 3;
+
+	indices[ i3 ] = f.a;
+	indices[ i3 + 1 ] = f.b;
+	indices[ i3 + 2 ] = f.c;
+
+    }
+
+    bufferGeom.setIndex( new THREE.BufferAttribute( indices, 1 ) );
+    bufferGeom.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+
+    return bufferGeom;
+}
+
+function am_isEqual( x1, y1, z1, x2, y2, z2 ) {
+
+    var delta = 0.000001;
+    return Math.abs( x2 - x1 ) < delta &&
+	Math.abs( y2 - y1 ) < delta &&
+	Math.abs( z2 - z1 ) < delta;
+
+}
+
+function am_mapIndices( bufGeometry, indexedBufferGeom ) {
+
+    // Creates ammoVertices, ammoIndices and ammoIndexAssociation in bufGeometry
+
+    var vertices = bufGeometry.attributes.position.array;
+    var idxVertices = indexedBufferGeom.attributes.position.array;
+    var indices = indexedBufferGeom.index.array;
+
+    var numIdxVertices = idxVertices.length / 3;
+    var numVertices = vertices.length / 3;
+
+    bufGeometry.ammoVertices = idxVertices;
+    bufGeometry.ammoIndices = indices;
+    bufGeometry.ammoIndexAssociation = [];
+
+    for ( var i = 0; i < numIdxVertices; i++ ) {
+
+	var association = [];
+	bufGeometry.ammoIndexAssociation.push( association );
+
+	var i3 = i * 3;
+
+	for ( var j = 0; j < numVertices; j++ ) {
+
+	    var j3 = j * 3;
+	    if ( am_isEqual( idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
+			  vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ] ) ) {
+		association.push( j3 );
+	    }
+
+	}
+
+    }
+
+}
+
+function am_createSoftVolume( bufferGeom, mass, pressure ) {
+
+    am_processGeometry( bufferGeom );
+
+    var volume = new THREE.Mesh( bufferGeom, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
+    volume.castShadow = true;
+    volume.receiveShadow = true;
+    volume.frustumCulled = false;
+    am_scene.add( volume );
+
+    am_textureLoader.load( "textures/colors.png", function( texture ) {
+	volume.material.map = texture;
+	volume.material.needsUpdate = true;
+    } );
+
+    // Volume physic object
+
+    var volumeSoftBody = am_softBodyHelpers.CreateFromTriMesh(
+	am_physicsWorld.getWorldInfo(),
+	bufferGeom.ammoVertices,
+	bufferGeom.ammoIndices,
+	bufferGeom.ammoIndices.length / 3,
+	true );
+
+    var sbConfig = volumeSoftBody.get_m_cfg();
+    sbConfig.set_viterations( 40 );
+    sbConfig.set_piterations( 40 );
+
+    // Soft-soft and soft-rigid collisions
+    sbConfig.set_collisions( 0x11 );
+
+    // Friction
+    sbConfig.set_kDF( 0.1 );
+    // Damping
+    sbConfig.set_kDP( 0.01 );
+    // Pressure
+    sbConfig.set_kPR( pressure );
+    // Stiffness
+    volumeSoftBody.get_m_materials().at( 0 ).set_m_kLST( 0.9 );
+    volumeSoftBody.get_m_materials().at( 0 ).set_m_kAST( 0.9 );
+
+    volumeSoftBody.setTotalMass( mass, false )
+    Ammo.castObject( volumeSoftBody, Ammo.btCollisionObject ).getCollisionShape().setMargin( am_margin );
+    am_physicsWorld.addSoftBody( volumeSoftBody, 1, -1 );
+    volume.userData.physicsBody = volumeSoftBody;
+    // Disable deactivation
+    volumeSoftBody.setActivationState( 4 );
+
+    am_softBodies.push( volume );
+
+}
+
+function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
+
+    var threeObject = new THREE.Mesh( new THREE.BoxGeometry( sx, sy, sz, 1, 1, 1 ), material );
+    var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
+    shape.setMargin( am_margin );
+
+    am_createRigidBody( threeObject, shape, mass, pos, quat );
+
+    return threeObject;
+
+}
+
+function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
+
+    threeObject.position.copy( pos );
+    threeObject.quaternion.copy( quat );
+
+    var transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+    transform.setRotation( new Ammo.btQuaternion( quat.x, quat.y, quat.z, quat.w ) );
+    var motionState = new Ammo.btDefaultMotionState( transform );
+
+    var localInertia = new Ammo.btVector3( 0, 0, 0 );
+    physicsShape.calculateLocalInertia( mass, localInertia );
+
+    var rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, physicsShape, localInertia );
+    var body = new Ammo.btRigidBody( rbInfo );
+
+    threeObject.userData.physicsBody = body;
+
+    am_scene.add( threeObject );
+
+    if ( mass > 0 ) {
+
+	am_rigidBodies.push( threeObject );
+
+	// Disable deactivation
+	body.setActivationState( 4 );
+
+    }
+
+    am_physicsWorld.addRigidBody( body );
+
+    return body;
+}
+
+function am_initInput() {
+
+    window.addEventListener( 'mousedown', function( event ) {
+
+	if ( ! am_clickRequest ) {
+
+	    am_mouseCoords.set(
+		( event.clientX / window.innerWidth ) * 2 - 1,
+		    - ( event.clientY / (window.innerHeight*am_window_height_factor) ) * 2 + 1
+	    );
+
+	    am_clickRequest = true;
+
+	}
+
+    }, false );
+
+}
+
+function am_processClick() {
+
+    if ( am_clickRequest ) {
+
+	am_raycaster.setFromCamera( am_mouseCoords, am_camera );
+
+	// Creates a ball
+	var ballMass = 3;
+	var ballRadius = 0.4;
+
+	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am_ballMaterial );
+	ball.castShadow = true;
+	ball.receiveShadow = true;
+	var ballShape = new Ammo.btSphereShape( ballRadius );
+	ballShape.setMargin( am_margin );
+	am_pos.copy( am_raycaster.ray.direction );
+	am_pos.add( am_raycaster.ray.origin );
+	am_quat.set( 0, 0, 0, 1 );
+	var ballBody = am_createRigidBody( ball, ballShape, ballMass, am_pos, am_quat );
+	ballBody.setFriction( 0.5 );
+
+	am_pos.copy( am_raycaster.ray.direction );
+	am_pos.multiplyScalar( 14 );
+	ballBody.setLinearVelocity( new Ammo.btVector3( am_pos.x, am_pos.y, am_pos.z ) );
+
+	am_clickRequest = false;
+
+    }
+
+}
+
+function am_onWindowResize() {
+    am_camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
+    am_camera.updateProjectionMatrix();
+    am_renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
+}
+
+function am_animate() {
+    // Seems this is likely to be a problem...
+    requestAnimationFrame( am_animate );
+    am_render();
+//    am_stats.update();
+
+}
+
+function am_render() {
+    var deltaTime = am_clock.getDelta();
+    am_updatePhysics( deltaTime );
+    am_processClick();
+    am_controls.update( deltaTime );
+
+    // note this....
+
+    am_renderer.render( am_scene, am_camera );
+    am_renderer.autoClear = false;        
+    am_renderer.render( am_grid_scene, am_camera);    
+}
+
+function am_updatePhysics( deltaTime ) {
+
+    // Step world
+    am_physicsWorld.stepSimulation( deltaTime, 10 );
+
+    // Update soft volumes
+    for ( var i = 0, il = am_softBodies.length; i < il; i++ ) {
+	var volume = am_softBodies[ i ];
+	var geometry = volume.geometry;
+	var softBody = volume.userData.physicsBody;
+	var volumePositions = geometry.attributes.position.array;
+	var volumeNormals = geometry.attributes.normal.array;
+	var association = geometry.ammoIndexAssociation;
+	var numVerts = association.length;
+	var nodes = softBody.get_m_nodes();
+	for ( var j = 0; j < numVerts; j ++ ) {
+
+	    var node = nodes.at( j );
+	    var nodePos = node.get_m_x();
+	    var x = nodePos.x();
+	    var y = nodePos.y();
+	    var z = nodePos.z();
+	    var nodeNormal = node.get_m_n();
+	    var nx = nodeNormal.x();
+	    var ny = nodeNormal.y();
+	    var nz = nodeNormal.z();
+
+	    var assocVertex = association[ j ];
+
+	    for ( var k = 0, kl = assocVertex.length; k < kl; k++ ) {
+		var indexVertex = assocVertex[ k ];
+		volumePositions[ indexVertex ] = x;
+		volumeNormals[ indexVertex ] = nx;
+		indexVertex++;
+		volumePositions[ indexVertex ] = y;
+		volumeNormals[ indexVertex ] = ny;
+		indexVertex++;
+		volumePositions[ indexVertex ] = z;
+		volumeNormals[ indexVertex ] = nz;
+	    }
+	}
+
+	geometry.attributes.position.needsUpdate = true;
+	geometry.attributes.normal.needsUpdate = true;
+
+    }
+
+    // Update rigid bodies
+    for ( var i = 0, il = am_rigidBodies.length; i < il; i++ ) {
+	var objThree = am_rigidBodies[ i ];
+	var objPhys = objThree.userData.physicsBody;
+	var ms = objPhys.getMotionState();
+	if ( ms ) {
+
+	    ms.getWorldTransform( am_transformAux1 );
+	    var p = am_transformAux1.getOrigin();
+	    var q = am_transformAux1.getRotation();
+	    objThree.position.set( p.x(), p.y(), p.z() );
+	    objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
+
+	}
+    }
+
+}
+
 
 
         </script>
