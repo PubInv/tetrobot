@@ -58,6 +58,9 @@
 	    <button type="button" onclick="reset_to_default(gui,mw)">
 	      Reset to Default
 	    </button>
+	    <button type="button" onclick="toggle_mouse_action">
+	      Toggle Mouse Cannon/Grab
+	    </button>
     </div>
     </div>
 	<div class="panel panel-default">
@@ -308,7 +311,8 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 30;
+    //    this.OBSTACLE_FRACTION = 30;
+    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 300;
 
     this.vector_up = new THREE.Vector3(0,0,1);
@@ -384,7 +388,8 @@ var GUI = function(mw) {
     this.markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
     this.color_scale = d3.scale.quantile().domain([this.mw.MIN_EDGE_LENGTH, this.mw.MAX_EDGE_LENGTH])
     .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
-    
+
+    this.MOUSE_FIRES = true;
 };
 
 
@@ -1398,6 +1403,10 @@ function allow_con() {
 }
 function step_con() {
     gui.FORCE_REGIME = "STEP";    
+}
+
+function toggle_mouse_action() {
+    gui.MOUSE_FIRES = !gui.MOUSE_FIRES;
 }
 
 function step_con() {
@@ -2417,13 +2426,138 @@ function am_init() {
 
     am_initGraphics();
 
+    am_initHandlers();
+
     am_initPhysics();
 
-    am_createObjects();
+    am_createGround();
+    
+//    am_createObjects();
+    
+    am_createObstacles();
 
     am_initInput();
 
 }
+
+
+function am_onMouseMove(e){
+    // Move and project on the plane
+    if (gui.gplane && gui.mouseConstraint) {
+
+	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
+					 0.5 );                                            //z
+		mouse3D.unproject( gui.camera );
+
+        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+        if(pos){
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+            moveJointToPoint(pos.x,pos.y,pos.z);
+        }
+    }
+}
+
+function am_onMouseDown(e){
+    // Find mesh from a ray
+
+    var mouse3D = new THREE.Vector3( ( e.clientX / am_renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (am_render.getSize().height) ) * 2 + 1,  //y
+				     0.5 );                                            //z
+    mouse3D.unproject( gui.camera );
+    mouse3D.sub(gui.camera.position);
+    mouse3D.project( gui.camera );
+    
+    var entity = findNearestIntersectingObject(e.clientX,e.clientY,gui.camera,mw.meshes);
+    var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
+    
+    if (pos &&
+	(
+		(entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
+		)
+       ){
+        var idx = mw.meshes.indexOf(entity.object);
+
+	if (e.shiftKey) {
+	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
+	    // and we will visually represent that by turning the joint red, I guess.
+	    console.log(mw.bodies[idx]);
+	    var b = mw.bodies[idx];
+	    b.fixed_in_world = !b.fixed_in_world;
+	    if (b.fixed_in_world) {
+		b.mass = 0;
+		entity.object.material.color.setHex( 0xff0000 );		
+	    } else {
+		b.mass = mw.BASIC_BODY_MASS;
+		entity.object.material.color.setHex( 0x0000ff );				
+	    }
+		b.updateMassProperties();	    
+	} else {
+//            constraintDown = true;
+            // Set marker on contact point
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+
+            // Set the movement plane
+            setScreenPerpCenter(pos,gui);
+
+
+            if(idx !== -1){
+		addMouseConstraint(pos.x,pos.y,pos.z,mw.bodies[idx]);
+            }
+	}
+    }
+}
+
+function am_onMouseUp(e) {
+	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
+					 0.5 );                                            //z
+	
+	mouse3D.unproject( gui.camera );
+
+        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+        if(pos){
+            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+            moveJointToPoint(pos.x,pos.y,pos.z);
+        }
+    
+    // remove the marker
+    removeClickMarker(gui);
+
+    // Send the remove mouse joint to server
+    removeJointConstraint();
+
+    // This is an experimental positioning
+    // TODO: This needs to be called only if we have moved an object.
+    if (gui.movedButNotSent) {
+	send_to_robot_url();
+	gui.movedButNotSent = false;
+    }
+
+
+    if (gui.gplane.visible == true) {
+	gui.gplane.visible = false;
+	// We need to re-establish the controls because I don't have
+	// any good way of exiting the active state...
+	gui.controls.dispose();
+	establish_controls(gui);
+    }
+
+}
+
+
+function am_initHandlers() {
+    am_container = document.getElementById( 'container' );
+    am_container.addEventListener("mousemove", am_onMouseMove, false );
+    am_container.addEventListener("mousedown", am_onMouseDown, false );
+    am_container.addEventListener("mouseup", am_onMouseUp, false );
+}
+
 
 function am_initGraphics() {
 
@@ -2528,12 +2662,95 @@ function am_initPhysics() {
 
 }
 
-function am_createObjects() {
+function am_createObstacles() {
 
-    // Ground
-    am_pos.set( 0, - 0.5, 0 );
+    
+    var num = 4;
+
+
+    var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
+			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
+			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
+			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
+    for(var i = 0; i < num; i++) {
+//	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
+//	    mw.obstacleSize/2,mw.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
+	
+//	OBSTACLE_BODY = new CANNON.Body({ mass: mw.OBSTACLE_MASS, material: mw.ground_ground_cm
+//					  ,
+//					  collisionFilterGroup: mw.GROUP1,
+//					  collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
+//					});
+//	OBSTACLE_BODY.addShape(obstacleShape);
+
+	OBSTACLE_BODY.name = "obstacle-"+i;
+	OBSTACLE_BODY.structureKind = "obstacle";
+//	OBSTACLE_BODY.position.set(positions[i].x,positions[i].y,positions[i].z);
+//	OBSTACLE_BODY.angularDamping = 0.9;
+//	OBSTACLE_BODY.linearDamping = 0.9;
+
+//	var q = new THREE.Quaternion();
+//	var vector = new THREE.Vector3(positions[i].x,positions[i].y,positions[i].z);
+//	var axis = new THREE.Vector3(0,1,0);
+//	q.setFromAxisAngle(axis,i*(Math.PI/2.0));
+//	OBSTACLE_BODY.quaternion.set(q.x,q.y,q.z,q.w);
+	
+
+//	world.addBody(OBSTACLE_BODY);
+//	mw.obstacles.push(OBSTACLE_BODY);
+
+//	var cubeGeo = new THREE.BoxGeometry( mw.obstacleSize,
+//					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
+//					     mw.obstacleSize/mw.OBSTACLE_FRACTION );
+	//	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
+
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+	var p = positions[i];
+	pos.set( p.x, p.y, p.z);
+        quat.set( 0, 0, 0, 1 );
+	quat.setFromAxisAngle(new THREE.Vector3( 0, 1, 0 ), i * 90  * Math.PI / 180 )
+	var material = new THREE.MeshPhongMaterial( { color: 0x33AAFF } );
+	
+	var mesh =  am_createParalellepiped( mw.obstacleSize,
+					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
+					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
+					     mw.OBSTACLE_MASS,
+					     pos,
+					     quat,
+					     material );
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	mesh.name = "obstacle-"+i;
+	mesh.structureKind = "obstacle";
+	
+/*	scene.add(mesh);
+
+	mesh.geometry.verticesNeedUpdate = true;
+	mesh.geometry.elementsNeedUpdate = true;        
+	mesh.geometry.colorsNeedUpdate = true;
+
+	mw.push_body_mesh_pair(OBSTACLE_BODY,mesh);
+*/
+    }
+
+}
+
+function am_createGround() {
+        // Ground
+    am_pos.set( 0, 0, 0 );
     am_quat.set( 0, 0, 0, 1 );
-    var ground = am_createParalellepiped( 40, 1, 40, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
+
+    mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
+    mw.floorTexture.repeat.set( 10, 10 );
+    var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
+
+    floorMaterial.transparent = true;
+    floorMaterial.opacity = 0.7;
+    
+    var ground = am_createParalellepiped( mw.playgroundDimensions.w, 0, 
+					  mw.playgroundDimensions.d,
+					  0, am_pos, am_quat, floorMaterial );    
     ground.castShadow = true;
     ground.receiveShadow = true;
     am_textureLoader.load( "textures/grid.png", function( texture ) {
@@ -2543,25 +2760,43 @@ function am_createObjects() {
 	ground.material.map = texture;
 	ground.material.needsUpdate = true;
     } );
+}
+
+function am_createObjects() {
 
 
-    // Create soft volumes
-    var volumeMass = 15;
+    // // Ground
+    // am_pos.set( 0, - 0.5, 0 );
+    // am_quat.set( 0, 0, 0, 1 );
+    // var ground = am_createParalellepiped( 40, 1, 40, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
+    // ground.castShadow = true;
+    // ground.receiveShadow = true;
+    // am_textureLoader.load( "textures/grid.png", function( texture ) {
+    // 	texture.wrapS = THREE.RepeatWrapping;
+    // 	texture.wrapT = THREE.RepeatWrapping;
+    // 	texture.repeat.set( 40, 40 );
+    // 	ground.material.map = texture;
+    // 	ground.material.needsUpdate = true;
+    // } );
 
-    var sphereGeometry = new THREE.SphereBufferGeometry( 1.5, 40, 25 );
-    sphereGeometry.translate( 5, 5, 0 );
-    am_createSoftVolume( sphereGeometry, volumeMass, 250 );
 
-    var boxGeometry = new THREE.BufferGeometry().fromGeometry( new THREE.BoxGeometry( 1, 1, 5, 4, 4, 20 ) );
-    boxGeometry.translate( -2, 5, 0 );
-    am_createSoftVolume( boxGeometry, volumeMass, 120 );
+    // // Create soft volumes
+    // var volumeMass = 15;
 
-    // Ramp
-    am_pos.set( 3, 1, 0 );
-    am_quat.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), 30 * Math.PI / 180 );
-    var obstacle = am_createParalellepiped( 10, 1, 4, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0x606060 } ) );
-    obstacle.castShadow = true;
-    obstacle.receiveShadow = true;
+    // var sphereGeometry = new THREE.SphereBufferGeometry( 1.5, 40, 25 );
+    // sphereGeometry.translate( 5, 5, 0 );
+    // am_createSoftVolume( sphereGeometry, volumeMass, 250 );
+
+    // var boxGeometry = new THREE.BufferGeometry().fromGeometry( new THREE.BoxGeometry( 1, 1, 5, 4, 4, 20 ) );
+    // boxGeometry.translate( -2, 5, 0 );
+    // am_createSoftVolume( boxGeometry, volumeMass, 120 );
+
+    // // Ramp
+    // am_pos.set( 3, 1, 0 );
+    // am_quat.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), 30 * Math.PI / 180 );
+    // var obstacle = am_createParalellepiped( 10, 1, 4, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0x606060 } ) );
+    // obstacle.castShadow = true;
+    // obstacle.receiveShadow = true;
 
 }
 
