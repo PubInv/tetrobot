@@ -2383,36 +2383,44 @@ if ( ! Detector.webgl ) {
 // - Global variables -
 
 // Graphics variables
-var am_container, am_stats;
-var am_camera, am_controls, am_scene, am_renderer;
-var am_textureLoader;
-var am_clock = new THREE.Clock();
-var am_clickRequest = false;
-var am_mouseCoords = new THREE.Vector2();
-var am_raycaster = new THREE.Raycaster();
-var am_ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
-var am_pos = new THREE.Vector3();
-var am_quat = new THREE.Quaternion();
+var AM = function() {
+    this.am_container
+    this.am_stats;
+    this.am_camera;
+    this.am_controls;
+    this.am_scene;
+    this.am_renderer;
+    this.am_textureLoader;
+    this.am_clock = new THREE.Clock();
+    this.am_clickRequest = false;
+    this.am_mouseCoords = new THREE.Vector2();
+    this.am_raycaster = new THREE.Raycaster();
+    this.am_ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
+    this.am_pos = new THREE.Vector3();
+    this.am_quat = new THREE.Quaternion();
 
-// Physics variables
-var am_gravityConstant = -9.8;
-var am_collisionConfiguration;
-var am_dispatcher;
-var am_broadphase;
-var am_solver;
-var am_physicsWorld;
-var am_rigidBodies = [];
-var am_softBodies = [];
-var am_margin = 0.05;
-var am_hinge;
-var am_transformAux1 = new Ammo.btTransform();
-var am_softBodyHelpers = new Ammo.btSoftBodyHelpers();
+    // Physics variables
+    this.am_gravityConstant = -9.8;
+    this.am_collisionConfiguration;
+    this.am_dispatcher;
+    this.am_broadphase;
+    this.am_solver;
+    this.am_physicsWorld;
+    this.am_rigidBodies = [];
+    this.am_softBodies = [];
+    this.am_margin = 0.05;
+    this.am_hinge;
+    this.am_transformAux1 = new Ammo.btTransform();
+    this.am_softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
-var am_armMovement = 0;
+    this.am_armMovement = 0;
 
-var am_window_height_factor = 1/4.0;
+    this.am_window_height_factor = 1/4.0;
 
-var am_grid_scene = null;
+    this.am_grid_scene = null;
+}
+
+var am = new AM();
 
 // - Main code -
 
@@ -2461,8 +2469,8 @@ function am_onMouseMove(e){
 function am_onMouseDown(e){
     // Find mesh from a ray
 
-    var mouse3D = new THREE.Vector3( ( e.clientX / am_renderer.getSize().width ) * 2 - 1,   //x
-				     -( e.clientY / (am_render.getSize().height) ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( e.clientX / am.am_renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (am.am_renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
     mouse3D.unproject( gui.camera );
     mouse3D.sub(gui.camera.position);
@@ -2552,55 +2560,55 @@ function am_onMouseUp(e) {
 
 
 function am_initHandlers() {
-    am_container = document.getElementById( 'container' );
-    am_container.addEventListener("mousemove", am_onMouseMove, false );
-    am_container.addEventListener("mousedown", am_onMouseDown, false );
-    am_container.addEventListener("mouseup", am_onMouseUp, false );
+    am.am_container = document.getElementById( 'container' );
+    am.am_container.addEventListener("mousemove", am_onMouseMove, false );
+    am.am_container.addEventListener("mousedown", am_onMouseDown, false );
+    am.am_container.addEventListener("mouseup", am_onMouseUp, false );
 }
 
 
 function am_initGraphics() {
 
-    am_container = document.getElementById( 'container' );
+    am.am_container = document.getElementById( 'container' );
 
-    am_camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
+    am.am_camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
 
-    am_scene = new THREE.Scene();
-    am_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    am.am_scene = new THREE.Scene();
+    am.am_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
-    am_camera.position.x = -7;
-    am_camera.position.y = 5;
-    am_camera.position.z =  8;
+    am.am_camera.position.x = -7;
+    am.am_camera.position.y = 5;
+    am.am_camera.position.z =  8;
 
-    am_controls = new THREE.OrbitControls( am_camera );
-    am_controls.target.y = 2;
+    am.am_controls = new THREE.OrbitControls( am.am_camera );
+    am.am_controls.target.y = 2;
 
-    am_renderer = new THREE.WebGLRenderer( { antialias: true } );
-    am_renderer.setClearColor( am_scene.fog.color );
+    am.am_renderer = new THREE.WebGLRenderer( { antialias: true } );
+    am.am_renderer.setClearColor( am.am_scene.fog.color );
     
 //    am_renderer.setClearColor( 0xbfd1e5 );
-    am_renderer.setPixelRatio( window.devicePixelRatio );
-    am_renderer.setSize( window.innerWidth, window.innerHeight*am_window_height_factor );
-    am_renderer.shadowMap.enabled = true;
+    am.am_renderer.setPixelRatio( window.devicePixelRatio );
+    am.am_renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
+    am.am_renderer.shadowMap.enabled = true;
 
-    am_textureLoader = new THREE.TextureLoader();
+    am.am_textureLoader = new THREE.TextureLoader();
 
     var ambientLight = new THREE.AmbientLight( 0x404040 );
-    am_scene.add( ambientLight );
+    am.am_scene.add( ambientLight );
 
     // lights
     var light, materials;
-    am_scene.add( new THREE.AmbientLight( 0x666666 ) );
-    am_scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+    am.am_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am.am_scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
 
-    addShadowedLight(am_scene, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(am_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(am.am_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.am_scene, 0.5, 1, -1, 0xffaa00, 1 );
 
 
-    am_grid_scene = new THREE.Scene();
-    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    am.am_grid_scene = new THREE.Scene();
+    am.am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
     
-    am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
     
     light = new THREE.DirectionalLight( 0xffffff, 1.75 );
     var d = 20;
@@ -2622,20 +2630,20 @@ function am_initGraphics() {
     light.shadow.CameraNear = d;
     light.shadow.Darkness = 0.5;
     
-    am_grid_scene.add(light);
-    am_scene.add(light);    
+    am.am_grid_scene.add(light);
+    am.am_scene.add(light);    
 //    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
-    am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
+    am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
 
-    addShadowedLight(am_grid_scene, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(am_grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(am.am_grid_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.am_grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
     
     // HACK:  These diemensions are probably not right here!
-    gridInit(am_grid_scene,mw.am_playgroundDimensions);
+    gridInit(am.am_grid_scene,mw.am_playgroundDimensions);
     
-    am_container.innerHTML = "";
+    am.am_container.innerHTML = "";
 
-    am_container.appendChild( am_renderer.domElement );
+    am.am_container.appendChild( am.am_renderer.domElement );
 
 //    am_stats = new Stats();
 //    am_stats.domElement.style.position = 'absolute';
@@ -2651,14 +2659,14 @@ function am_initPhysics() {
 
     // Physics configuration
 
-    am_collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
-    am_dispatcher = new Ammo.btCollisionDispatcher( am_collisionConfiguration );
-    am_broadphase = new Ammo.btDbvtBroadphase();
-    am_solver = new Ammo.btSequentialImpulseConstraintSolver();
-    am_softBodySolver = new Ammo.btDefaultSoftBodySolver();
-    am_physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am_dispatcher, am_broadphase, am_solver, am_collisionConfiguration, am_softBodySolver);
-    am_physicsWorld.setGravity( new Ammo.btVector3( 0, am_gravityConstant, 0 ) );
-    am_physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am_gravityConstant, 0 ) );
+    am.am_collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    am.am_dispatcher = new Ammo.btCollisionDispatcher( am.am_collisionConfiguration );
+    am.am_broadphase = new Ammo.btDbvtBroadphase();
+    am.am_solver = new Ammo.btSequentialImpulseConstraintSolver();
+    am.am_softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    am.am_physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am.am_dispatcher, am.am_broadphase, am.am_solver, am.am_collisionConfiguration, am.am_softBodySolver);
+    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
+    am.am_physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
 
 }
 
@@ -2738,8 +2746,8 @@ function am_createObstacles() {
 
 function am_createGround() {
         // Ground
-    am_pos.set( 0, 0, 0 );
-    am_quat.set( 0, 0, 0, 1 );
+    am.am_pos.set( 0, 0, 0 );
+    am.am_quat.set( 0, 0, 0, 1 );
 
     mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
     mw.floorTexture.repeat.set( 10, 10 );
@@ -2750,10 +2758,10 @@ function am_createGround() {
     
     var ground = am_createParalellepiped( mw.playgroundDimensions.w, 0, 
 					  mw.playgroundDimensions.d,
-					  0, am_pos, am_quat, floorMaterial );    
+					  0, am.am_pos, am.am_quat, floorMaterial );    
     ground.castShadow = true;
     ground.receiveShadow = true;
-    am_textureLoader.load( "textures/grid.png", function( texture ) {
+    am.am_textureLoader.load( "textures/grid.png", function( texture ) {
 	texture.wrapS = THREE.RepeatWrapping;
 	texture.wrapT = THREE.RepeatWrapping;
 	texture.repeat.set( 40, 40 );
@@ -2908,17 +2916,17 @@ function am_createSoftVolume( bufferGeom, mass, pressure ) {
     volume.castShadow = true;
     volume.receiveShadow = true;
     volume.frustumCulled = false;
-    am_scene.add( volume );
+    am.am_scene.add( volume );
 
-    am_textureLoader.load( "textures/colors.png", function( texture ) {
+    am.am_textureLoader.load( "textures/colors.png", function( texture ) {
 	volume.material.map = texture;
 	volume.material.needsUpdate = true;
     } );
 
     // Volume physic object
 
-    var volumeSoftBody = am_softBodyHelpers.CreateFromTriMesh(
-	am_physicsWorld.getWorldInfo(),
+    var volumeSoftBody = am.am_softBodyHelpers.CreateFromTriMesh(
+	am.am_physicsWorld.getWorldInfo(),
 	bufferGeom.ammoVertices,
 	bufferGeom.ammoIndices,
 	bufferGeom.ammoIndices.length / 3,
@@ -2942,7 +2950,7 @@ function am_createSoftVolume( bufferGeom, mass, pressure ) {
     volumeSoftBody.get_m_materials().at( 0 ).set_m_kAST( 0.9 );
 
     volumeSoftBody.setTotalMass( mass, false )
-    Ammo.castObject( volumeSoftBody, Ammo.btCollisionObject ).getCollisionShape().setMargin( am_margin );
+    Ammo.castObject( volumeSoftBody, Ammo.btCollisionObject ).getCollisionShape().setMargin( am.am_margin );
     am_physicsWorld.addSoftBody( volumeSoftBody, 1, -1 );
     volume.userData.physicsBody = volumeSoftBody;
     // Disable deactivation
@@ -2956,7 +2964,7 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 
     var threeObject = new THREE.Mesh( new THREE.BoxGeometry( sx, sy, sz, 1, 1, 1 ), material );
     var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
-    shape.setMargin( am_margin );
+    shape.setMargin( am.am_margin );
 
     am_createRigidBody( threeObject, shape, mass, pos, quat );
 
@@ -2983,18 +2991,18 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.userData.physicsBody = body;
 
-    am_scene.add( threeObject );
+    am.am_scene.add( threeObject );
 
     if ( mass > 0 ) {
 
-	am_rigidBodies.push( threeObject );
+	am.am_rigidBodies.push( threeObject );
 
 	// Disable deactivation
 	body.setActivationState( 4 );
 
     }
 
-    am_physicsWorld.addRigidBody( body );
+    am.am_physicsWorld.addRigidBody( body );
 
     return body;
 }
@@ -3003,14 +3011,14 @@ function am_initInput() {
 
     window.addEventListener( 'mousedown', function( event ) {
 
-	if ( ! am_clickRequest ) {
+	if ( ! am.am_clickRequest ) {
 
-	    am_mouseCoords.set(
+	    am.am_mouseCoords.set(
 		( event.clientX / window.innerWidth ) * 2 - 1,
-		    - ( event.clientY / (window.innerHeight*am_window_height_factor) ) * 2 + 1
+		    - ( event.clientY / (window.innerHeight*am.am_window_height_factor) ) * 2 + 1
 	    );
 
-	    am_clickRequest = true;
+	    am.am_clickRequest = true;
 
 	}
 
@@ -3020,39 +3028,39 @@ function am_initInput() {
 
 function am_processClick() {
 
-    if ( am_clickRequest ) {
+    if ( am.am_clickRequest ) {
 
-	am_raycaster.setFromCamera( am_mouseCoords, am_camera );
+	am.am_raycaster.setFromCamera( am.am_mouseCoords, am.am_camera );
 
 	// Creates a ball
 	var ballMass = 3;
 	var ballRadius = 0.4;
 
-	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am_ballMaterial );
+	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am.am_ballMaterial );
 	ball.castShadow = true;
 	ball.receiveShadow = true;
 	var ballShape = new Ammo.btSphereShape( ballRadius );
-	ballShape.setMargin( am_margin );
-	am_pos.copy( am_raycaster.ray.direction );
-	am_pos.add( am_raycaster.ray.origin );
-	am_quat.set( 0, 0, 0, 1 );
-	var ballBody = am_createRigidBody( ball, ballShape, ballMass, am_pos, am_quat );
+	ballShape.setMargin( am.am_margin );
+	am.am_pos.copy( am.am_raycaster.ray.direction );
+	am.am_pos.add( am.am_raycaster.ray.origin );
+	am.am_quat.set( 0, 0, 0, 1 );
+	var ballBody = am_createRigidBody( ball, ballShape, ballMass, am.am_pos, am.am_quat );
 	ballBody.setFriction( 0.5 );
 
-	am_pos.copy( am_raycaster.ray.direction );
-	am_pos.multiplyScalar( 14 );
-	ballBody.setLinearVelocity( new Ammo.btVector3( am_pos.x, am_pos.y, am_pos.z ) );
+	am.am_pos.copy( am.am_raycaster.ray.direction );
+	am.am_pos.multiplyScalar( 14 );
+	ballBody.setLinearVelocity( new Ammo.btVector3( am.am_pos.x, am.am_pos.y, am.am_pos.z ) );
 
-	am_clickRequest = false;
+	am.am_clickRequest = false;
 
     }
 
 }
 
 function am_onWindowResize() {
-    am_camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
-    am_camera.updateProjectionMatrix();
-    am_renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
+    am.am_camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
+    am.am_camera.updateProjectionMatrix();
+    am.am_renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
 }
 
 function am_animate() {
@@ -3064,26 +3072,26 @@ function am_animate() {
 }
 
 function am_render() {
-    var deltaTime = am_clock.getDelta();
+    var deltaTime = am.am_clock.getDelta();
     am_updatePhysics( deltaTime );
     am_processClick();
-    am_controls.update( deltaTime );
+    am.am_controls.update( deltaTime );
 
     // note this....
 
-    am_renderer.render( am_scene, am_camera );
-    am_renderer.autoClear = false;        
-    am_renderer.render( am_grid_scene, am_camera);    
+    am.am_renderer.render( am.am_scene, am.am_camera );
+    am.am_renderer.autoClear = false;        
+    am.am_renderer.render( am.am_grid_scene, am.am_camera);    
 }
 
 function am_updatePhysics( deltaTime ) {
 
     // Step world
-    am_physicsWorld.stepSimulation( deltaTime, 10 );
+    am.am_physicsWorld.stepSimulation( deltaTime, 10 );
 
     // Update soft volumes
-    for ( var i = 0, il = am_softBodies.length; i < il; i++ ) {
-	var volume = am_softBodies[ i ];
+    for ( var i = 0, il = am.am_softBodies.length; i < il; i++ ) {
+	var volume = am.am_softBodies[ i ];
 	var geometry = volume.geometry;
 	var softBody = volume.userData.physicsBody;
 	var volumePositions = geometry.attributes.position.array;
@@ -3124,15 +3132,15 @@ function am_updatePhysics( deltaTime ) {
     }
 
     // Update rigid bodies
-    for ( var i = 0, il = am_rigidBodies.length; i < il; i++ ) {
-	var objThree = am_rigidBodies[ i ];
+    for ( var i = 0, il = am.am_rigidBodies.length; i < il; i++ ) {
+	var objThree = am.am_rigidBodies[ i ];
 	var objPhys = objThree.userData.physicsBody;
 	var ms = objPhys.getMotionState();
 	if ( ms ) {
 
-	    ms.getWorldTransform( am_transformAux1 );
-	    var p = am_transformAux1.getOrigin();
-	    var q = am_transformAux1.getRotation();
+	    ms.getWorldTransform( am.am_transformAux1 );
+	    var p = am.am_transformAux1.getOrigin();
+	    var q = am.am_transformAux1.getRotation();
 	    objThree.position.set( p.x(), p.y(), p.z() );
 	    objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
 
