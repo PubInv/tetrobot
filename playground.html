@@ -58,7 +58,7 @@
 	    <button type="button" onclick="reset_to_default(gui,mw)">
 	      Reset to Default
 	    </button>
-	    <button type="button" onclick="toggle_mouse_action">
+	    <button type="button" onclick="toggle_mouse_action()">
 	      Toggle Mouse Cannon/Grab
 	    </button>
     </div>
@@ -313,7 +313,7 @@ var MW = function() {
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
     //    this.OBSTACLE_FRACTION = 30;
     this.OBSTACLE_FRACTION = 3;
-    this.OBSTACLE_MASS = 300;
+    this.OBSTACLE_MASS = 3;
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
@@ -349,6 +349,7 @@ MW.prototype.remove_robot = function() {
 var mw = new MW();
 
 var GUI = function(mw) {
+    this.PHYSICS_ENGINE = "CANNON";
     this.mw = mw;
     this.controls = null;
     this.SCREEN_WIDTH = window.innerWidth;
@@ -389,7 +390,7 @@ var GUI = function(mw) {
     this.color_scale = d3.scale.quantile().domain([this.mw.MIN_EDGE_LENGTH, this.mw.MAX_EDGE_LENGTH])
     .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
 
-    this.MOUSE_FIRES = true;
+
 };
 
 
@@ -604,10 +605,10 @@ function onMouseMove(e){
 					 0.5 );                                            //z
 		mouse3D.unproject( gui.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+        var pos = projectOntoPlane(gui,e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
             setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
-            moveJointToPoint(pos.x,pos.y,pos.z);
+            moveJointToPoint(gui,pos.x,pos.y,pos.z);
         }
     }
 }
@@ -622,7 +623,7 @@ function onMouseDown(e){
     mouse3D.sub(gui.camera.position);
     mouse3D.project( gui.camera );
     
-    var entity = findNearestIntersectingObject(e.clientX,e.clientY,gui.camera,mw.meshes);
+    var entity = findNearestIntersectingObject(gui,e.clientX,e.clientY,gui.camera,mw.meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
@@ -661,7 +662,11 @@ function onMouseDown(e){
 
 
             if(idx !== -1){
-		addMouseConstraint(pos.x,pos.y,pos.z,mw.bodies[idx]);
+		    if (gui.PHYSICS_ENGINE == "CANNON") {
+			addMouseConstraint(gui,pos.x,pos.y,pos.z,mw.bodies[idx]);
+		    } else if (gui.PHYSICS_ENGINE == "AMMO") {
+			console.log("This is the wrong place!");
+		    }
             }
 	}
     }
@@ -702,10 +707,10 @@ function onMouseUp(e) {
 	
 	mouse3D.unproject( gui.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+    var pos = projectOntoPlane(gui,e.clientX,e.clientY,gui.gplane,gui.camera);
         if(pos){
             setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
-            moveJointToPoint(pos.x,pos.y,pos.z);
+            moveJointToPoint(gui,pos.x,pos.y,pos.z);
         }
     
     // remove the marker
@@ -732,7 +737,7 @@ function onMouseUp(e) {
 
 }
 
-function projectOntoPlane(screenX,screenY,thePlane,camera) {
+function projectOntoPlane(gui,screenX,screenY,thePlane,camera) {
     var x = screenX;
     var y = screenY;
     var now = new Date().getTime();
@@ -740,12 +745,12 @@ function projectOntoPlane(screenX,screenY,thePlane,camera) {
     // This is probably highly wrong...
     // this means that we can only fold an object on itself.
     // I think this would work if you have
-    var hit = findNearestIntersectingObject(screenX,screenY,camera,[thePlane]);
+    var hit = findNearestIntersectingObject(gui,screenX,screenY,camera,[thePlane]);
     if(hit)
         return hit.point;
     else return false;
 }
-function findNearestIntersectingObject(clientX,clientY,camera,objects) {
+function findNearestIntersectingObject(gui,clientX,clientY,camera,objects) {
     var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
                                      -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
                                      0.5 );                                            //z
@@ -1406,7 +1411,7 @@ function step_con() {
 }
 
 function toggle_mouse_action() {
-    gui.MOUSE_FIRES = !gui.MOUSE_FIRES;
+    am.MOUSE_FIRES = !am.MOUSE_FIRES;
 }
 
 function step_con() {
@@ -1415,88 +1420,124 @@ function step_con() {
 function send_to_robot_url() {
     // Right now, we are just sending the current config
     var pmodel = extract_physical_node_model();
-    var am = model_to_actuator_space(pmodel);
-    var x = JSON.stringify(am,null,2);
-    gui.url_for_robot = $("#poseurl").val();
-    $.ajax({url: gui.url_for_robot,
-	    crossDomain: true,
-	    beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
-	    data: x,
-	    success: function(result){
-		
-        $("#robotcomresult").html(result);
-	    },
-	    error: function (request, status, error) {
-//		alert(request.responseText);
-	     }
-	   });
+    if (pmodel.length > 0) {
+	
+	var am = model_to_actuator_space(pmodel);
+	var x = JSON.stringify(am,null,2);
+	gui.url_for_robot = $("#poseurl").val();
+	$.ajax({url: gui.url_for_robot,
+		crossDomain: true,
+		beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
+		data: x,
+		success: function(result){
+		    
+		    $("#robotcomresult").html(result);
+		},
+		error: function (request, status, error) {
+		    //		alert(request.responseText);
+		}
+	       });
+    }
 
 }
 		       
 
-function updateMouseConstraints(body) {
-    // Now we want to disable all attached length constraints (and actually add others)
-    mw.cworld.constraints.forEach(function (c) {
-	if (c.name != "mouseConstraint"){
-	    // Possibly we don't want to really disable these, but weaken them.
-	    if (gui.FORCE_REGIME == "STEP") {
-		var d = c.bodyA.position.distanceTo(c.bodyB.position);
+function updateMouseConstraints(gui,body) {
+    if (gui.PHYSICS_ENGINE == "CANNON") {
+	// Now we want to disable all attached length constraints (and actually add others)
+	mw.cworld.constraints.forEach(function (c) {
+	    if (c.name != "mouseConstraint"){
+		// Possibly we don't want to really disable these, but weaken them.
+		if (gui.FORCE_REGIME == "STEP") {
+		    var d = c.bodyA.position.distanceTo(c.bodyB.position);
 
-		var dp = Math.max(Math.min(d,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
-		// r should be 1.0 when at the edge.
+		    var dp = Math.max(Math.min(d,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
+		    // r should be 1.0 when at the edge.
 
-		// NOTE: This approach is fundamentally limited, and probably conceptually wrong!
-		// The string of the spring should not increase as we exceed the length!!!
-		// THIS IS FUNDAMENTALLY WRONG.
-		var r = (d - mw.MEDIAN_EDGE_LENGTH)/ ((mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH)/ 2);
+		    // NOTE: This approach is fundamentally limited, and probably conceptually wrong!
+		    // The string of the spring should not increase as we exceed the length!!!
+		    // THIS IS FUNDAMENTALLY WRONG.
+		    var r = (d - mw.MEDIAN_EDGE_LENGTH)/ ((mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH)/ 2);
 
-		r = Math.max(r,0.4);
-		var f = mw.CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
-		if (!c["eternal"]) 
-		    mw.cworld.removeConstraint(c);
-		var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
-		world.addConstraint(n);
+		    r = Math.max(r,0.4);
+		    var f = mw.CONSTRAINT_FORCE_SMALL*Math.pow(r,2);
+		    if (!c["eternal"]) 
+			mw.cworld.removeConstraint(c);
+		    var n = new CANNON.DistanceConstraint(c.bodyA,c.bodyB,dp,f);
+		    world.addConstraint(n);
 
-	    } else if (gui.FORCE_REGIME == "DISABLE") {
-		if (((c.bodyA == body) || (c.bodyB == body))
-		    && (!(c.bodyA.structureKind =="endpoint") || (c.bodyB.structureKind == "endpoint")) 
-		    ) {
-		    
-		    c.disable();
+		} else if (gui.FORCE_REGIME == "DISABLE") {
+		    if (((c.bodyA == body) || (c.bodyB == body))
+			&& (!(c.bodyA.structureKind =="endpoint") || (c.bodyB.structureKind == "endpoint")) 
+		       ) {
+			
+			c.disable();
+		    }
+		} else if (gui.FORCE_REGIME == "NONE") {
 		}
-	    } else if (gui.FORCE_REGIME == "NONE") {
 	    }
-	}
-    });
+	});
+    } else {
+    }
+    
 }
 
-function addMouseConstraint(x,y,z,body) {
+
+// There is a real problem here that body is either an Ammo body or a Cannon body!
+function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
-    var constrainedBody = body;
+    if (gui.PHYSICS_ENGINE == "CANNON") {
+	var constrainedBody = body;
 
-    // Vector to the clicked point, relative to the body
-    var v1 = new CANNON.Vec3(x,y,z).vsub(constrainedBody.position);
+	// Vector to the clicked point, relative to the body
+	var v1 = new CANNON.Vec3(x,y,z).vsub(constrainedBody.position);
 
-    // Apply anti-quaternion to vector to tranform it into the local body coordinate system
-    var antiRot = constrainedBody.quaternion.inverse();
-    var pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
+	// Apply anti-quaternion to vector to tranform it into the local body coordinate system
+	var antiRot = constrainedBody.quaternion.inverse();
+	var pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
 
-    // Move the cannon click marker particle to the click position
-    gui.jointBody.position.set(x,y,z);
+	// Move the cannon click marker particle to the click position
+	// TODO: This set does NOT work in the AMMO world!  Must do something more complicated.
 
-    updateMouseConstraints(body);
+	gui.jointBody.position.set(x,y,z);
+    } else if (gui.PHYSICS_ENGINE == "AMMO") {
+	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
+
+	var startTransform = new Ammo.btTransform();
+	startTransform.setIdentity();
+	startTransform.setOrigin(new Ammo.btVector3(x, y, z));
+	gui.jointBody.setCenterOfMassTransform(startTransform);
+	//	gui.jointBody.clearForces();
+	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+	gui.am_physicsWorld.addRigidBody(gui.jointBody);
+    }
+
+    updateMouseConstraints(gui,body);
 
     // Create a new constraint
     // The pivot for the gui.jointBody is zero
-    gui.mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, gui.jointBody, new CANNON.Vec3(0,0,0));
-    gui.mouseConstraint.name = "mouseConstraint";
-    gui.mouseConstraint.attachedBody = body;
+    if (gui.PHYSICS_ENGINE == "CANNON") {
+	gui.mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, gui.jointBody, new CANNON.Vec3(0,0,0));
+	gui.mouseConstraint.name = "mouseConstraint";
+	gui.mouseConstraint.attachedBody = body;
 
 
-    // Add the constriant to world
-    mw.cworld.addConstraint(gui.mouseConstraint);
-    // We want to turn gravity offf while we are editing....
-    mw.cworld.gravity.set(0,0,0);
+	// Add the constriant to world
+	mw.cworld.addConstraint(gui.mouseConstraint);
+	// We want to turn gravity offf while we are editing....
+	mw.cworld.gravity.set(0,0,0);
+    } else if (gui.PHYSICS_ENGINE == "AMMO") {
+/*	var markerBody = gui.jointBody;
+	var constrainedBody = body;
+	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
+	var pivotInB = new Ammo.btVector3( 0, 0, 0 );; 
+	var con = new Ammo.btPoint2PointConstraint(markerBody,
+						   constrainedBody,
+						   pivotInA,
+						   pivotInB);
+*/
+    }
 }
 
 
@@ -1504,58 +1545,74 @@ function addMouseConstraint(x,y,z,body) {
 
 // This functions moves the transparent joint body to a new postion in space
 
-function moveJointToPoint(x,y,z) {
-    // Move the joint body to a new position
-    gui.jointBody.position.set(x,y,z);
+function moveJointToPoint(gui,x,y,z) {
+    if (gui.PHYSICS_ENGINE == "CANNON") {
 
+	// Move the joint body to a new position
+	gui.jointBody.position.set(x,y,z);
 
-    var body = gui.mouseConstraint.attachedBody;
-    
-    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
+	var body = gui.mouseConstraint.attachedBody;
+	
+	var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
 
-    mw.bodies.forEach(function (bx,i) {
-	var bx = mw.bodies[i];
-	if (bx.structureKind == "member") {
-	    var a = bx.link_a;
-	    var b = bx.link_z;
+	mw.bodies.forEach(function (bx,i) {
+	    var bx = mw.bodies[i];
+	    if (bx.structureKind == "member") {
+		var a = bx.link_a;
+		var b = bx.link_z;
 
-	    if ((a == body) || ( b == body)) {
-		// HERE is where we must deal with the mesh changing sizes, not in update physics.
-		var ap = a.position;
-		var bp = b.position;
-		var len = ap.distanceTo(bp);
-		
-		var cd3 = d3.rgb(gui.color_scale(len));
-		
-		var d = len;
-		
-		var h = a.position.distanceTo(b.position);
-		var cubeGeo = new THREE.BoxGeometry( w,h,w );
+		if ((a == body) || ( b == body)) {
+		    // HERE is where we must deal with the mesh changing sizes, not in update physics.
+		    var ap = a.position;
+		    var bp = b.position;
+		    var len = ap.distanceTo(bp);
+		    
+		    var cd3 = d3.rgb(gui.color_scale(len));
+		    
+		    var d = len;
+		    
+		    var h = a.position.distanceTo(b.position);
+		    var cubeGeo = new THREE.BoxGeometry( w,h,w );
 
-		var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
+		    var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
 
-		gui.scene.remove(mw.meshes[i]);
-		gui.scene.add(mesh);
-		mw.meshes[i] = mesh;
-		for(var j = 0; j < mesh.geometry.faces.length; j++) {
-    		    mesh.geometry.faces[j].color.setStyle( gui.color_scale(d) );
+		    gui.scene.remove(mw.meshes[i]);
+		    gui.scene.add(mesh);
+		    mw.meshes[i] = mesh;
+		    for(var j = 0; j < mesh.geometry.faces.length; j++) {
+    			mesh.geometry.faces[j].color.setStyle( gui.color_scale(d) );
+		    }
+		    
+		    mesh.position.set(a.position.x,a.position.y,a.position.z);
+		    mesh.castShadow = true;
+		    mesh.receiveShadow = true;
+		    
+		    mesh.geometry.verticesNeedUpdate = true;
+		    mesh.geometry.elementsNeedUpdate = true;        
+		    mesh.geometry.colorsNeedUpdate = true;
+
 		}
-		
-		mesh.position.set(a.position.x,a.position.y,a.position.z);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		
-		mesh.geometry.verticesNeedUpdate = true;
-		mesh.geometry.elementsNeedUpdate = true;        
-		mesh.geometry.colorsNeedUpdate = true;
-
 	    }
-	}
-    });
+	});
 
 
-    updateMouseConstraints(null);
-    gui.mouseConstraint.update();
+	updateMouseConstraints(gui,null);
+	gui.mouseConstraint.update();
+
+    } else if (gui.PHYSICS_ENGINE == "AMMO") {
+	// Apparently this got really messes things up in Ammo!
+/*
+	// HACK : just guessing here...
+	var startTransform = new Ammo.btTransform();
+	startTransform.setIdentity();
+	startTransform.setOrigin(new Ammo.btVector3(x, y, z));
+	gui.jointBody.setCenterOfMassTransform(startTransform);
+	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+	gui.am_physicsWorld.addRigidBody(gui.jointBody);
+*/
+    }
+    
 }
 
 function render_constraints() {
@@ -2368,7 +2425,7 @@ function initiation_stuff() {
     if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 }
 
-initiation_stuff();
+// initiation_stuff();
 
 
 // Here begins my attempt to integrate the AMMO.js port of the Bullet Physics engine
@@ -2384,7 +2441,8 @@ if ( ! Detector.webgl ) {
 
 // Graphics variables
 var AM = function() {
-    this.am_container
+    this.PHYSICS_ENGINE = "AMMO";
+    this.am_container,
     this.am_stats;
     this.camera;
     this.controls;
@@ -2398,6 +2456,9 @@ var AM = function() {
     this.am_ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
     this.am_pos = new THREE.Vector3();
     this.am_quat = new THREE.Quaternion();
+
+
+    this.jointBody = null;
 
     // Physics variables
     this.am_gravityConstant = -9.8;
@@ -2415,7 +2476,8 @@ var AM = function() {
 
     this.am_armMovement = 0;
 
-    this.am_window_height_factor = 1/4.0;
+    //    this.am_window_height_factor = 1/4.0;
+    this.am_window_height_factor = 0.5;
 
     this.am_grid_scene = null;
     // Used in manipulation of objects
@@ -2423,7 +2485,13 @@ var AM = function() {
     this.clickMarker=false;
     this.mouseConstraint = null;
     this.movedButNotSent = false;
+    
+    this.MOUSE_FIRES = false;
 
+    this.meshes = [];
+
+    this.JOINT_MASS = 1;
+    this.JOINT_RADIUS = 0.1;
 }
 
 var am = new AM();
@@ -2464,10 +2532,11 @@ function am_onMouseMove(e){
 					 0.5 );                                            //z
 		mouse3D.unproject( am.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,am.gplane,am.camera);
+        var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+	
         if(pos){
             setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
-            moveJointToPoint(pos.x,pos.y,pos.z);
+            moveJointToPoint(am,pos.x,pos.y,pos.z);
         }
     }
 }
@@ -2482,7 +2551,7 @@ function am_onMouseDown(e){
     mouse3D.sub(am.camera.position);
     mouse3D.project( am.camera );
     
-    var entity = findNearestIntersectingObject(e.clientX,e.clientY,am.camera,mw.meshes);
+    var entity = findNearestIntersectingObject(am,e.clientX,e.clientY,am.camera,am.meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
@@ -2495,7 +2564,7 @@ function am_onMouseDown(e){
 		(entity.object.structureKind == "member")
 		)
        ){
-        var idx = mw.meshes.indexOf(entity.object);
+        var idx = am.meshes.indexOf(entity.object);
 
 	if (e.shiftKey) {
 	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
@@ -2521,39 +2590,48 @@ function am_onMouseDown(e){
 
 
             if(idx !== -1){
-		addMouseConstraint(pos.x,pos.y,pos.z,mw.bodies[idx]);
+
+		    if (am.PHYSICS_ENGINE == "CANNON") {
+			console.log(" Internal error");
+		    } else if (am.PHYSICS_ENGINE == "AMMO") {
+			addMouseConstraint(am,pos.x,pos.y,pos.z,am.meshes[idx].ammo_obj);		    }
             }
 	}
     }
 }
 
 function am_onMouseUp(e) {
+    // DEBUG Hack
+
 	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
 					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
 	
 	mouse3D.unproject( am.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,am.gplane,am.camera);
+       var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
         if(pos){
             setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
-            moveJointToPoint(pos.x,pos.y,pos.z);
+            moveJointToPoint(am,pos.x,pos.y,pos.z);
         }
-    
     // remove the marker
     removeClickMarker(am);
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
 
-    // This is an experimental positioning
-    // TODO: This needs to be called only if we have moved an object.
+
+
+// Crazy, but moving this return seems to ruin things?
+    
+
     if (am.movedButNotSent) {
 	send_to_robot_url();
 	am.movedButNotSent = false;
     }
+    
 
-
+    
     if (am.gplane.visible == true) {
 	am.gplane.visible = false;
 	// We need to re-establish the controls because I don't have
@@ -2674,6 +2752,21 @@ function am_initPhysics() {
     am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
     am.am_physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
 
+    var material = new THREE.MeshPhongMaterial( { color: 0xFF0000 } );
+    
+    var pos = new Ammo.btVector3( 0, 0, 0 );
+    var quat = new Ammo.btQuaternion( 0, 0, 0, 1 );
+    
+    var mesh =  am_createParalellepiped( am.JOINT_RADIUS*2,
+					 am.JOINT_RADIUS*2,
+					 am.JOINT_RADIUS*2,
+					 am.JOINT_MASS,
+					 pos,
+					 quat,
+					 material );
+    am.jointBody = mesh["ammo_obj"];
+    am.jointBody.collisionFilterGroup = 0;
+    am.jointBody.collisionFilterMask = 0;
 }
 
 function am_createObstacles() {
@@ -2697,8 +2790,6 @@ function am_createObstacles() {
 //					});
 //	OBSTACLE_BODY.addShape(obstacleShape);
 
-	OBSTACLE_BODY.name = "obstacle-"+i;
-	OBSTACLE_BODY.structureKind = "obstacle";
 //	OBSTACLE_BODY.position.set(positions[i].x,positions[i].y,positions[i].z);
 //	OBSTACLE_BODY.angularDamping = 0.9;
 //	OBSTACLE_BODY.linearDamping = 0.9;
@@ -2737,7 +2828,9 @@ function am_createObstacles() {
 	mesh.receiveShadow = true;
 	mesh.name = "obstacle-"+i;
 	mesh.structureKind = "obstacle";
-	
+
+	mesh["ammo_obj"].name = "obstacle-"+i;
+	mesh["ammo_obj"].structureKind = "obstacle";
 /*	scene.add(mesh);
 
 	mesh.geometry.verticesNeedUpdate = true;
@@ -2923,6 +3016,7 @@ function am_createSoftVolume( bufferGeom, mass, pressure ) {
     volume.receiveShadow = true;
     volume.frustumCulled = false;
     am.scene.add( volume );
+    am.meshes.push( volume );
 
     am.am_textureLoader.load( "textures/colors.png", function( texture ) {
 	volume.material.map = texture;
@@ -2972,8 +3066,9 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
     var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
     shape.setMargin( am.am_margin );
 
-    am_createRigidBody( threeObject, shape, mass, pos, quat );
-
+    var body = am_createRigidBody( threeObject, shape, mass, pos, quat );
+    
+    threeObject["ammo_obj"] = body;
     return threeObject;
 
 }
@@ -2998,6 +3093,7 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     threeObject.userData.physicsBody = body;
 
     am.scene.add( threeObject );
+    am.meshes.push( threeObject );
 
     if ( mass > 0 ) {
 
@@ -3027,12 +3123,13 @@ function am_initInput() {
 	    am.am_clickRequest = true;
 
 	}
-
     }, false );
 
 }
 
 function am_processClick() {
+    if (!am.MOUSE_FIRES)
+	return;
 
     if ( am.am_clickRequest ) {
 
@@ -3064,9 +3161,9 @@ function am_processClick() {
 }
 
 function am_onWindowResize() {
-    am.camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
     am.camera.updateProjectionMatrix();
-    am.renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
+    am.renderer.setSize( window.innerWidth, window.innerHeight * am.am_window_height_factor );
 }
 
 function am_animate() {
