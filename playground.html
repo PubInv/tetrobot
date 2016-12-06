@@ -712,7 +712,7 @@ function onMouseUp(e) {
     removeClickMarker(gui);
 
     // Send the remove mouse joint to server
-    removeJointConstraint();
+    removeJointConstraint(gui);
 
     // This is an experimental positioning
     // TODO: This needs to be called only if we have moved an object.
@@ -1564,7 +1564,7 @@ function render_constraints() {
     });
 }
 
-function removeJointConstraint() {
+function removeJointConstraint(gui) {
     // Remove constriant from world
     if (!gui.mouseConstraint) {
 	return;
@@ -2386,10 +2386,10 @@ if ( ! Detector.webgl ) {
 var AM = function() {
     this.am_container
     this.am_stats;
-    this.am_camera;
-    this.am_controls;
-    this.am_scene;
-    this.am_renderer;
+    this.camera;
+    this.controls;
+    this.scene;
+    this.renderer;
     this.am_textureLoader;
     this.am_clock = new THREE.Clock();
     this.am_clickRequest = false;
@@ -2418,6 +2418,12 @@ var AM = function() {
     this.am_window_height_factor = 1/4.0;
 
     this.am_grid_scene = null;
+    // Used in manipulation of objects
+    this.gplane=false;
+    this.clickMarker=false;
+    this.mouseConstraint = null;
+    this.movedButNotSent = false;
+
 }
 
 var am = new AM();
@@ -2451,16 +2457,16 @@ function am_init() {
 
 function am_onMouseMove(e){
     // Move and project on the plane
-    if (gui.gplane && gui.mouseConstraint) {
+    if (am.gplane && am.mouseConstraint) {
 
-	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
+	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
-		mouse3D.unproject( gui.camera );
+		mouse3D.unproject( am.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+        var pos = projectOntoPlane(e.clientX,e.clientY,am.gplane,am.camera);
         if(pos){
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     }
@@ -2469,14 +2475,14 @@ function am_onMouseMove(e){
 function am_onMouseDown(e){
     // Find mesh from a ray
 
-    var mouse3D = new THREE.Vector3( ( e.clientX / am.am_renderer.getSize().width ) * 2 - 1,   //x
-				     -( e.clientY / (am.am_renderer.getSize().height) ) * 2 + 1,  //y
+    var mouse3D = new THREE.Vector3( ( e.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
-    mouse3D.unproject( gui.camera );
-    mouse3D.sub(gui.camera.position);
-    mouse3D.project( gui.camera );
+    mouse3D.unproject( am.camera );
+    mouse3D.sub(am.camera.position);
+    mouse3D.project( am.camera );
     
-    var entity = findNearestIntersectingObject(e.clientX,e.clientY,gui.camera,mw.meshes);
+    var entity = findNearestIntersectingObject(e.clientX,e.clientY,am.camera,mw.meshes);
     var pos = entity.point;
     // This is fragile, we need to be able to change this geometry....
     
@@ -2508,10 +2514,10 @@ function am_onMouseDown(e){
 	} else {
 //            constraintDown = true;
             // Set marker on contact point
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
 
             // Set the movement plane
-            setScreenPerpCenter(pos,gui);
+            setScreenPerpCenter(pos,am);
 
 
             if(idx !== -1){
@@ -2522,38 +2528,38 @@ function am_onMouseDown(e){
 }
 
 function am_onMouseUp(e) {
-	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
+	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
 	
-	mouse3D.unproject( gui.camera );
+	mouse3D.unproject( am.camera );
 
-        var pos = projectOntoPlane(e.clientX,e.clientY,gui.gplane,gui.camera);
+        var pos = projectOntoPlane(e.clientX,e.clientY,am.gplane,am.camera);
         if(pos){
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
+            setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
             moveJointToPoint(pos.x,pos.y,pos.z);
         }
     
     // remove the marker
-    removeClickMarker(gui);
+    removeClickMarker(am);
 
     // Send the remove mouse joint to server
-    removeJointConstraint();
+    removeJointConstraint(am);
 
     // This is an experimental positioning
     // TODO: This needs to be called only if we have moved an object.
-    if (gui.movedButNotSent) {
+    if (am.movedButNotSent) {
 	send_to_robot_url();
-	gui.movedButNotSent = false;
+	am.movedButNotSent = false;
     }
 
 
-    if (gui.gplane.visible == true) {
-	gui.gplane.visible = false;
+    if (am.gplane.visible == true) {
+	am.gplane.visible = false;
 	// We need to re-establish the controls because I don't have
 	// any good way of exiting the active state...
-	gui.controls.dispose();
-	establish_controls(gui);
+	am.controls.dispose();
+	establish_controls(am);
     }
 
 }
@@ -2571,38 +2577,38 @@ function am_initGraphics() {
 
     am.am_container = document.getElementById( 'container' );
 
-    am.am_camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
+    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
 
-    am.am_scene = new THREE.Scene();
-    am.am_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    am.scene = new THREE.Scene();
+    am.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
-    am.am_camera.position.x = -7;
-    am.am_camera.position.y = 5;
-    am.am_camera.position.z =  8;
+    am.camera.position.x = -7;
+    am.camera.position.y = 5;
+    am.camera.position.z =  8;
 
-    am.am_controls = new THREE.OrbitControls( am.am_camera );
-    am.am_controls.target.y = 2;
+    am.controls = new THREE.OrbitControls( am.camera );
+    am.controls.target.y = 2;
 
-    am.am_renderer = new THREE.WebGLRenderer( { antialias: true } );
-    am.am_renderer.setClearColor( am.am_scene.fog.color );
+    am.renderer = new THREE.WebGLRenderer( { antialias: true } );
+    am.renderer.setClearColor( am.scene.fog.color );
     
-//    am_renderer.setClearColor( 0xbfd1e5 );
-    am.am_renderer.setPixelRatio( window.devicePixelRatio );
-    am.am_renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
-    am.am_renderer.shadowMap.enabled = true;
+//    renderer.setClearColor( 0xbfd1e5 );
+    am.renderer.setPixelRatio( window.devicePixelRatio );
+    am.renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
+    am.renderer.shadowMap.enabled = true;
 
     am.am_textureLoader = new THREE.TextureLoader();
 
     var ambientLight = new THREE.AmbientLight( 0x404040 );
-    am.am_scene.add( ambientLight );
+    am.scene.add( ambientLight );
 
     // lights
     var light, materials;
-    am.am_scene.add( new THREE.AmbientLight( 0x666666 ) );
-    am.am_scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+    am.scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am.scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
 
-    addShadowedLight(am.am_scene, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(am.am_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(am.scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.scene, 0.5, 1, -1, 0xffaa00, 1 );
 
 
     am.am_grid_scene = new THREE.Scene();
@@ -2631,7 +2637,7 @@ function am_initGraphics() {
     light.shadow.Darkness = 0.5;
     
     am.am_grid_scene.add(light);
-    am.am_scene.add(light);    
+    am.scene.add(light);    
 //    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
     am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
 
@@ -2643,7 +2649,7 @@ function am_initGraphics() {
     
     am.am_container.innerHTML = "";
 
-    am.am_container.appendChild( am.am_renderer.domElement );
+    am.am_container.appendChild( am.renderer.domElement );
 
 //    am_stats = new Stats();
 //    am_stats.domElement.style.position = 'absolute';
@@ -2761,13 +2767,13 @@ function am_createGround() {
 					  0, am.am_pos, am.am_quat, floorMaterial );    
     ground.castShadow = true;
     ground.receiveShadow = true;
-    am.am_textureLoader.load( "textures/grid.png", function( texture ) {
-	texture.wrapS = THREE.RepeatWrapping;
-	texture.wrapT = THREE.RepeatWrapping;
-	texture.repeat.set( 40, 40 );
-	ground.material.map = texture;
-	ground.material.needsUpdate = true;
-    } );
+    // am.am_textureLoader.load( "textures/grid.png", function( texture ) {
+    // 	texture.wrapS = THREE.RepeatWrapping;
+    // 	texture.wrapT = THREE.RepeatWrapping;
+    // 	texture.repeat.set( 40, 40 );
+    // 	ground.material.map = texture;
+    // 	ground.material.needsUpdate = true;
+    // } );
 }
 
 function am_createObjects() {
@@ -2916,7 +2922,7 @@ function am_createSoftVolume( bufferGeom, mass, pressure ) {
     volume.castShadow = true;
     volume.receiveShadow = true;
     volume.frustumCulled = false;
-    am.am_scene.add( volume );
+    am.scene.add( volume );
 
     am.am_textureLoader.load( "textures/colors.png", function( texture ) {
 	volume.material.map = texture;
@@ -2991,7 +2997,7 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.userData.physicsBody = body;
 
-    am.am_scene.add( threeObject );
+    am.scene.add( threeObject );
 
     if ( mass > 0 ) {
 
@@ -3030,7 +3036,7 @@ function am_processClick() {
 
     if ( am.am_clickRequest ) {
 
-	am.am_raycaster.setFromCamera( am.am_mouseCoords, am.am_camera );
+	am.am_raycaster.setFromCamera( am.am_mouseCoords, am.camera );
 
 	// Creates a ball
 	var ballMass = 3;
@@ -3058,9 +3064,9 @@ function am_processClick() {
 }
 
 function am_onWindowResize() {
-    am.am_camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
-    am.am_camera.updateProjectionMatrix();
-    am.am_renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am_window_height_factor);
+    am.camera.updateProjectionMatrix();
+    am.renderer.setSize( window.innerWidth, window.innerHeight * am_window_height_factor );
 }
 
 function am_animate() {
@@ -3075,13 +3081,13 @@ function am_render() {
     var deltaTime = am.am_clock.getDelta();
     am_updatePhysics( deltaTime );
     am_processClick();
-    am.am_controls.update( deltaTime );
+    am.controls.update( deltaTime );
 
     // note this....
 
-    am.am_renderer.render( am.am_scene, am.am_camera );
-    am.am_renderer.autoClear = false;        
-    am.am_renderer.render( am.am_grid_scene, am.am_camera);    
+    am.renderer.render( am.scene, am.camera );
+    am.renderer.autoClear = false;        
+    am.renderer.render( am.am_grid_scene, am.camera);    
 }
 
 function am_updatePhysics( deltaTime ) {
