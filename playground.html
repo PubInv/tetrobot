@@ -615,7 +615,7 @@ function onMouseMove(e){
 
 function onMouseDown(e){
     // Find mesh from a ray
-
+    return;
     var mouse3D = new THREE.Vector3( ( e.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
 				     -( e.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
@@ -1482,6 +1482,7 @@ function updateMouseConstraints(gui,body) {
     
 }
 
+var global_o;
 
 // There is a real problem here that body is either an Ammo body or a Cannon body!
 function addMouseConstraint(gui,x,y,z,body) {
@@ -1541,8 +1542,18 @@ function addMouseConstraint(gui,x,y,z,body) {
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
 	var markerBody = gui.jointBody;
 	var constrainedBody = body;
+	var startTransform = constrainedBody.getWorldTransform();
+	var o = startTransform.getOrigin();
+
 	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
-	var pivotInB = new Ammo.btVector3( 0, 0, 0 );; 
+	var pivotInB = new Ammo.btVector3( x-o.x(), y-o.y(), z-o.z() );;
+	global_o = new Ammo.btVector3( pivotInB.x(),
+				       pivotInB.y(),
+				       pivotInB.z() );
+	console.log("global_o =");	
+	console.log(global_o.x());
+	
+	am.transformInConstrained = new Ammo.btVector3(pivotInB.x(),pivotInB.y(),pivotInB.z());
 	var con = new Ammo.btPoint2PointConstraint(markerBody,
 						   constrainedBody,
 						   pivotInA,
@@ -1550,6 +1561,8 @@ function addMouseConstraint(gui,x,y,z,body) {
 	gui.mouseConstraint = con;
 
 	gui.am_physicsWorld.addConstraint(con, true);
+	console.log("1 global_o =");	
+	console.log(global_o.x());
 
     }
 }
@@ -1619,8 +1632,15 @@ function moveJointToPoint(gui,x,y,z) {
 	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 	var startTransform = new Ammo.btTransform();
 	startTransform.setIdentity();
-	startTransform.setOrigin(new Ammo.btVector3(x, y, z));
-	gui.jointBody.setCenterOfMassTransform(startTransform);
+	var o = am.transformInConstrained;
+	
+	var n_o = new Ammo.btVector3(x-o.x(), y-o.y(), z-o.z());
+	startTransform.setOrigin(n_o);
+
+	// This is wrong...we ned to move x,y,z plus the inverse ...
+	// or let the constraint handle!
+	gui.jointBody.setWorldTransform(startTransform);
+	
 	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 	gui.am_physicsWorld.addRigidBody(gui.jointBody);
@@ -1671,7 +1691,6 @@ function removeJointConstraint(gui) {
 	    return d;
 	});
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
-	//	gui.am_physicsWorld.addConstraint(coneC, true);
 	gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
     }
 
@@ -2510,7 +2529,7 @@ var AM = function() {
 
     this.meshes = [];
 
-    this.JOINT_MASS = 1;
+    this.JOINT_MASS = 0;
     this.JOINT_RADIUS = 0.1;
 }
 
@@ -2564,10 +2583,13 @@ function am_onMouseMove(e){
         if(pos){
             setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
             moveJointToPoint(am,pos.x,pos.y,pos.z);
+	    console.log("mouse move pos");
+	    console.log(pos);
         }
     }
 }
-
+// BUG: It is easy to get to constrainedBodies someone both constrained,
+// But that is not the intention of the interaction tool, and is very annoying.
 function am_onMouseDown(e){
     // Find mesh from a ray
 
@@ -2791,11 +2813,14 @@ function am_initPhysics() {
     am.jointBody = mesh["ammo_obj"];
     am.jointBody.collisionFilterGroup = 0;
     am.jointBody.collisionFilterMask = 0;
+    // This is a guess...
+    // 
+    // var DISABLE_SIMULATION = 4; 
+    //am.jointBody.forceActivationState(DISABLE_SIMULATION)
 }
 
 function am_createObstacles() {
 
-    
     var num = 4;
 
 
