@@ -1546,12 +1546,10 @@ function addMouseConstraint(gui,x,y,z,body) {
 	var o = startTransform.getOrigin();
 
 	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
-	var pivotInB = new Ammo.btVector3( x-o.x(), y-o.y(), z-o.z() );;
+	var pivotInB = new Ammo.btVector3( -(x-o.x()), -(y-o.y()), -(z-o.z()) );;
 	global_o = new Ammo.btVector3( pivotInB.x(),
 				       pivotInB.y(),
 				       pivotInB.z() );
-	console.log("global_o =");	
-	console.log(global_o.x());
 	
 	am.transformInConstrained = new Ammo.btVector3(pivotInB.x(),pivotInB.y(),pivotInB.z());
 	var con = new Ammo.btPoint2PointConstraint(markerBody,
@@ -1561,8 +1559,6 @@ function addMouseConstraint(gui,x,y,z,body) {
 	gui.mouseConstraint = con;
 
 	gui.am_physicsWorld.addConstraint(con, true);
-	console.log("1 global_o =");	
-	console.log(global_o.x());
 
     }
 }
@@ -1634,7 +1630,8 @@ function moveJointToPoint(gui,x,y,z) {
 	startTransform.setIdentity();
 	var o = am.transformInConstrained;
 	
-	var n_o = new Ammo.btVector3(x-o.x(), y-o.y(), z-o.z());
+//	var n_o = new Ammo.btVector3((x-o.x()), (y-o.y()), (z-o.z()));
+	var n_o = new Ammo.btVector3(x,y,z);
 	startTransform.setOrigin(n_o);
 
 	// This is wrong...we ned to move x,y,z plus the inverse ...
@@ -2529,7 +2526,7 @@ var AM = function() {
 
     this.meshes = [];
 
-    this.JOINT_MASS = 0;
+    this.JOINT_MASS = 400;
     this.JOINT_RADIUS = 0.1;
 }
 
@@ -2822,6 +2819,7 @@ function am_initPhysics() {
 function am_createObstacles() {
 
     var num = 4;
+    num = 2;
 
 
     var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
