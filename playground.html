@@ -1486,6 +1486,7 @@ function updateMouseConstraints(gui,body) {
 // There is a real problem here that body is either an Ammo body or a Cannon body!
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
+
     if (gui.PHYSICS_ENGINE == "CANNON") {
 	var constrainedBody = body;
 
@@ -1501,6 +1502,16 @@ function addMouseConstraint(gui,x,y,z,body) {
 
 	gui.jointBody.position.set(x,y,z);
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
+	var constrainedBody = body;
+
+	// Vector to the clicked point, relative to the body
+//	var cm = constrainedBody.getCenterOfMassTransform();
+	// Somehow I need to adjust the transform and reset....
+//	var v1 = new Ammo.btVector3(x, y, z);
+
+	// Apply anti-quaternion to vector to tranform it into the local body coordinate system
+
+	
 	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 
 	var startTransform = new Ammo.btTransform();
@@ -1528,7 +1539,7 @@ function addMouseConstraint(gui,x,y,z,body) {
 	// We want to turn gravity offf while we are editing....
 	mw.cworld.gravity.set(0,0,0);
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
-/*	var markerBody = gui.jointBody;
+	var markerBody = gui.jointBody;
 	var constrainedBody = body;
 	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
 	var pivotInB = new Ammo.btVector3( 0, 0, 0 );; 
@@ -1536,7 +1547,10 @@ function addMouseConstraint(gui,x,y,z,body) {
 						   constrainedBody,
 						   pivotInA,
 						   pivotInB);
-*/
+	gui.mouseConstraint = con;
+
+	gui.am_physicsWorld.addConstraint(con, true);
+
     }
 }
 
@@ -1562,7 +1576,7 @@ function moveJointToPoint(gui,x,y,z) {
 		var b = bx.link_z;
 
 		if ((a == body) || ( b == body)) {
-		    // HERE is where we must deal with the mesh changing sizes, not in update physics.
+		    // HERE is where we must deal with the mesh changing sizes, not in physics.
 		    var ap = a.position;
 		    var bp = b.position;
 		    var len = ap.distanceTo(bp);
@@ -1601,8 +1615,8 @@ function moveJointToPoint(gui,x,y,z) {
 
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
 	// Apparently this got really messes things up in Ammo!
-/*
 	// HACK : just guessing here...
+	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 	var startTransform = new Ammo.btTransform();
 	startTransform.setIdentity();
 	startTransform.setOrigin(new Ammo.btVector3(x, y, z));
@@ -1610,7 +1624,6 @@ function moveJointToPoint(gui,x,y,z) {
 	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 	gui.am_physicsWorld.addRigidBody(gui.jointBody);
-*/
     }
     
 }
@@ -1621,40 +1634,46 @@ function render_constraints() {
     });
 }
 
+// TODO: This is specific to CANNON
 function removeJointConstraint(gui) {
     // Remove constriant from world
     if (!gui.mouseConstraint) {
 	return;
     }
-    mw.cworld.removeConstraint(gui.mouseConstraint);
-    // Now we want to disable all attached length constraints (and actually add others)
+    if (gui.PHYSICS_ENGINE == "CANNON") {
+	mw.cworld.removeConstraint(gui.mouseConstraint);
+	// Now we want to disable all attached length constraints (and actually add others)
 
-    var body = gui.mouseConstraint.attachedBody;
-    if (body) {
-	mw.cworld.constraints.forEach(function (c) {
-	    var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
-	    // HACK: This is an experiment...
-	    if (gui.auto_rectify_on) {
-		newrestlength = Math.max(Math.min(newrestlength,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
-	    }
-	    c.distance = newrestlength;
-	    c.update();
-	    c.enable();
+	var body = gui.mouseConstraint.attachedBody;
+	if (body) {
+	    mw.cworld.constraints.forEach(function (c) {
+		var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
+		// HACK: This is an experiment...
+		if (gui.auto_rectify_on) {
+		    newrestlength = Math.max(Math.min(newrestlength,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
+		}
+		c.distance = newrestlength;
+		c.update();
+		c.enable();
+	    });
+	}
+	gui.mouseConstraint = false;
+
+	// Turn gravity back on...
+	// We want to turn gravity offf while we are editing....
+	if (gui.gravity_on) {
+	    mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
+	}
+	update_constraints(mw.robot.robot_members,link => {
+	    var a = link.a;
+	    var b = link.b;
+	    var d = a.position.distanceTo(b.position);
+	    return d;
 	});
+    } else if (gui.PHYSICS_ENGINE == "AMMO") {
+	//	gui.am_physicsWorld.addConstraint(coneC, true);
+	gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
     }
-    gui.mouseConstraint = false;
-
-    // Turn gravity back on...
-    // We want to turn gravity offf while we are editing....
-    if (gui.gravity_on) {
-	mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
-    }
-    update_constraints(mw.robot.robot_members,link => {
-	var a = link.a;
-	var b = link.b;
-	var d = a.position.distanceTo(b.position);
-	return d;
-    });
 
 }
 
@@ -2089,6 +2108,7 @@ function small_size() {
 }
 
 // TODO: Can thse bee done with some sort of macro?
+// NOTE: This is not AMMO ready.
 function toggle_gravity() {
     if (gui.gravity_on) {
 	gui.gravity_on = false;
@@ -2522,8 +2542,15 @@ function am_init() {
 
 }
 
+// I have a problem there that when you quit moving the mouse,
+// the jointBody and constrainedBody both become detaches from
+// the mouse---that is, their normal physics apply, EXCEPT
+// for right when your move the mouse.  We could in theory
+// disable the physics for the object until MouseUp.  I am not
+// sure how to do this in Bullet.
 
 function am_onMouseMove(e){
+
     // Move and project on the plane
     if (am.gplane && am.mouseConstraint) {
 
@@ -2619,11 +2646,6 @@ function am_onMouseUp(e) {
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
-
-
-
-// Crazy, but moving this return seems to ruin things?
-    
 
     if (am.movedButNotSent) {
 	send_to_robot_url();
@@ -2756,7 +2778,8 @@ function am_initPhysics() {
     
     var pos = new Ammo.btVector3( 0, 0, 0 );
     var quat = new Ammo.btQuaternion( 0, 0, 0, 1 );
-    
+
+    // So we jort of want the jointbody to be non-kinematic, if that works with constraints.
     var mesh =  am_createParalellepiped( am.JOINT_RADIUS*2,
 					 am.JOINT_RADIUS*2,
 					 am.JOINT_RADIUS*2,
@@ -2764,6 +2787,7 @@ function am_initPhysics() {
 					 pos,
 					 quat,
 					 material );
+    
     am.jointBody = mesh["ammo_obj"];
     am.jointBody.collisionFilterGroup = 0;
     am.jointBody.collisionFilterMask = 0;
