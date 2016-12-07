@@ -2133,19 +2133,19 @@ function small_size() {
 function toggle_gravity() {
     if (gui.gravity_on) {
 	gui.gravity_on = false;
-	if (mw) {
+	if (mw.cworld) {
 	    mw.cworld.gravity.set(0,0,0);
 	}
-	if (am) {
+	if (am.am_physicsWorld) {
 	    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, 0, 0 ) );
 	}
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
 	gui.gravity_on = true;
-	if (mw) {
+	if (mw.cworld) {
 	    mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
 	}
-	if (am) {
+	if (am.am_physicsWorld) {
 	    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
 	}
 	$("#gravity_ctl").html("Turn Gravity Off");
@@ -2510,6 +2510,13 @@ var AM = function() {
 
     this.jointBody = null;
 
+    this.playgroundDimensions = {
+	w:10,
+	d:10,
+	h:3
+    };
+
+
     // Physics variables
     this.am_gravityConstant = -9.8;
     this.am_collisionConfiguration;
@@ -2550,18 +2557,42 @@ var AM = function() {
 
     // These things should actually be a part of the ROBOT, not the mirrored world!
     // These are in meters, measured joint-center to joint-center
+    this.BASIC_BODY_MASS = 1; // This is kilograms.
+    this.MEMBER_MASS = 1;
     this.MAX_EDGE_LENGTH = 0.470;
     this.MIN_EDGE_LENGTH = 0.330;
     this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
     this.JOINT_MASS = 1;
 
+    this.robot = {
+	robot_joints: [],
+	robot_members: []
+    };
 
 // This is sometimes useful for debugging.    
 //    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
     this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
 
+}
+AM.prototype.push_body_mesh_pair = function(body,mesh) {
+    this.meshes.push(mesh);
+    this.bodies.push(body);
+}
+
+AM.prototype.clear_non_floor_body_mesh_pairs = function() {
+    this.meshes = [];
+    this.bodies = [];
+    this.meshes.push(mw.GROUND_PLANE_MESH);
+    this.bodies.push(mw.GROUND_BODY);
+    
+}
+AM.prototype.remove_robot = function() {
+    this.meshes = [];
+    this.bodies = [];
+    this.robot.robot_joints = [];
+    this.robot.robot_members = [];
 }
 
 var am = new AM();
@@ -2809,7 +2840,7 @@ function am_initGraphics() {
     addShadowedLight(am.am_grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
     
     // HACK:  These diemensions are probably not right here!
-    gridInit(am.am_grid_scene,mw.am_playgroundDimensions);
+    gridInit(am.am_grid_scene,am.playgroundDimensions);
     
     am.am_container.innerHTML = "";
 
@@ -2948,8 +2979,8 @@ function am_createGround() {
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
     
-    var ground = am_createParalellepiped( mw.playgroundDimensions.w, 0, 
-					  mw.playgroundDimensions.d,
+    var ground = am_createParalellepiped( am.playgroundDimensions.w, 0, 
+					  am.playgroundDimensions.d,
 					  0, am.am_pos, am.am_quat, floorMaterial );    
     ground.castShadow = true;
     ground.receiveShadow = true;
@@ -3358,16 +3389,13 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     // Vn = (r cos(n*theta), r sin(n*theta), n*h)
 
     var n = tets+3;    
-    var mass = mw.BASIC_BODY_MASS;
+    var mass = am.BASIC_BODY_MASS;
 
     for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,mw.MEDIAN_EDGE_LENGTH);
+	var v = ccw_tetrahelix_vertex(i,am.MEDIAN_EDGE_LENGTH);
 	v = v.vadd(pvec);
 
 	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );
-    
-//	var pos = new Ammo.btVector3( v.x, v.y, v.z );
-//	var quat = new Ammo.btQuaternion( 0, 0, 0, 1 );
 
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
@@ -3387,39 +3415,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	am.meshes.push(mesh);
 	var body = mesh["ammo_obj"];
 	body.name = alphabetic_name(i);
-	body.structureKind = "joint";	
-	
-/*	
-	var boxBody = new CANNON.Body({ mass: mass*10, material : mw.ground_ground_cm
-					,
-				      	collisionFilterGroup: mw.GROUP2,
-					collisionFilterMask: mw.GROUP1
-				      });
-	// We have to use a Box to get the friction to work right!
-	var s = mw.JOINT_RADIUS * 0.9;
-	var boxShape = new CANNON.Box(new CANNON.Vec3(s,s,s));
+	body.structureKind = "joint";
+	am.robot.robot_joints.push(body);
 
-	boxBody.addShape(boxShape);
-	boxBody.structureKind = "joint";	
-	boxBody.position.set(v.x,v.y,v.z);
-	boxBody.mass = 1;
-	boxBody.angularDamping = 0.9;
-	boxBody.linearDamping = 0.9;
-	boxBody.name = alphabetic_name(i);
-	joints_to_link_map[boxBody.name] = {};
-	mw.robot.robot_joints.push(boxBody);
-	world.addBody(boxBody);
-
-	var mesh = new THREE.Mesh(mw.jointGeo, mw.jointMaterial);
-	mesh.name = "joint";
-	mesh.structureKind = "joint";
-	mesh.castShadow = true;
-	mesh.receiveShadow = true;
-	gui.scene.add(mesh);
-	mw.push_body_mesh_pair(boxBody,mesh);	
-*/
-
-	/*
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
 
@@ -3427,6 +3425,52 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // necessary to keep the edges from passing through the obstacles.
 	    // This is a very unfortunate tuning...I suspect it is a weakness
 	    // in the solver of physics engine.
+
+
+
+	    var pos = new THREE.Vector3();
+	    var quat = new THREE.Quaternion();
+
+	    var b_z = am.robot.robot_joints[i];
+	    var b_a = am.robot.robot_joints[h];
+	    var o_a = b_a.getWorldTransform().getOrigin();
+	    var o_z = b_z.getWorldTransform().getOrigin();	    
+	    var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
+	    var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
+	    
+	    var v_avg = v_z.add(v_a);
+	    v_avg.multiplyScalar(0.5);
+	    
+	    pos.set( v_avg.x, v_avg.y, v_avg.z);
+            quat.set( 0, 0, 0, 1 );
+	    var mesh =  am_createParalellepiped(
+		am.MEDIAN_EDGE_LENGTH/2,
+		am.MEDIAN_EDGE_LENGTH/(2*am.MEMBER_FRACTION),
+		am.MEDIAN_EDGE_LENGTH/(2*am.MEMBER_FRACTION),
+		am.MEMBER_MASS,
+		pos,
+		quat,
+		this.jointMaterial );
+	
+	    mesh.castShadow = true;
+	    mesh.receiveShadow = true;
+	    am.scene.add(mesh);
+	    am.meshes.push(mesh);
+	    var memBody = mesh["ammo_obj"];
+	    memBody.structureKind = "member";
+	    memBody.link_a = b_a;
+	    memBody.link_z = b_z;
+	    if (b_a.name > b_z.name) {
+		var t = b_a;
+		b_a = b_z;
+		b_z = t;
+	    }
+	    memBody.name = b_a.name + " " + b_z.name;
+	    
+	    var link = { a: b_a, b: b_z, body: memBody};
+	    am.robot.robot_members.push(link);
+
+	    /*
 	    var mass_factor = 100;
 	    var memBody = new CANNON.Body({ mass: mass*mass_factor, material : mw.ground_ground_cm
 					    ,
@@ -3476,7 +3520,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    joints_to_link_map[b_a.name][b_z.name] = memBody;
 	    
 	    world.addBody(memBody);
-	    
+	    */
+	    /*
 	    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
 	    var a = link.a;
 	    var b = link.b;
@@ -3500,7 +3545,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // Now we will attempt to add the endpoints
 	    var endpoints = [];
 	    var ep_mass = 0.1;
-//	    var ep_mass = 1.0;
+	    //	    var ep_mass = 1.0;
+*/
+	    /*
 	    for (var j = 0; j < 2; j++) {
 		var ep = new CANNON.Body({ mass: ep_mass,
 					   collisionFilterGroup: 0,
@@ -3539,8 +3586,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 	    }
 	    memBody["endpoints"] = endpoints;
+	    */
 	}
-*/
+
     }
 }
 
