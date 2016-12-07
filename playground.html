@@ -1551,12 +1551,12 @@ function addMouseConstraint(gui,x,y,z,body) {
 				       pivotInB.y(),
 				       pivotInB.z() );
 	
-	am.transformInConstrained = new Ammo.btVector3(pivotInB.x(),pivotInB.y(),pivotInB.z());
 	var con = new Ammo.btPoint2PointConstraint(markerBody,
 						   constrainedBody,
 						   pivotInA,
 						   pivotInB);
 	gui.mouseConstraint = con;
+	gui.mouseConstraint.attachedBody = constrainedBody;
 
 	gui.am_physicsWorld.addConstraint(con, true);
 
@@ -1628,9 +1628,7 @@ function moveJointToPoint(gui,x,y,z) {
 	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 	var startTransform = new Ammo.btTransform();
 	startTransform.setIdentity();
-	var o = am.transformInConstrained;
-	
-//	var n_o = new Ammo.btVector3((x-o.x()), (y-o.y()), (z-o.z()));
+
 	var n_o = new Ammo.btVector3(x,y,z);
 	startTransform.setOrigin(n_o);
 
@@ -1640,6 +1638,10 @@ function moveJointToPoint(gui,x,y,z) {
 	
 	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+
+	var cbody = gui.mouseConstraint.attachedBody
+	cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+	cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 	gui.am_physicsWorld.addRigidBody(gui.jointBody);
     }
     
@@ -2526,7 +2528,7 @@ var AM = function() {
 
     this.meshes = [];
 
-    this.JOINT_MASS = 400;
+    this.JOINT_MASS = 40;
     this.JOINT_RADIUS = 0.1;
 }
 
@@ -2819,7 +2821,6 @@ function am_initPhysics() {
 function am_createObstacles() {
 
     var num = 4;
-    num = 2;
 
 
     var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
