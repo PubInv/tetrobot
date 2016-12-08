@@ -313,8 +313,8 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    //    this.OBSTACLE_FRACTION = 30;
-    this.OBSTACLE_FRACTION = 3;
+    this.OBSTACLE_FRACTION = 30;
+//    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 3;
 
     this.vector_up = new THREE.Vector3(0,0,1);
@@ -378,7 +378,7 @@ var GUI = function(mw) {
 
     this.FORCE_REGIME = "DISABLE";
 
-    this.gravity_on = false;
+    this.gravity_on = true;
     this.world_container = $("#world");
     this.standard_objs;
     this.standard_ctx;
@@ -2551,7 +2551,7 @@ var AM = function() {
 
     this.MARKER_MASS = 40;
     this.Y_GRAVITY_FORCE = -9.8;
-    this.MARKER_RADIUS = 0.1;
+    this.MARKER_RADIUS = 0.02;
     
     this.MEMBER_FRACTION = 20;
 
@@ -2617,7 +2617,7 @@ function am_init() {
     
 //    am_createObjects();
     
-//    am_createObstacles();
+    am_createObstacles();
 
     am_add_robot(am);
 
@@ -3444,9 +3444,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    pos.set( v_avg.x, v_avg.y, v_avg.z);
             quat.set( 0, 0, 0, 1 );
 	    var mesh =  am_createParalellepiped(
-		am.MEDIAN_EDGE_LENGTH/2,
-		am.MEDIAN_EDGE_LENGTH/(2*am.MEMBER_FRACTION),
-		am.MEDIAN_EDGE_LENGTH/(2*am.MEMBER_FRACTION),
+		am.MEDIAN_EDGE_LENGTH,
+		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
 		am.MEMBER_MASS,
 		pos,
 		quat,
@@ -3469,124 +3469,29 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    
 	    var link = { a: b_a, b: b_z, body: memBody};
 	    am.robot.robot_members.push(link);
-
-	    /*
-	    var mass_factor = 100;
-	    var memBody = new CANNON.Body({ mass: mass*mass_factor, material : mw.ground_ground_cm
-					    ,
-					    collisionFilterGroup: mw.GROUP2,
-					    collisionFilterMask: mw.GROUP1 | mw.GROUP1,
-					  });
-	    var memShape = new CANNON.Box(
-		new CANNON.Vec3(mw.MEDIAN_EDGE_LENGTH/2,
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION)),
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION))));
-	    memBody.addShape(memShape);
-    	    memBody.position = v_avg;
-	    memBody.mass = mass;
-	    memBody.angularDamping = 0.80;
-	    memBody.linearDamping = 0.80;
-
-	    var b_z = mw.robot.robot_joints[i];
-	    var b_a = mw.robot.robot_joints[h];
 	    {
-		var ap = b_a.position;
-		var bp = b_z.position;
-
-		memBody.position = ap.vadd(bp).scale(0.5);
-
-		var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-		var axis = mw.vector_axis;
-		var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
-		var q = new THREE.Quaternion();
-		q.setFromUnitVectors(axis, vector.clone().normalize());
-		memBody.quaternion.set(q.x,q.y,q.z,q.w);
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( am.MEDIAN_EDGE_LENGTH/2, 0, 0 );;
+		var con = new Ammo.btPoint2PointConstraint(b_a,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		am.am_physicsWorld.addConstraint(con, true);
+	    }
+	    {
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( -am.MEDIAN_EDGE_LENGTH/2, 0, 0 );;
+		var con = new Ammo.btPoint2PointConstraint(b_z,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		am.am_physicsWorld.addConstraint(con, true);
 	    }
 
-	    var v_z = b_z.position;
-	    var v_avg = v_z.vadd(b_a.position);
-	    v_avg.scale(0.5);
-	    var link = { a: b_a, b: b_z, body: memBody};
-	    mw.robot.robot_members.push(link);
-	    memBody.structureKind = "member";
-	    memBody.link_a = b_a;
-	    memBody.link_z = b_z;
-	    if (b_a.name > b_z.name) {
-		var t = b_a;
-		b_a = b_z;
-		b_z = t;
-	    }
-	    memBody.name = b_a.name + " " + b_z.name;
-	    joints_to_link_map[b_a.name][b_z.name] = memBody;
-	    
-	    world.addBody(memBody);
-	    */
-	    /*
-	    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-	    var a = link.a;
-	    var b = link.b;
-	    var h = link.a.position.distanceTo(b.position);
-	    // Possibly this represents a memory leak.
-	    // When a Mesh is deallocated, it is not clear that
-	    // the Geometry and material are deallocated properly.
-	    // We might ahve to store a pointer to these objects and deallocated them
-	    // separately.
-	    var cubeGeo = new THREE.BoxGeometry( w,h,w );
-
-	    var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-	    mesh.position.set(a.position.x,a.position.y,a.position.z);
-	    mesh.castShadow = true;
-	    mesh.receiveShadow = true;
-	    mesh.name = "member";
-	    mesh.structureKind = "member";
-	    gui.scene.add(mesh);
-	    mw.push_body_mesh_pair(memBody,mesh);
-
-	    // Now we will attempt to add the endpoints
 	    var endpoints = [];
-	    var ep_mass = 0.1;
-	    //	    var ep_mass = 1.0;
-*/
-	    /*
-	    for (var j = 0; j < 2; j++) {
-		var ep = new CANNON.Body({ mass: ep_mass,
-					   collisionFilterGroup: 0,
-					   collisionFilterMask: 0, 
-					 });
-		endpoints.push(ep);
-		ep.addShape(new CANNON.Particle());
-		ep.name = "endpoint-"+i+"-"+j;
-		ep.structureKind = "endpoint";
-		var s0 = (j == 0) ? mw.MEDIAN_EDGE_LENGTH/2 : -mw.MEDIAN_EDGE_LENGTH/2;
-		var s1 = -s0;
-		ep.position.set(memBody.position.x,
-				memBody.position.y,
-				memBody.position.z);
-		ep.angularDamping = 0.99;
-		ep.linearDamping = 0.99;
-		var pivotA = new CANNON.Vec3(0,
-					     s0,
-					     0);
-		var pivotB = new CANNON.Vec3(0,0,0);
-		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,mw.CONSTRAINT_FORCE_SMALL);
-		ca["eternal"] = true;
-		
-		world.addConstraint(ca);
-		world.addBody(ep);
-		var endpointShape = new THREE.SphereGeometry(mw.MEDIAN_EDGE_LENGTH/(mw.MEMBER_FRACTION*2));
-		var mesh = new THREE.Mesh(endpointShape, mw.cubeMaterial);
-		
-		gui.scene.add(mesh);
-
-		mesh.geometry.verticesNeedUpdate = true;
-		mesh.geometry.elementsNeedUpdate = true;        
-		mesh.geometry.colorsNeedUpdate = true;
-		
-		mw.push_body_mesh_pair(ep,mesh);
-
-	    }
+	    endpoints.push(b_a);
+	    endpoints.push(b_z);
 	    memBody["endpoints"] = endpoints;
-	    */
 	}
 
     }
