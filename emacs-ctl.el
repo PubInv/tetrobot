@@ -12,6 +12,7 @@
 
 (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC)))
 (setq BAUD_RATE 19200)
+(setq 5TETGLUSSBOT "5TetGlussBot")
 
 ;; This could be done automatically, but the benefit of that is small untill we have
 ;; many drivers.
@@ -2329,9 +2330,9 @@ Return the results of all forms as a list."
 
 ;; Demo stuff
 ;; (ccw-x-5-3)
+;; (cw-5-3)
 ;; (broadwalk5)
 ;; (broadwalk-3-5)
-;; (cw-5-3)
 ;; (skinwalk)
 ;; (skinwalk3)
 ;; (scoot15)
@@ -2438,8 +2439,8 @@ Return the results of all forms as a list."
 
 (defun pose-as-json (name geometry p)
   (format "%s %s %s"
-	  (format "{type: \"pose\", name :  \"%s\",\n geometry: \"%s\",\n" name geometry)
-	  (format "pose: %s\n" 
+	  (format "{\"type\": \"pose\", \"name\" :  \"%s\",\n \"geometry\": \"%s\",\n" name geometry)
+	  (format "\"pose\": %s\n" 
 		  (json-encode (convert-from-list-to-pairs p)))
 	  (format "}\n")
 	  )
@@ -2447,9 +2448,12 @@ Return the results of all forms as a list."
 
 (defun gait-as-json (name geometry g)
   (format "%s %s %s"
-	  (format "{type: \"gait\", name :  \"%s\",\n geometry: \"%s\",\n" name geometry)
-	  (format "gait: %s\n" 
-		  (json-encode (mapcar #'(lambda (p) (convert-from-list-to-pairs p)) g)))
+	  (format "{\"type\": \"gait\", \"name\" :  \"%s\",\n \"geometry\": \"%s\",\n" name geometry)
+	  (format "\"gait\": %s\n" 
+		  (json-encode (mapcar #'(lambda (p)
+					   (if (stringp p)
+					       p
+					   (convert-from-list-to-pairs p))) g)))
 	  (format "}\n")))
 
 
@@ -2475,5 +2479,53 @@ Return the results of all forms as a list."
      9000
      logbuffer
      )
+
+
+;; This serve is meant to simulat the glusscon WIFI server that Joshua has written!
+(ws-start
+     '(((lambda (_) t) .                         ; match every request
+        (lambda (request)                        ; reply with "hello world"
+          (with-slots (process) request
+	      ;; This needs to be protected with an error catch!
+	      (ws-response-header process 200
+				'("Content-type" . "text/plain")
+				'("Access-Control-Allow-Origin" . "*")
+				'("Access-Control-Allow-Methods" . "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+				'("Access-Control-Allow-Headers" . "X-PINGOTHER, Origin, Content-Type, X-Auth-Token,Access-Control-Allow-Headers, access-control-allow-origin")
+				'("Access-Control-Max-Age" . "86400")
+					      )
+	      (process-send-string process "Sel 0 : 100<br>\nSel 1 : 200<br>\nSel 2 : 300<br>\n")))))
+     8000
+     logbuffer
+     )
+
+(defun probe-glusscon (url)
+  (print url)
+  )
+
+(defvar glusscon-timer nil)
+(defvar glusscon-url "http://127.0.0.1:8000")
+
+
+;; I apparently don't understand scoping -- I can't seem to
+;; get run-at-time to take a thunk with a local variable!
+(defun establish-timer-for-glusscon-probe (period-seconds)
+  (let* ((thunk #'(lambda () (glusscon-query glusscon-url)))
+	 (timer (run-at-time t period-seconds
+		    thunk)))
+    (setq glusscon-timer timer))
+  )
+
+(defun cancel-glusscon-timer ()
+  (cancel-timer glusscon-timer)
+  )
+
+(defun glusscon-query (url)
+  (let ((url-request-method "GET"))
+    (url-retrieve url
+		  (lambda (status)
+		    (print status)
+		    (with-current-buffer (current-buffer)
+		      (buffer-string))))))
 
 
