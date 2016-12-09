@@ -593,7 +593,7 @@ function setClickMarker(gui,mw,x,y,z) {
     gui.clickMarker.position.set(x,y,z);
     gui.movedButNotSent = true;
 }
-
+// TODO: This is not Ammo compatible!
 function removeClickMarker(gui){
     gui.clickMarker.visible = false;
 }
@@ -1638,6 +1638,8 @@ function moveJointToPoint(gui,x,y,z) {
 	// This is wrong...we ned to move x,y,z plus the inverse ...
 	// or let the constraint handle!
 	gui.jointBody.setWorldTransform(startTransform);
+
+
 	
 	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
@@ -1646,6 +1648,7 @@ function moveJointToPoint(gui,x,y,z) {
 	cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 	gui.am_physicsWorld.addRigidBody(gui.jointBody);
+	gui.jointBody.setGravity(am.NO_GRAVITY);
     }
     
 }
@@ -2137,7 +2140,7 @@ function toggle_gravity() {
 	    mw.cworld.gravity.set(0,0,0);
 	}
 	if (am.am_physicsWorld) {
-	    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, 0, 0 ) );
+	    am.am_physicsWorld.setGravity( am.NO_GRAVITY );
 	}
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
@@ -2146,7 +2149,7 @@ function toggle_gravity() {
 	    mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
 	}
 	if (am.am_physicsWorld) {
-	    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
+	    am.am_physicsWorld.setGravity( am.FULL_GRAVITY );
 	}
 	$("#gravity_ctl").html("Turn Gravity Off");
     }
@@ -2519,6 +2522,10 @@ var AM = function() {
 
     // Physics variables
     this.am_gravityConstant = -9.8;
+
+    this.NO_GRAVITY = new Ammo.btVector3( 0, 0, 0 );
+    this.FULL_GRAVITY = new Ammo.btVector3( 0, this.am_gravityConstant, 0 )
+    
     this.am_collisionConfiguration;
     this.am_dispatcher;
     this.am_broadphase;
@@ -2541,6 +2548,7 @@ var AM = function() {
     this.gplane=false;
     this.clickMarker=false;
     this.mouseConstraint = null;
+    this.manipulatedObject = null;
     this.movedButNotSent = false;
     
     this.MOUSE_FIRES = false;
@@ -2564,6 +2572,8 @@ var AM = function() {
     this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
     this.JOINT_MASS = 1;
+
+
 
     this.robot = {
 	robot_joints: [],
@@ -2614,8 +2624,6 @@ function am_init() {
     am_initPhysics();
 
     am_createGround();
-    
-//    am_createObjects();
     
     am_createObstacles();
 
@@ -2716,7 +2724,10 @@ function am_onMouseDown(e){
 		    if (am.PHYSICS_ENGINE == "CANNON") {
 			console.log(" Internal error");
 		    } else if (am.PHYSICS_ENGINE == "AMMO") {
-			addMouseConstraint(am,pos.x,pos.y,pos.z,am.meshes[idx].ammo_obj);		    }
+			var obj = am.meshes[idx].ammo_obj;
+			am.manipulatedObject = obj;
+			obj.setGravity(am.NO_GRAVITY);			
+			addMouseConstraint(am,pos.x,pos.y,pos.z,obj);		    }
             }
 	}
     }
@@ -2738,6 +2749,8 @@ function am_onMouseUp(e) {
         }
     // remove the marker
     removeClickMarker(am);
+
+    am.manipulatedObject.setGravity(am.FULL_GRAVITY);
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
@@ -2904,35 +2917,6 @@ function am_createObstacles() {
 			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
 			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
-//	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-//	    mw.obstacleSize/2,mw.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
-	
-//	OBSTACLE_BODY = new CANNON.Body({ mass: mw.OBSTACLE_MASS, material: mw.ground_ground_cm
-//					  ,
-//					  collisionFilterGroup: mw.GROUP1,
-//					  collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
-//					});
-//	OBSTACLE_BODY.addShape(obstacleShape);
-
-//	OBSTACLE_BODY.position.set(positions[i].x,positions[i].y,positions[i].z);
-//	OBSTACLE_BODY.angularDamping = 0.9;
-//	OBSTACLE_BODY.linearDamping = 0.9;
-
-//	var q = new THREE.Quaternion();
-//	var vector = new THREE.Vector3(positions[i].x,positions[i].y,positions[i].z);
-//	var axis = new THREE.Vector3(0,1,0);
-//	q.setFromAxisAngle(axis,i*(Math.PI/2.0));
-//	OBSTACLE_BODY.quaternion.set(q.x,q.y,q.z,q.w);
-	
-
-//	world.addBody(OBSTACLE_BODY);
-//	mw.obstacles.push(OBSTACLE_BODY);
-
-//	var cubeGeo = new THREE.BoxGeometry( mw.obstacleSize,
-//					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
-//					     mw.obstacleSize/mw.OBSTACLE_FRACTION );
-	//	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
 	var p = positions[i];
@@ -2978,8 +2962,8 @@ function am_createGround() {
 
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
-    
-    var ground = am_createParalellepiped( am.playgroundDimensions.w, 0, 
+    var GROUND_WIDTH = 1.0;
+    var ground = am_createParalellepiped( am.playgroundDimensions.w, GROUND_WIDTH, 
 					  am.playgroundDimensions.d,
 					  0, am.am_pos, am.am_quat, floorMaterial );    
     ground.castShadow = true;
