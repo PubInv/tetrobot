@@ -2519,6 +2519,7 @@ var AM = function() {
 	d:10,
 	h:3
     };
+    this.GROUND_WIDTH = 1.0;
 
 
     // Physics variables
@@ -2543,6 +2544,8 @@ var AM = function() {
 
     //    this.am_window_height_factor = 1/4.0;
     this.am_window_height_factor = 0.5;
+    // Sadly, this seems to do nothing!
+    this.CAMERA_RADIUS_FACTOR = 1;
 
     this.am_grid_scene = null;
     // Used in manipulation of objects
@@ -2778,7 +2781,6 @@ function am_onMouseUp(e) {
 
 function am_initHandlers() {
     am.am_container = document.getElementById( 'container' );
-    window.addEventListener( 'resize', onWindowResize, false );    
     am.am_container.addEventListener("mousemove", am_onMouseMove, true );
     am.am_container.addEventListener("mousedown", am_onMouseDown, true );
     am.am_container.addEventListener("mouseup", am_onMouseUp, true );
@@ -2789,14 +2791,19 @@ function am_initGraphics() {
 
     am.am_container = document.getElementById( 'container' );
 
-    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.2, 2000 );
+    var PERSPECTIVE_FACTOR = 0.6;
+    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / (window.innerHeight * am.am_window_height_factor), PERSPECTIVE_FACTOR, 2000 );
 
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
+
+
+    
     am.scene = new THREE.Scene();
     am.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
-    am.camera.position.x = -7;
-    am.camera.position.y = 5;
-    am.camera.position.z =  8;
+    am.camera.position.x = -4;
+    am.camera.position.y = 2;
+    am.camera.position.z =  4;
 
     am.controls = new THREE.OrbitControls( am.camera, am.am_container );
     am.controls.target.y = 2;
@@ -2807,6 +2814,9 @@ function am_initGraphics() {
 //    renderer.setClearColor( 0xbfd1e5 );
     am.renderer.setPixelRatio( window.devicePixelRatio );
     am.renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
+    am.SCREEN_WIDTH = am.renderer.getSize().width;
+    am.SCREEN_HEIGHT = am.renderer.getSize().height;
+    am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
     am.renderer.shadowMap.enabled = true;
 
     am.am_textureLoader = new THREE.TextureLoader();
@@ -2869,7 +2879,7 @@ function am_initGraphics() {
 //    am_container.appendChild( am_stats.domElement );
 
 
-//    window.addEventListener( 'resize', am_onWindowResize, false );
+    window.addEventListener( 'resize', am_onWindowResize, false );
 
 }
 
@@ -2956,8 +2966,10 @@ function am_createObstacles() {
 }
 
 function am_createGround() {
-        // Ground
-    am.am_pos.set( 0, 0, 0 );
+    // Ground
+    // TODO: make these local!
+    //    am.am_pos.set( 0, -GROUND_WIDTH/2, 0 );
+    am.am_pos.set( 0, -GROUND_WIDTH/2, 0 );
     am.am_quat.set( 0, 0, 0, 1 );
 
     mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
@@ -2966,7 +2978,7 @@ function am_createGround() {
 
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
-    var GROUND_WIDTH = 1.0;
+
     var ground = am_createParalellepiped( am.playgroundDimensions.w, GROUND_WIDTH, 
 					  am.playgroundDimensions.d,
 					  0, am.am_pos, am.am_quat, floorMaterial );    
@@ -3274,8 +3286,14 @@ function am_processClick() {
 
 function am_onWindowResize() {
     am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
-    am.camera.updateProjectionMatrix();
     am.renderer.setSize( window.innerWidth, window.innerHeight * am.am_window_height_factor );
+    
+    am.camera.updateProjectionMatrix();
+    am.SCREEN_WIDTH = am.renderer.getSize().width;
+    am.SCREEN_HEIGHT = am.renderer.getSize().height;
+    am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
+
+    am.cameraOrtho = new THREE.OrthographicCamera( 0, am.SCREEN_WIDTH, am.SCREEN_HEIGHT, 0, - 10, 10 );    
 }
 
 function am_animate() {
