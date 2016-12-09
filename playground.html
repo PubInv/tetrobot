@@ -25,8 +25,8 @@
   </head>
     <body>
     <div id="container"></div>    
-    <div id="world"></div>
-    <div id="worldspace"></div>
+<!--     <div id="world"></div> 
+    <div id="worldspace"></div> -->
 
     
     <div id="control" class="robscroll">
@@ -1428,6 +1428,7 @@ function send_to_robot_url() {
 	var am = model_to_actuator_space(pmodel);
 	var x = JSON.stringify(am,null,2);
 	gui.url_for_robot = $("#poseurl").val();
+	console.log(x);
 	$.ajax({url: gui.url_for_robot,
 		crossDomain: true,
 		beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
@@ -2473,13 +2474,13 @@ function initiation_stuff() {
 
     $('.panel-heading span.clickable').click();
 
-    build_world(gui,mw);
+//    build_world(gui,mw);
 
     // Initialize Three.js
     if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 }
 
-// initiation_stuff();
+initiation_stuff();
 
 
 // Here begins my attempt to integrate the AMMO.js port of the Bullet Physics engine
@@ -2750,7 +2751,9 @@ function am_onMouseUp(e) {
     // remove the marker
     removeClickMarker(am);
 
-    am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+    if (am.manipulatedObject) {
+	am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+    }
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
@@ -2775,9 +2778,10 @@ function am_onMouseUp(e) {
 
 function am_initHandlers() {
     am.am_container = document.getElementById( 'container' );
-    am.am_container.addEventListener("mousemove", am_onMouseMove, false );
-    am.am_container.addEventListener("mousedown", am_onMouseDown, false );
-    am.am_container.addEventListener("mouseup", am_onMouseUp, false );
+    window.addEventListener( 'resize', onWindowResize, false );    
+    am.am_container.addEventListener("mousemove", am_onMouseMove, true );
+    am.am_container.addEventListener("mousedown", am_onMouseDown, true );
+    am.am_container.addEventListener("mouseup", am_onMouseUp, true );
 }
 
 
@@ -2794,7 +2798,7 @@ function am_initGraphics() {
     am.camera.position.y = 5;
     am.camera.position.z =  8;
 
-    am.controls = new THREE.OrbitControls( am.camera );
+    am.controls = new THREE.OrbitControls( am.camera, am.am_container );
     am.controls.target.y = 2;
 
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -2865,7 +2869,7 @@ function am_initGraphics() {
 //    am_container.appendChild( am_stats.domElement );
 
 
-    window.addEventListener( 'resize', am_onWindowResize, false );
+//    window.addEventListener( 'resize', am_onWindowResize, false );
 
 }
 
