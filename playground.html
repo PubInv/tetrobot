@@ -440,108 +440,8 @@ function establish_controls(gui) {
     gui.controls.enableZoom = true;
     gui.controls.enabled = true;
 
-}
-
-function init_scene(gui) {
-    gui.projector = new THREE.Projector();
-
-    while (gui.world_container.get()[0].hasChildNodes()) {   
-	gui.world_container.get()[0].removeChild(gui.world_container.get()[0].firstChild);
-    }
-    
-    gui.container = document.createElement( 'div' );
-    gui.world_container.append( gui.container );	
-
-    gui.container.style["max-height"] = 800;
-
-    gui.container.style.backgroundColor = "blue";
-
-    // scene
-    gui.scene = new THREE.Scene();
-    gui.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
-
-    gui.sceneOrtho = new THREE.Scene();
-
-
-    gui.grid_scene = new THREE.Scene();
-    gui.grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
-
-    //
-    gui.renderer = new THREE.WebGLRenderer( { antialias: true } );
-    gui.renderer.setClearColor( gui.scene.fog.color );
-    // After we do this, we want to start using renderer.getSize.
-    gui.renderer.setSize( window.innerWidth,  window.innerHeight*(1/2)  );    
-
-    // camera
-    gui.camera = new THREE.PerspectiveCamera( 35, gui.renderer.getSize().width / (gui.renderer.getSize().height), 0.5, 10000 );
-    gui.camera.position.set(3, 0.25, 0);
     var origin = new THREE.Vector3(0,0,0);
     gui.camera.lookAt(origin);
-    gui.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
-
-    gui.cameraOrtho = new THREE.OrthographicCamera( 0, gui.SCREEN_WIDTH, gui.SCREEN_HEIGHT, 0, - 10, 10 );
-
-    establish_controls(gui);
-    
-    gui.scene.add(gui.camera);
-
-    // lights
-    var light, materials;
-    gui.scene.add( new THREE.AmbientLight( 0x666666 ) );
-
-    gui.scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
-
-    gui.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
-    
-    addShadowedLight(gui.scene, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(gui.scene, 0.5, 1, -1, 0xffaa00, 1 );
-    
-    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
-    var d = 200;
-
-    light.position.set( d, d, d );
-
-    light.castShadow = true;
-    light.shadow.CameraVisible = true;
-
-    light.shadow.MapWidth = 1024;
-    light.shadow.MapHeight = 1024;
-
-    light.shadow.CameraLeft = -d;
-    light.shadow.CameraRight = d;
-    light.shadow.CameraTop = d;
-    light.shadow.CameraBottom = -d;
-
-    light.shadow.CameraFar = 3*d;
-    light.shadow.CameraNear = d;
-    light.shadow.Darkness = 0.5;
-
-    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
-    var d = 20;
-
-    light.position.set( -d, d, -d );
-
-    light.castShadow = true;
-    //light.shadow.CameraVisible = true;
-
-    light.shadow.MapWidth = 1024;
-    light.shadow.MapHeight = 1024;
-
-    light.shadow.CameraLeft = -d;
-    light.shadow.CameraRight = d;
-    light.shadow.CameraTop = d;
-    light.shadow.CameraBottom = -d;
-
-    light.shadow.CameraFar = 3*d;
-    light.shadow.CameraNear = d;
-    light.shadow.Darkness = 0.5;
-
-    gui.scene.add( light );
-
-    gui.grid_scene.add(light);
-    gridInit(gui.grid_scene,mw.playgroundDimensions);
-
-    return gui.scene;
 }
 
 function addShadowedLight(scene, x, y, z, color, intensity ) {
@@ -598,81 +498,6 @@ function removeClickMarker(gui){
     gui.clickMarker.visible = false;
 }
 
-function onMouseMove(e){
-    // Move and project on the plane
-    if (gui.gplane && gui.mouseConstraint) {
-
-	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
-					 0.5 );                                            //z
-		mouse3D.unproject( gui.camera );
-
-        var pos = projectOntoPlane(gui,e.clientX,e.clientY,gui.gplane,gui.camera);
-        if(pos){
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
-            moveJointToPoint(gui,pos.x,pos.y,pos.z);
-        }
-    }
-}
-
-function onMouseDown(e){
-    // Find mesh from a ray
-    return;
-    var mouse3D = new THREE.Vector3( ( e.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
-				     -( e.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
-				     0.5 );                                            //z
-    mouse3D.unproject( gui.camera );
-    mouse3D.sub(gui.camera.position);
-    mouse3D.project( gui.camera );
-    
-    var entity = findNearestIntersectingObject(gui,e.clientX,e.clientY,gui.camera,mw.meshes);
-    var pos = entity.point;
-    // This is fragile, we need to be able to change this geometry....
-    
-    if (pos &&
-	(
-		(entity.object.structureKind == "obstacle")
-		|| 
-		(entity.object.structureKind == "joint")
-		|| 
-		(entity.object.structureKind == "member")
-		)
-       ){
-        var idx = mw.meshes.indexOf(entity.object);
-
-	if (e.shiftKey) {
-	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
-	    // and we will visually represent that by turning the joint red, I guess.
-	    console.log(mw.bodies[idx]);
-	    var b = mw.bodies[idx];
-	    b.fixed_in_world = !b.fixed_in_world;
-	    if (b.fixed_in_world) {
-		b.mass = 0;
-		entity.object.material.color.setHex( 0xff0000 );		
-	    } else {
-		b.mass = mw.BASIC_BODY_MASS;
-		entity.object.material.color.setHex( 0x0000ff );				
-	    }
-		b.updateMassProperties();	    
-	} else {
-//            constraintDown = true;
-            // Set marker on contact point
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
-
-            // Set the movement plane
-            setScreenPerpCenter(pos,gui);
-
-
-            if(idx !== -1){
-		    if (gui.PHYSICS_ENGINE == "CANNON") {
-			addMouseConstraint(gui,pos.x,pos.y,pos.z,mw.bodies[idx]);
-		    } else if (gui.PHYSICS_ENGINE == "AMMO") {
-			console.log("This is the wrong place!");
-		    }
-            }
-	}
-    }
-}
 
 // This function creates a virtual movement plane for the mouseJoint to move in
 function setScreenPerpCenter(point, gui) {
@@ -702,42 +527,6 @@ function setScreenPerpCenter(point, gui) {
     gui.gplane.quaternion.copy(gui.camera.quaternion);
 }
 
-function onMouseUp(e) {
-	var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
-					 0.5 );                                            //z
-	
-	mouse3D.unproject( gui.camera );
-
-    var pos = projectOntoPlane(gui,e.clientX,e.clientY,gui.gplane,gui.camera);
-        if(pos){
-            setClickMarker(gui,mw,pos.x,pos.y,pos.z,gui.scene);
-            moveJointToPoint(gui,pos.x,pos.y,pos.z);
-        }
-    
-    // remove the marker
-    removeClickMarker(gui);
-
-    // Send the remove mouse joint to server
-    removeJointConstraint(gui);
-
-    // This is an experimental positioning
-    // TODO: This needs to be called only if we have moved an object.
-    if (gui.movedButNotSent) {
-	send_to_robot_url();
-	gui.movedButNotSent = false;
-    }
-
-
-    if (gui.gplane.visible == true) {
-	gui.gplane.visible = false;
-	// We need to re-establish the controls because I don't have
-	// any good way of exiting the active state...
-	gui.controls.dispose();
-	establish_controls(gui);
-    }
-
-}
 
 function projectOntoPlane(gui,screenX,screenY,thePlane,camera) {
     var x = screenX;
@@ -890,122 +679,12 @@ function get_member_color(len) {
 
 
 
-function updatePhysics(mw){
-
-    mw.cworld.step(mw.dt * mw.time_factor);
-
-    for(var i=0; i !== mw.bodies.length; i++){
-	var mesh = mw.meshes[i];
-	var body = mw.bodies[i];
-	// HACK : somewhere here we have to deal changing the actual
-	// objects.  Not sure how this will interact, but we have to do it somehow.
-	// May have to break down and make a two-part model of sliding parts
-	// which would have to be tested in a different webpage.
-
-	// eventually, I must restore the coloring function here!!!
-
-	if (mw.bodies[i].structureKind == "member") {
-	    var a = body.link_a;
-	    var b = body.link_z;
-	    var ap = a.position;
-	    var bp = b.position;
-
-	    body.position = ap.vadd(bp).scale(0.5);
-
-
-	    var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-	    mesh.up = mw.vector_up;
-	    var axis = mw.vector_axis;
-	    var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
-	    mesh.position.copy(mid);
-
-	    mesh.quaternion.setFromUnitVectors(axis, vector.clone().normalize());
-
-	    var q = mesh.quaternion;
-	    body.quaternion.set(q.x,q.y,q.z,q.w);
-
-	    var len = ap.distanceTo(bp);
-	    var cd3 = get_member_color(len);
-
-
-	    var geometry = mesh.geometry;
-	    
-	    for(var j = 0; j < geometry.faces.length; j++) {
-		geometry.faces[j].color.setStyle( cd3 );
-	    }
-
-	    mesh.geometry.verticesNeedUpdate = true;
-	    mesh.geometry.elementsNeedUpdate = true;        
-	    mesh.geometry.colorsNeedUpdate = true;
-
-	} else {
-
-	var p = body.position;
-	    var p3 = new THREE.Vector3(p.x,p.y,p.z);
-	    var p3 = p3.project(gui.camera);
-	    var x = (p3.x*gui.renderer.getSize().width/2.0)+gui.renderer.getSize().width/2;
-
-	    var y = (p3.y*gui.renderer.getSize().height/2.0)+gui.renderer.getSize().height/2;
-
-	    // Experiment...
-	    if (body.name && body.structureKind == "joint") {
-		body.sprite = sprite_controls.draw_and_create(body.sprite,x,y,""+body.name);
-	    }
-
-            mesh.position.copy(mw.bodies[i].position);
-	    mesh.quaternion.copy(mw.bodies[i].quaternion);
-	}
-	
-	mesh.geometry.verticesNeedUpdate = true;
-	mesh.geometry.elementsNeedUpdate = true;        
-	mesh.geometry.colorsNeedUpdate = true;    
-	}
-}
 function render(gui) {
     gui.renderer.render(gui.scene, gui.camera);
     gui.renderer.render(gui.grid_scene, gui.camera);
     gui.renderer.autoClear = false;
     // This is for the sprites....
     gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
-}
-
-function add_ground_plane(world,scene) {
-
-    // Create a plane
-    var groundShape = new CANNON.Plane();
-    var floor_position = 0;
-
-    
-    mw.GROUND_BODY = new CANNON.Body({ mass: 0, material: mw.ground_ground_cm
-				    ,
-				    collisionFilterGroup: mw.GROUP1,
-				    collisionFilterMask: mw.GROUP1 | mw.GROUP2, 
-				  });;
-    mw.GROUND_BODY.addShape(groundShape);
-    mw.GROUND_BODY.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
-    groundShape.position = new CANNON.Vec3(0,0,0);
-    mw.GROUND_BODY.name = "floor";
-    world.addBody(mw.GROUND_BODY);
-    
-    // floor
-    mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
-    mw.floorTexture.repeat.set( 10, 10 );
-    var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
-
-    floorMaterial.transparent = true;
-    floorMaterial.opacity = 0.7;
-    
-    var floorGeometry = new THREE.PlaneGeometry(mw.playgroundDimensions.w,
-						mw.playgroundDimensions.d,
-						10,
-						10);
-    floorGeometry.position = new THREE.Vector3(0,0,0);
-    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    var mesh = floor;
-    mw.GROUND_PLANE_MESH = mesh;
-    scene.add(mw.GROUND_PLANE_MESH);    
-    
-    return [mw.GROUND_BODY,mesh];
 }
 
 
@@ -1065,11 +744,18 @@ function add_obstacle(world,scene) {
     return [OBSTACLE_BODY,mesh];
 }
 
-function remove_non_eternal_constraints(world) {
-    world.constraints.forEach(function (c) {
+function remove_non_eternal_constraints() {
+/*    world.constraints.forEach(function (c) {
 	if (!c["eternal"]) 
 	    world.removeConstraint(c);
     });
+*/
+    am.robot.robot_members.forEach(function (c) {
+	var cs = c.body.constraints;
+	am.am_physicsWorld.removeConstraint(cs[0]);
+	am.am_physicsWorld.removeConstraint(cs[1]);
+    });
+
 }
 
 Object.size = function(obj) {
@@ -1084,65 +770,6 @@ Object.size = function(obj) {
 function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
-
-// function generate_mesh_pairings_from_robot(robot,scene)
-// {
-//     var results = [];
-    
-//     var vindex = 0;
-//     var mass = mw.BASIC_BODY_MASS;
-//     var index_map = {};
-
-//     var vertex_index = 0;
-
-//     var body_cnt = 0;
-//     // This is not yet physically modeling our system.
-//     var size = mw.JOINT_RADIUS;
-//     // Totally not understanding this...
-
-//     function process_vertex(joint,v,results,geo,mat) {
-// 	var mesh = new THREE.Mesh(geo, mat);
-// 	mesh.name = "joint";
-// 	mesh.structureKind = "joint";
-// 	mesh.castShadow = true;
-// 	mesh.receiveShadow = true;
-// 	results.unshift([joint,mesh]);
-// 	body_cnt++;
-//     };
-
-//     //    var links_map = new Map();
-//     var links = [];
-
-//     robot.robot_joints.forEach(function (joint) {
-// 	process_vertex(joint,joint.position,results,mw.jointGeo,mw.jointMaterial);
-//     });
-
-
-//     // This in fact needs to be a lot more complicated...but one step at a time.
-//     var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-//     for(var lin in robot.robot_members) {
-// 	var link = robot.robot_members[lin];
-// 	var a = link.a;
-// 	var b = link.b;
-// 	var h = link.a.position.distanceTo(b.position);
-// 	// Possibly this represents a memory leak.
-// 	// When a Mesh is deallocated, it is not clear that
-// 	// the Geometry and material are deallocated properly.
-// 	// We might ahve to store a pointer to these objects and deallocated them
-// 	// separately.
-// 	var cubeGeo = new THREE.BoxGeometry( w,h,w );
-
-// 	var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-// 	mesh.position.set(a.position.x,a.position.y,a.position.z);
-// 	mesh.castShadow = true;
-// 	mesh.receiveShadow = true;
-// 	mesh.name = "member";
-// 	mesh.structureKind = "member";
-// 	results.unshift([link.body,mesh]);
-//     }
-//     return results;
-// }
-
 
 function ccw_tetrahelix_vertex(n,edge_length) {
     // TODO: memoize these functions.
@@ -1180,173 +807,6 @@ function alphabetic_name(n) {
 }
 
 var joints_to_link_map = {};
-function load_NTetGlussBot(world,tets,pvec) {
-
-    // Okay, so here we need to create the geometry of the tetrahelix.
-    // This could be done in a variety of ways.
-    // Probably the most mathematical is to first define a vector
-    // representing the center axis, and then use a formula the nth vertex.
-    // Looks like some math as been worked out by R. W. Gray:
-    // http://www.rwgrayprojects.com/rbfnotes/helix/helix01.html
-    // I guess I will use a CounterClockWise (ccw) tetrahelix:
-    // Vn = (r cos(n*theta), r sin(n*theta), n*h)
-
-    var n = tets+3;    
-    var mass = mw.BASIC_BODY_MASS;
-
-    for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,mw.MEDIAN_EDGE_LENGTH);
-	v = v.vadd(pvec);
-	var boxBody = new CANNON.Body({ mass: mass*10, material : mw.ground_ground_cm
-					,
-				      	collisionFilterGroup: mw.GROUP2,
-					collisionFilterMask: mw.GROUP1
-				      });
-	// We have to use a Box to get the friction to work right!
-	var s = mw.JOINT_RADIUS * 0.9;
-	var boxShape = new CANNON.Box(new CANNON.Vec3(s,s,s));
-
-	boxBody.addShape(boxShape);
-	boxBody.structureKind = "joint";	
-	boxBody.position.set(v.x,v.y,v.z);
-	boxBody.mass = 1;
-	boxBody.angularDamping = 0.9;
-	boxBody.linearDamping = 0.9;
-	boxBody.name = alphabetic_name(i);
-	joints_to_link_map[boxBody.name] = {};
-	mw.robot.robot_joints.push(boxBody);
-	world.addBody(boxBody);
-
-	var mesh = new THREE.Mesh(mw.jointGeo, mw.jointMaterial);
-	mesh.name = "joint";
-	mesh.structureKind = "joint";
-	mesh.castShadow = true;
-	mesh.receiveShadow = true;
-	gui.scene.add(mesh);
-	mw.push_body_mesh_pair(boxBody,mesh);	
-
-	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
-	    var h = i-(k+1);
-
-	    // Sadly, increasing the mass of the members seems to be
-	    // necessary to keep the edges from passing through the obstacles.
-	    // This is a very unfortunate tuning...I suspect it is a weakness
-	    // in the solver of physics engine.
-	    var mass_factor = 100;
-	    var memBody = new CANNON.Body({ mass: mass*mass_factor, material : mw.ground_ground_cm
-					    ,
-					    collisionFilterGroup: mw.GROUP2,
-					    collisionFilterMask: mw.GROUP1 | mw.GROUP1,
-					  });
-	    var memShape = new CANNON.Box(
-		new CANNON.Vec3(mw.MEDIAN_EDGE_LENGTH/2,
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION)),
-				(mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION))));
-	    memBody.addShape(memShape);
-    	    memBody.position = v_avg;
-	    memBody.mass = mass;
-	    memBody.angularDamping = 0.80;
-	    memBody.linearDamping = 0.80;
-
-	    var b_z = mw.robot.robot_joints[i];
-	    var b_a = mw.robot.robot_joints[h];
-	    {
-		var ap = b_a.position;
-		var bp = b_z.position;
-
-		memBody.position = ap.vadd(bp).scale(0.5);
-
-		var mid = new THREE.Vector3((ap.x+bp.x)/2,(ap.y+bp.y)/2,(ap.z+bp.z)/2);
-		var axis = mw.vector_axis;
-		var vector = new THREE.Vector3(ap.x-bp.x,ap.y-bp.y,ap.z-bp.z);
-		var q = new THREE.Quaternion();
-		q.setFromUnitVectors(axis, vector.clone().normalize());
-		memBody.quaternion.set(q.x,q.y,q.z,q.w);
-	    }
-
-	    var v_z = b_z.position;
-	    var v_avg = v_z.vadd(b_a.position);
-	    v_avg.scale(0.5);
-	    var link = { a: b_a, b: b_z, body: memBody};
-	    mw.robot.robot_members.push(link);
-	    memBody.structureKind = "member";
-	    memBody.link_a = b_a;
-	    memBody.link_z = b_z;
-	    if (b_a.name > b_z.name) {
-		var t = b_a;
-		b_a = b_z;
-		b_z = t;
-	    }
-	    memBody.name = b_a.name + " " + b_z.name;
-	    joints_to_link_map[b_a.name][b_z.name] = memBody;
-	    
-	    world.addBody(memBody);
-	    
-	    var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-	    var a = link.a;
-	    var b = link.b;
-	    var h = link.a.position.distanceTo(b.position);
-	    // Possibly this represents a memory leak.
-	    // When a Mesh is deallocated, it is not clear that
-	    // the Geometry and material are deallocated properly.
-	    // We might ahve to store a pointer to these objects and deallocated them
-	    // separately.
-	    var cubeGeo = new THREE.BoxGeometry( w,h,w );
-
-	    var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-	    mesh.position.set(a.position.x,a.position.y,a.position.z);
-	    mesh.castShadow = true;
-	    mesh.receiveShadow = true;
-	    mesh.name = "member";
-	    mesh.structureKind = "member";
-	    gui.scene.add(mesh);
-	    mw.push_body_mesh_pair(memBody,mesh);
-
-	    // Now we will attempt to add the endpoints
-	    var endpoints = [];
-	    var ep_mass = 0.1;
-//	    var ep_mass = 1.0;
-	    for (var j = 0; j < 2; j++) {
-		var ep = new CANNON.Body({ mass: ep_mass,
-					   collisionFilterGroup: 0,
-					   collisionFilterMask: 0, 
-					 });
-		endpoints.push(ep);
-		ep.addShape(new CANNON.Particle());
-		ep.name = "endpoint-"+i+"-"+j;
-		ep.structureKind = "endpoint";
-		var s0 = (j == 0) ? mw.MEDIAN_EDGE_LENGTH/2 : -mw.MEDIAN_EDGE_LENGTH/2;
-		var s1 = -s0;
-		ep.position.set(memBody.position.x,
-				memBody.position.y,
-				memBody.position.z);
-		ep.angularDamping = 0.99;
-		ep.linearDamping = 0.99;
-		var pivotA = new CANNON.Vec3(0,
-					     s0,
-					     0);
-		var pivotB = new CANNON.Vec3(0,0,0);
-		var ca = new CANNON.PointToPointConstraint(memBody,pivotA,ep,pivotB,mw.CONSTRAINT_FORCE_SMALL);
-		ca["eternal"] = true;
-		
-		world.addConstraint(ca);
-		world.addBody(ep);
-		var endpointShape = new THREE.SphereGeometry(mw.MEDIAN_EDGE_LENGTH/(mw.MEMBER_FRACTION*2));
-		var mesh = new THREE.Mesh(endpointShape, mw.cubeMaterial);
-		
-		gui.scene.add(mesh);
-
-		mesh.geometry.verticesNeedUpdate = true;
-		mesh.geometry.elementsNeedUpdate = true;        
-		mesh.geometry.colorsNeedUpdate = true;
-		
-		mw.push_body_mesh_pair(ep,mesh);
-
-	    }
-	    memBody["endpoints"] = endpoints;
-	}
-    }
-}
 
 
 
@@ -1358,13 +818,6 @@ function add_robot(cworld,scene) {
 		      gui.NUMBER_OF_TETRAHEDRA,
 		      pvec);
     
-//    gui.ROBOT_PAIRINGS = generate_mesh_pairings_from_robot(mw.robot,scene);
-    
-//    gui.ROBOT_PAIRINGS.forEach(function (item) {
-//	scene.add(item[1]);
-//	mw.push_body_mesh_pair(item[0],item[1]);
-//    });
-
     update_constraints(mw.robot.robot_members,
 		       link => {
 			   return mw.MEDIAN_EDGE_LENGTH;
@@ -1422,11 +875,12 @@ function step_con() {
 
 function send_to_robot_url() {
     // Right now, we are just sending the current config
-    var pmodel = extract_physical_node_model();
+    var pmodel = extract_physical_node_model(am.robot);
     if (pmodel.length > 0) {
 	
-	var am = model_to_actuator_space(pmodel);
-	var x = JSON.stringify(am,null,2);
+	var amx = model_to_actuator_space(pmodel,am.robot);
+	var x = JSON.stringify(amx,null,2);
+	console.log(x);
 	gui.url_for_robot = $("#poseurl").val();
 	console.log(x);
 	$.ajax({url: gui.url_for_robot,
@@ -1703,7 +1157,7 @@ function removeJointConstraint(gui) {
 }
 
 function render_physical_model(id) {
-    var pmodel = extract_physical_node_model();
+    var pmodel = extract_physical_node_model(am.robot);
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
@@ -1714,9 +1168,9 @@ function send_pose_to_robot() {
 // This is now rendering in an "emacs-ready" way --- that needs to be
 // made clear.
 function render_actuator_model(form) {
-    var pmodel = extract_physical_node_model();
+    var pmodel = extract_physical_node_model(am.robot);
     
-    var am = model_to_actuator_space(pmodel);
+    var am = model_to_actuator_space(pmodel,am.robot);
     var x = JSON.stringify(am,null,2);
     if (form === 'escaped')
 	x = '"'+x.replace(/"/gi,'\\"')+'"';
@@ -1726,7 +1180,7 @@ function render_actuator_model(form) {
 // TODO: This can be better.
 function get_body_by_name(name) {
     var retval;
-    mw.bodies.forEach(function (bx) {
+    am.robot.robot_joints.forEach(function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    if (bx.name == name) {
 		retval = bx;
@@ -1747,17 +1201,36 @@ function set_constraints(am) {
 function interp(x,y,frac) {
     return x + (y-x)*frac;
 }
+function find_link_body(a,b,members) {
+    if (a.name > b.name) {
+	var t = b;
+	b = a;
+	a = t;
+    }
+    for(var i = 0; i < members.length; i++) {
+	var memBody = members[i];
+	if ((memBody.a.name == a.name)
+	    && (memBody.b.name == b.name)) {
+	    return memBody;
+	}
+    }
+}
 function set_interp_constraints(am0,am1,frac) {
-    remove_non_eternal_constraints(mw.cworld);
+    remove_non_eternal_constraints();
+    
     var links = [];
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
 	    var link  = find_bodies_from_actuator(key);
             var a = get_body_by_name(link[0]);
             var b = get_body_by_name(link[1]);
-
-            var d = a.position.distanceTo(b.position);
-	    links.push({a: a, b: b, k: key });
+	    var oa = a.getWorldTransform().getOrigin();
+	    var ob = b.getWorldTransform().getOrigin();
+	    var d = oa.distance(ob);
+	    
+	    var body = find_link_body(a,b,am.robot.robot_members);
+	    
+	    links.push({a: a, b: b, k: key, body: body });
 	}
     }
     update_constraints(links,link => {
@@ -1772,9 +1245,9 @@ function set_interp_constraints(am0,am1,frac) {
 }
 
 function rectify(id) {
-    var pmodel = extract_physical_node_model();
+    var pmodel = extract_physical_node_model(am.robot);
     
-    var am = model_to_actuator_space(pmodel);
+    var am = model_to_actuator_space(pmodel,am.robot);
 
     for (var key in am) {
 	if (am.hasOwnProperty(key)) {
@@ -1792,8 +1265,8 @@ function load_pose(id) {
 }
 
 function name_pose(id) {
-    var pmodel = extract_physical_node_model();
-    var am = model_to_actuator_space(pmodel);
+    var pmodel = extract_physical_node_model(am.robot);
+    var am = model_to_actuator_space(pmodel,am.robot);
     var name = $("#posename").val();
     var pose = {};
     pose["type"] = "pose";
@@ -2071,12 +1544,13 @@ function interpolate_model(m1,m2,frac) {
     return v;
 }
 
-function extract_physical_node_model() {
+function extract_physical_node_model(robot) {
     var nodes = [];
-    mw.bodies.forEach( function (bx) {
+    robot.robot_joints.forEach( function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
+	    var o = bx.getWorldTransform().getOrigin();
 	    nodes.push({ name: bx.name,
-			 position: new CANNON.Vec3(bx.position.x,bx.position.y,bx.position.z) });
+			 position: new THREE.Vector3(o.x(),o.y(),o.z()) });
 	}
     });
     return nodes;
@@ -2101,15 +1575,19 @@ function flat() {
 }
 
 // TODO: This is not using the argument --- something is terribly wrong.
-function model_to_actuator_space(bodies) {
+function model_to_actuator_space(bodies,robot) {
     var pose = {};
 
-    for(var lin in mw.robot.robot_members) {
-	var mem = mw.robot.robot_members[lin];  
+    for(var lin in robot.robot_members) {
+	var mem = robot.robot_members[lin];  
 	var a = mem.a;
 	var b = mem.b;
 	// invert actually returns strings, for some reason, probably for css...
-	var d = parseInt(actuator_to_length.invert(a.position.distanceTo(b.position)).toFixed(0));
+	// a.position will not be correct in the AMMO model...
+	var oa = a.getWorldTransform().getOrigin();
+	var ob = b.getWorldTransform().getOrigin();
+	var d = oa.distance(ob);
+	var d = parseInt(actuator_to_length.invert(d).toFixed(0));
 	var actuator_name = find_actuator(a.name,b.name);
 	pose[actuator_name] = d;
     }
@@ -2168,7 +1646,8 @@ function auto_rectify_toggle() {
 }
 
 function update_constraints(links,f) {
-    remove_non_eternal_constraints(mw.cworld);
+    //    remove_non_eternal_constraints(mw.cworld);
+    remove_non_eternal_constraints();
     for(var lin in links) {
 	var link = links[lin];  
 	var a = link.a;
@@ -2179,32 +1658,56 @@ function update_constraints(links,f) {
 	    b = t;
 	}
 	var d = f(link);
-	var c = new CANNON.DistanceConstraint(a,b,d,mw.CONSTRAINT_FORCE_LARGE);
-	mw.cworld.addConstraint(c);
-	// now we want to find the Cannon Object associated with these links,
-	// and put a distance constraint between the member object and the two
-	// joint objects.
-	var mem = joints_to_link_map[a.name][b.name]
-	if (!mem) {
-	    console.log("Can't find a.name, b.name "+a.name + b.name);
+
+	if (am.PHYSICS_ENGINE == "CANNON") {
+	    var c = new CANNON.DistanceConstraint(a,b,d,mw.CONSTRAINT_FORCE_LARGE);
+	    mw.cworld.addConstraint(c);
+	    // now we want to find the Cannon Object associated with these links,
+	    // and put a distance constraint between the member object and the two
+	    // joint objects.
+	    var mem = joints_to_link_map[a.name][b.name]
+	    if (!mem) {
+		console.log("Can't find a.name, b.name "+a.name + b.name);
+	    }
+	    var s = (d/2);
+	    var memShape = mem.shapes[0];
+	    memShape.halfExtents.set(s,
+				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
+				     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
+	    memShape.updateConvexPolyhedronRepresentation();
+	    mem.computeAABB();
+	    var pivotA = new CANNON.Vec3(0,0,0);
+
+	    function add_p2p_constraint(a,mem) {
+		var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,0,mw.CONSTRAINT_FORCE_LARGE);
+		mw.cworld.addConstraint(ca);
+	    }
+
+	    add_p2p_constraint(a,mem.endpoints[0]);
+	    add_p2p_constraint(b,mem.endpoints[1]);
+	} else if (am.PHYSICS_ENGINE == "AMMO") {
+	    var memBody = link.body.body;
+	    am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
+	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);	    	    
+	    {
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( d/2, 0, 0 );;
+		var con = new Ammo.btPoint2PointConstraint(a,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		am.am_physicsWorld.addConstraint(con, true);
+	    }
+	    {
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( -d/2, 0, 0 );;
+		var con = new Ammo.btPoint2PointConstraint(b,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		am.am_physicsWorld.addConstraint(con, true);
+	    }
 	}
-	var s = (d/2);
-	var memShape = mem.shapes[0];
-	memShape.halfExtents.set(s,
-				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
-				 mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
-	memShape.updateConvexPolyhedronRepresentation();
-	mem.computeAABB();
-	var pivotA = new CANNON.Vec3(0,0,0);
-
-	function add_p2p_constraint(a,mem) {
-	    var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,0,mw.CONSTRAINT_FORCE_LARGE);
-	    mw.cworld.addConstraint(ca);
-	}
-
-	add_p2p_constraint(a,mem.endpoints[0]);
-	add_p2p_constraint(b,mem.endpoints[1]);
-
     }
 }
 
@@ -2577,8 +2080,6 @@ var AM = function() {
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
     this.JOINT_MASS = 1;
 
-
-
     this.robot = {
 	robot_joints: [],
 	robot_members: []
@@ -2627,7 +2128,7 @@ function am_init() {
 
     am_initPhysics();
 
-    am_createGround();
+    am_createGround(am);
     
     am_createObstacles();
 
@@ -2668,8 +2169,6 @@ function am_onMouseMove(e){
         if(pos){
             setClickMarker(am,mw,pos.x,pos.y,pos.z,am.scene);
             moveJointToPoint(am,pos.x,pos.y,pos.z);
-	    console.log("mouse move pos");
-	    console.log(pos);
         }
     }
 }
@@ -2724,7 +2223,6 @@ function am_onMouseDown(e){
 
 
             if(idx !== -1){
-
 		    if (am.PHYSICS_ENGINE == "CANNON") {
 			console.log(" Internal error");
 		    } else if (am.PHYSICS_ENGINE == "AMMO") {
@@ -2766,8 +2264,6 @@ function am_onMouseUp(e) {
 	am.movedButNotSent = false;
     }
     
-
-    
     if (am.gplane.visible == true) {
 	am.gplane.visible = false;
 	// We need to re-establish the controls because I don't have
@@ -2796,13 +2292,16 @@ function am_initGraphics() {
 
     am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
 
-
+    var origin = new THREE.Vector3(0,0,0);
+    am.camera.lookAt(origin);
+    
+//    am.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
     
     am.scene = new THREE.Scene();
     am.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
 
     am.camera.position.x = -4;
-    am.camera.position.y = 2;
+    am.camera.position.y = 1;
     am.camera.position.z =  4;
 
     am.controls = new THREE.OrbitControls( am.camera, am.am_container );
@@ -2811,7 +2310,6 @@ function am_initGraphics() {
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
     am.renderer.setClearColor( am.scene.fog.color );
     
-//    renderer.setClearColor( 0xbfd1e5 );
     am.renderer.setPixelRatio( window.devicePixelRatio );
     am.renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
     am.SCREEN_WIDTH = am.renderer.getSize().width;
@@ -2953,23 +2451,15 @@ function am_createObstacles() {
 
 	mesh["ammo_obj"].name = "obstacle-"+i;
 	mesh["ammo_obj"].structureKind = "obstacle";
-/*	scene.add(mesh);
-
-	mesh.geometry.verticesNeedUpdate = true;
-	mesh.geometry.elementsNeedUpdate = true;        
-	mesh.geometry.colorsNeedUpdate = true;
-
-	mw.push_body_mesh_pair(OBSTACLE_BODY,mesh);
-*/
     }
 
 }
 
-function am_createGround() {
+function am_createGround(am) {
     // Ground
     // TODO: make these local!
     //    am.am_pos.set( 0, -GROUND_WIDTH/2, 0 );
-    am.am_pos.set( 0, -GROUND_WIDTH/2, 0 );
+    am.am_pos.set( 0, -am.GROUND_WIDTH/2, 0 );
     am.am_quat.set( 0, 0, 0, 1 );
 
     mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
@@ -2979,56 +2469,11 @@ function am_createGround() {
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
 
-    var ground = am_createParalellepiped( am.playgroundDimensions.w, GROUND_WIDTH, 
+    var ground = am_createParalellepiped( am.playgroundDimensions.w, am.GROUND_WIDTH, 
 					  am.playgroundDimensions.d,
 					  0, am.am_pos, am.am_quat, floorMaterial );    
     ground.castShadow = true;
     ground.receiveShadow = true;
-    // am.am_textureLoader.load( "textures/grid.png", function( texture ) {
-    // 	texture.wrapS = THREE.RepeatWrapping;
-    // 	texture.wrapT = THREE.RepeatWrapping;
-    // 	texture.repeat.set( 40, 40 );
-    // 	ground.material.map = texture;
-    // 	ground.material.needsUpdate = true;
-    // } );
-}
-
-function am_createObjects() {
-
-
-    // // Ground
-    // am_pos.set( 0, - 0.5, 0 );
-    // am_quat.set( 0, 0, 0, 1 );
-    // var ground = am_createParalellepiped( 40, 1, 40, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
-    // ground.castShadow = true;
-    // ground.receiveShadow = true;
-    // am_textureLoader.load( "textures/grid.png", function( texture ) {
-    // 	texture.wrapS = THREE.RepeatWrapping;
-    // 	texture.wrapT = THREE.RepeatWrapping;
-    // 	texture.repeat.set( 40, 40 );
-    // 	ground.material.map = texture;
-    // 	ground.material.needsUpdate = true;
-    // } );
-
-
-    // // Create soft volumes
-    // var volumeMass = 15;
-
-    // var sphereGeometry = new THREE.SphereBufferGeometry( 1.5, 40, 25 );
-    // sphereGeometry.translate( 5, 5, 0 );
-    // am_createSoftVolume( sphereGeometry, volumeMass, 250 );
-
-    // var boxGeometry = new THREE.BufferGeometry().fromGeometry( new THREE.BoxGeometry( 1, 1, 5, 4, 4, 20 ) );
-    // boxGeometry.translate( -2, 5, 0 );
-    // am_createSoftVolume( boxGeometry, volumeMass, 120 );
-
-    // // Ramp
-    // am_pos.set( 3, 1, 0 );
-    // am_quat.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), 30 * Math.PI / 180 );
-    // var obstacle = am_createParalellepiped( 10, 1, 4, 0, am_pos, am_quat, new THREE.MeshPhongMaterial( { color: 0x606060 } ) );
-    // obstacle.castShadow = true;
-    // obstacle.receiveShadow = true;
-
 }
 
 function am_processGeometry( bufGeometry ) {
@@ -3237,18 +2682,19 @@ function am_initInput() {
 
     window.addEventListener( 'mousedown', function( event ) {
 
-	if ( ! am.am_clickRequest ) {
+    	if ( ! am.am_clickRequest ) {
 
-	    am.am_mouseCoords.set(
-		( event.clientX / window.innerWidth ) * 2 - 1,
-		    - ( event.clientY / (window.innerHeight*am.am_window_height_factor) ) * 2 + 1
-	    );
+    	    am.am_mouseCoords.set(
+    		( event.clientX / window.innerWidth ) * 2 - 1,
+    		    - ( event.clientY / (window.innerHeight*am.am_window_height_factor) ) * 2 + 1
+    	    );
 
-	    am.am_clickRequest = true;
+    	    am.am_clickRequest = true;
 
-	}
+    	}
     }, false );
 
+    establish_controls(am);
 }
 
 function am_processClick() {
@@ -3422,6 +2868,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	var body = mesh["ammo_obj"];
 	body.name = alphabetic_name(i);
 	body.structureKind = "joint";
+	mesh.structureKind = "joint";	
 	am.robot.robot_joints.push(body);
 
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
@@ -3464,6 +2911,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.meshes.push(mesh);
 	    var memBody = mesh["ammo_obj"];
 	    memBody.structureKind = "member";
+	    mesh.structureKind = "member";	    
 	    memBody.link_a = b_a;
 	    memBody.link_z = b_z;
 	    if (b_a.name > b_z.name) {
@@ -3475,6 +2923,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    
 	    var link = { a: b_a, b: b_z, body: memBody};
 	    am.robot.robot_members.push(link);
+
+	    var constraints = [];
+
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( am.MEDIAN_EDGE_LENGTH/2, 0, 0 );;
@@ -3483,6 +2934,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
+		constraints.push(con);
 	    }
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
@@ -3492,12 +2944,14 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
+		constraints.push(con);		
 	    }
 
 	    var endpoints = [];
 	    endpoints.push(b_a);
 	    endpoints.push(b_z);
 	    memBody["endpoints"] = endpoints;
+	    memBody["constraints"] = constraints; 
 	}
 
     }
