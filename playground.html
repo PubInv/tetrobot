@@ -2725,6 +2725,8 @@ function am_processClick() {
 	var ballBody = am_createRigidBody( ball, ballShape, ballMass, am.am_pos, am.am_quat );
 	ballBody.setFriction( 0.5 );
 
+	ballBody.setDamping(0.9,0.9);
+
 	am.am_pos.copy( am.am_raycaster.ray.direction );
 	am.am_pos.multiplyScalar( 14 );
 	ballBody.setLinearVelocity( new Ammo.btVector3( am.am_pos.x, am.am_pos.y, am.am_pos.z ) );
