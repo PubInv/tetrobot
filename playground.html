@@ -654,8 +654,7 @@ function add_obstacle(world,scene) {
 	OBSTACLE_BODY.name = "obstacle-"+i;
 	OBSTACLE_BODY.structureKind = "obstacle";
 	OBSTACLE_BODY.position.set(positions[i].x,positions[i].y,positions[i].z);
-	OBSTACLE_BODY.angularDamping = 0.9;
-	OBSTACLE_BODY.linearDamping = 0.9;
+	OBSTACLE_BODY.setDamping(0.9,0.9);
 
 	var q = new THREE.Quaternion();
 	var vector = new THREE.Vector3(positions[i].x,positions[i].y,positions[i].z);
@@ -2636,7 +2635,9 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
     shape.setMargin( am.am_margin );
 
     var body = am_createRigidBody( threeObject, shape, mass, pos, quat );
-    
+
+    body.setDamping(0.9,0.9);
+
     threeObject["ammo_obj"] = body;
     return threeObject;
 
@@ -2658,6 +2659,8 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     var rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, physicsShape, localInertia );
     var body = new Ammo.btRigidBody( rbInfo );
+    
+    body.setDamping(0.9,0.9);
 
     threeObject.userData.physicsBody = body;
 
