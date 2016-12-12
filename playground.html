@@ -462,29 +462,6 @@ function addShadowedLight(scene, x, y, z, color, intensity ) {
 }
 
 
-// This needs to be changed to init the floor and ground together...
-/*
-function finish_scene_preparation(gui) {
-
-    while (gui.container.hasChildNodes()) {   
-	gui.container.removeChild(gui.container.firstChild);
-    }
-    
-    gui.container.appendChild( gui.renderer.domElement );
-
-    
-    gui.renderer.gammaInput = true;
-    gui.renderer.gammaOutput = true;
-    gui.renderer.shadowMap.Enabled = true;
-
-    window.addEventListener( 'resize', onWindowResize, false );
-
-    window.addEventListener("mousemove", onMouseMove, false );
-    window.addEventListener("mousedown", onMouseDown, false );
-    window.addEventListener("mouseup", onMouseUp, false );
-}
-
-*/
 
 function setClickMarker(gui,mw,x,y,z) {
     if(!gui.clickMarker){
@@ -567,19 +544,6 @@ function findNearestIntersectingObject(gui,clientX,clientY,camera,objects) {
 	return null;
     }
 }
-/*
-// Function that returns a raycaster to use to find intersecting objects
-// in a scene given screen pos and a camera, and a projector
-function getRayCasterFromScreenCoord (screenX, screenY, camera, projector) {
-    var mouse3D = new THREE.Vector3();
-    // Get 3D point form the client x y
-    mouse3D.x = (screenX / gui.renderer.getSize().width) * 2 - 1;
-    mouse3D.y = -(screenY / gui.renderer.getSize().height) * 2 + 1;
-    mouse3D.z = 0.5;
-    return projector.pickingRay(mouse3D, camera);
-}
-
-*/
 
 function clear_text() {
     $("p").remove();
