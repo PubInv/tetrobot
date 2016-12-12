@@ -840,7 +840,6 @@ function send_to_robot_url() {
     }
 
 }
-		       
 
 function updateMouseConstraints(gui,body) {
     if (gui.PHYSICS_ENGINE == "CANNON") {
@@ -883,6 +882,61 @@ function updateMouseConstraints(gui,body) {
 }
 
 var global_o;
+
+
+// This is an experimental function.  Ammo does not properly
+// expose the ability to apply a transform to a vector.  However,
+// Three.js has all of this functionality, so I am attempting
+// to simulate it in Three.js.  If this works, I will have to
+// work with Ammo.idl to open this functionality.
+function applyBulletTransformInverse(trans,vect) {
+    var scale = new THREE.Vector3(1,1,1);
+    
+    var tv = new THREE.Vector3(vect.x(),vect.y(),vect.z());
+    
+    var threeTrans = new THREE.Matrix4();
+    threeTrans = threeTrans.identity();
+
+    var trans_origin = trans.getOrigin();
+    var translation = new THREE.Vector3(trans_origin.x(),trans_origin.y(),trans_origin.z());
+    var quaternion = new THREE.Quaternion();
+
+    var q = trans.getRotation();
+    
+    quaternion.set( q.x(), q.y(), q.z(), q.w() );
+    
+    threeTrans.compose(translation, quaternion, scale);
+
+    var threeTransI = new THREE.Matrix4();
+    
+    threeTransI.getInverse(threeTrans);
+
+    // DON'T ASK ME WHY THREE WRITES IT THIS WAY!!!
+    var array = [tv.x,tv.y,tv.z];
+    
+    var ra = threeTransI.applyToVector3Array(array);
+    
+    return new Ammo.btVector3(ra[0], ra[1], ra[2]);
+}
+
+function testApplyBulletTransformInverse() {
+
+    // Test by setting up a Bullet Transform that puts the x axis at a non-unit
+    // angle. Then we should be able to invert and get back to to the origin.
+
+    var x = 1.0;
+    var y = 2.0;
+    var z = 3.0;
+    var trans0 = new Ammo.btTransform();
+    trans0.setIdentity();
+    trans0.setOrigin(new Ammo.btVector3(x, y, z));
+    var v0 = new Ammo.btVector3(x, y, -z)
+    var vr0 = applyBulletTransformInverse(trans0,v0);
+    console.log(vr0);
+    console.log(vr0.x(),vr0.y(),vr0.z());
+
+    
+}
 
 // There is a real problem here that body is either an Ammo body or a Cannon body!
 function addMouseConstraint(gui,x,y,z,body) {
@@ -943,10 +997,35 @@ function addMouseConstraint(gui,x,y,z,body) {
 	var markerBody = gui.jointBody;
 	var constrainedBody = body;
 	var startTransform = constrainedBody.getWorldTransform();
+	var globalVector = new Ammo.btVector3(x,y,z);
+
+	
+	var lv = localVector = applyBulletTransformInverse(startTransform,globalVector);
+	
 	var o = startTransform.getOrigin();
 
+	// MAJOR BUG: This is not taking the rotation of the constainedObject into account
+	// We need to use the Transform to transform the point into its position in the
+	// local space, I think.
+
 	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
+	// x,y,z are in global space.
+
 	var pivotInB = new Ammo.btVector3( -(x-o.x()), -(y-o.y()), -(z-o.z()) );;
+	
+	pivotInB = lv;
+
+	// pivotInB should in fact be in the local coordinate space, I think.
+	// I suspect I can take the transofrm and invert it and apply it as
+	// a function to x,y,z, or something similar.  I must be very clear
+	// about local to global.
+
+	// Unfortunately at present it doesn't appear that Ammo
+	// exposes the function that actually apply the transform (which in C++
+	// is likely to be the "function" operator itself. This may have to be
+	// addressed by a change in Ammo.idl to support more funcitons...
+	// Possibly I can use the correspoinding class from THREE.js
+	// to do this: https://threejs.org/docs/api/math/Matrix4.html
 	global_o = new Ammo.btVector3( pivotInB.x(),
 				       pivotInB.y(),
 				       pivotInB.z() );
