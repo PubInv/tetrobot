@@ -996,12 +996,7 @@ function addMouseConstraint(gui,x,y,z,body) {
 	var markerBody = gui.jointBody;
 	var constrainedBody = body;
 	var startTransform = constrainedBody.getWorldTransform();
-	var globalVector = new Ammo.btVector3(x,y,z);
 
-	
-	var lv = localVector = applyBulletTransformInverse(startTransform,globalVector);
-	
-	var o = startTransform.getOrigin();
 
 	// MAJOR BUG: This is not taking the rotation of the constainedObject into account
 	// We need to use the Transform to transform the point into its position in the
@@ -1009,22 +1004,10 @@ function addMouseConstraint(gui,x,y,z,body) {
 
 	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
 	// x,y,z are in global space.
-
-	var pivotInB = new Ammo.btVector3( -(x-o.x()), -(y-o.y()), -(z-o.z()) );;
 	
-	pivotInB = lv;
+	var globalVector = new Ammo.btVector3(x,y,z);
+	var pivotInB = applyBulletTransformInverse(startTransform,globalVector);
 
-	// pivotInB should in fact be in the local coordinate space, I think.
-	// I suspect I can take the transofrm and invert it and apply it as
-	// a function to x,y,z, or something similar.  I must be very clear
-	// about local to global.
-
-	// Unfortunately at present it doesn't appear that Ammo
-	// exposes the function that actually apply the transform (which in C++
-	// is likely to be the "function" operator itself. This may have to be
-	// addressed by a change in Ammo.idl to support more funcitons...
-	// Possibly I can use the correspoinding class from THREE.js
-	// to do this: https://threejs.org/docs/api/math/Matrix4.html
 	global_o = new Ammo.btVector3( pivotInB.x(),
 				       pivotInB.y(),
 				       pivotInB.z() );
