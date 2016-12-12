@@ -315,7 +315,7 @@ var MW = function() {
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
     this.OBSTACLE_FRACTION = 30;
 //    this.OBSTACLE_FRACTION = 3;
-    this.OBSTACLE_MASS = 3;
+    this.OBSTACLE_MASS = 300;
 
     this.vector_up = new THREE.Vector3(0,0,1);
     this.vector_axis = new THREE.Vector3(0, 1, 0);
@@ -433,6 +433,10 @@ GUI.prototype.remove_world = function() {
 
 var gui = new GUI(mw);
 
+var latestLookAtX = 0;
+var latestLookAtY = 0;
+var latestLookAtZ = 0;
+
 function establish_controls(gui) {
     gui.controls = new THREE.OrbitControls( gui.camera, gui.container );
     gui.controls.enableDamping = true;
@@ -440,8 +444,12 @@ function establish_controls(gui) {
     gui.controls.enableZoom = true;
     gui.controls.enabled = true;
 
-    var origin = new THREE.Vector3(0,0,0);
-    gui.camera.lookAt(origin);
+    // We may be able to make this the last object clicked to change the controls.
+    gui.controls.center.set(0,0,0);
+    gui.controls.center.set(latestLookAtX,latestLookAtY,latestLookAtZ);
+
+//    var origin = new THREE.Vector3(0,0,0);
+//    gui.camera.lookAt(origin);
 }
 
 function addShadowedLight(scene, x, y, z, color, intensity ) {
@@ -936,11 +944,11 @@ function testApplyBulletTransformInverse() {
 
     
 }
-
 // There is a real problem here that body is either an Ammo body or a Cannon body!
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
-
+    
+    
     if (gui.PHYSICS_ENGINE == "CANNON") {
 	var constrainedBody = body;
 
@@ -957,14 +965,6 @@ function addMouseConstraint(gui,x,y,z,body) {
 	gui.jointBody.position.set(x,y,z);
     } else if (gui.PHYSICS_ENGINE == "AMMO") {
 	var constrainedBody = body;
-
-	// Vector to the clicked point, relative to the body
-//	var cm = constrainedBody.getCenterOfMassTransform();
-	// Somehow I need to adjust the transform and reset....
-//	var v1 = new Ammo.btVector3(x, y, z);
-
-	// Apply anti-quaternion to vector to tranform it into the local body coordinate system
-
 	
 	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 
@@ -1691,24 +1691,27 @@ function update_constraints(links,f) {
 	} else if (am.PHYSICS_ENGINE == "AMMO") {
 	    var memBody = link.body;
 	    am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
-	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);	    	    
+	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
+	    var s = d/2;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( d/2, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
 		var con = new Ammo.btPoint2PointConstraint(a,
 							   memBody,
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
+		memBody.constraints[0] = con;
 	    }
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( -d/2, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
 		var con = new Ammo.btPoint2PointConstraint(b,
 							   memBody,
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
+		memBody.constraints[1] = con;		
 	    }
 	}
     }
@@ -1884,25 +1887,6 @@ function test_find_actuator() {
 function actuator(b1,b2) {
     return find_actuator(b1,b2);
 }
-/*
-function build_world(gui,mw) {
-    gui.scene = init_scene(gui);
-    initCannon(mw,gui);
-    add_floor(mw,gui);
-    add_robot(mw.cworld,gui.scene);
-    add_obstacle(mw.cworld,gui.scene);
-
-    update_constraints(mw.robot.robot_members,
-		       link => {
-			   return mw.MEDIAN_EDGE_LENGTH;
-		       });
-
-    finish_scene_preparation(gui);
-    update_poses();
-    mw.world_live = true;
-    animate(mw,gui);
-}
-*/
 
 
 function reset_to_default(gui,mw) {
@@ -1996,6 +1980,10 @@ var AM = function() {
     this.GROUND_WIDTH = 1.0;
 
     this.gravity_on = true;
+
+
+    this.TIME_BETWEEN_POSES_MS = 3000;
+    this.GAIT_SUBDIVISIONS = 30;
     
     // Physics variables
     this.am_gravityConstant = -9.8;
@@ -2178,6 +2166,12 @@ function am_onMouseDown(e){
        ){
         var idx = am.meshes.indexOf(entity.object);
 
+	if (e.ctrlKey) {
+	    latestLookAtX = pos.x;
+	    latestLookAtY = pos.y;
+	    latestLookAtZ = pos.z;
+	}
+	
 	if (e.shiftKey) {
 	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
 	    // and we will visually represent that by turning the joint red, I guess.
@@ -2284,7 +2278,8 @@ function am_initGraphics() {
     am.camera.position.z =  4;
 
     am.controls = new THREE.OrbitControls( am.camera, am.am_container );
-    am.controls.target.y = 2;
+    am.controls.center.set(0,0,0);
+//    am.controls.target.y = 2;
 
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
     am.renderer.setClearColor( am.scene.fog.color );
@@ -2913,10 +2908,10 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.robot.robot_members.push(link);
 
 	    var constraints = [];
-
+	    var s = am.MEDIAN_EDGE_LENGTH/2 + am.JOINT_RADIUS;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( am.MEDIAN_EDGE_LENGTH/2, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
 		var con = new Ammo.btPoint2PointConstraint(b_a,
 							   memBody,
 							   pivotInA,
@@ -2926,7 +2921,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    }
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( -am.MEDIAN_EDGE_LENGTH/2, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
 		var con = new Ammo.btPoint2PointConstraint(b_z,
 							   memBody,
 							   pivotInA,
