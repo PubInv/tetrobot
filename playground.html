@@ -445,8 +445,8 @@ function establish_controls(gui) {
     gui.controls.enabled = true;
 
     // We may be able to make this the last object clicked to change the controls.
-    gui.controls.center.set(0,0,0);
-    gui.controls.center.set(latestLookAtX,latestLookAtY,latestLookAtZ);
+    gui.controls.target.set(0,0,0);
+    gui.controls.target.set(latestLookAtX,latestLookAtY,latestLookAtZ);
 
 //    var origin = new THREE.Vector3(0,0,0);
 //    gui.camera.lookAt(origin);
@@ -2040,6 +2040,8 @@ var AM = function() {
     this.MIN_EDGE_LENGTH = 0.330;
     this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
+
+//    this.JOINT_RADIUS = 3 * this.JOINT_RADIUS;
     this.JOINT_MASS = 1;
 
     this.robot = {
@@ -2054,7 +2056,8 @@ var AM = function() {
 //    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
     this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
-
+    
+    this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");    
 }
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.meshes.push(mesh);
@@ -2141,7 +2144,7 @@ function am_onMouseMove(e){
 // But that is not the intention of the interaction tool, and is very annoying.
 function am_onMouseDown(e){
     // Find mesh from a ray
-
+    
     var mouse3D = new THREE.Vector3( ( e.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
 				     -( e.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
@@ -2191,7 +2194,6 @@ function am_onMouseDown(e){
 
             // Set the movement plane
             setScreenPerpCenter(pos,am);
-
 
             if(idx !== -1){
 		    if (am.PHYSICS_ENGINE == "CANNON") {
@@ -2276,7 +2278,7 @@ function am_initGraphics() {
     am.camera.position.z =  4;
 
     am.controls = new THREE.OrbitControls( am.camera, am.am_container );
-    am.controls.center.set(0,0,0);
+    am.controls.target.set(0,0,0);
 //    am.controls.target.y = 2;
 
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -2437,8 +2439,9 @@ function am_createGround(am) {
     am.am_pos.set( 0, -am.GROUND_WIDTH/2, 0 );
     am.am_quat.set( 0, 0, 0, 1 );
 
-    mw.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
-    mw.floorTexture.repeat.set( 10, 10 );
+    am.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
+    am.floorTexture.repeat.set( 10, 10 );
+    
     var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
 
     floorMaterial.transparent = true;
@@ -2446,7 +2449,10 @@ function am_createGround(am) {
 
     var ground = am_createParalellepiped( am.playgroundDimensions.w, am.GROUND_WIDTH, 
 					  am.playgroundDimensions.d,
-					  0, am.am_pos, am.am_quat, floorMaterial );    
+					  0, am.am_pos, am.am_quat, floorMaterial );
+    
+    ground["ammo_obj"].setFriction( 0.99 );
+    
     ground.castShadow = true;
     ground.receiveShadow = true;
 }
@@ -2623,9 +2629,11 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 function am_createSphere(m,r,pos,quat,material) {
     var c = (pos) ? pos : new Ammo.btVector3(2, 10, 0);
     
-    var colShape        = new Ammo.btSphereShape(1),
+    var colShape        = new Ammo.btSphereShape(r),
         startTransform  = new Ammo.btTransform();
-    
+
+    // Don't know if this is needed!
+    colShape.setMargin( am.am_margin );
     startTransform.setIdentity();
 
     var mass          = m,
@@ -2638,19 +2646,26 @@ function am_createSphere(m,r,pos,quat,material) {
     startTransform.setOrigin(pos);
   
     var myMotionState = new Ammo.btDefaultMotionState(startTransform),
-        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia),
-        body          = new Ammo.btRigidBody(rbInfo);
-    
-    body.setFriction( 0.5 );
-    body.setDamping(0.9,0.9);
+        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia);
+
+    // Possibly it would make more sense to call this am_createRigidobdy herere...
+    var body          = new Ammo.btRigidBody(rbInfo);
+
     
     var ball = new THREE.Mesh( new THREE.SphereGeometry( r, 18, 16 ), material );
     ball.castShadow = true;
     ball.receiveShadow = true;
 
+    var body = am_createRigidBody(ball,colShape,mass,c,quat);
+
+    body.setFriction( 0.99 );
+    
     ball["ammo_obj"] = body;
 
-    am.am_physicsWorld.addRigidBody(body);
+    // am.am_physicsWorld.addRigidBody(body);
+    // am.scene.add( ball );
+    // am.meshes.push( ball );
+
     return ball;
 }
 
@@ -2869,20 +2884,26 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	var quat = new THREE.Quaternion();
 	pos.set( v.x, v.y, v.z);
         quat.set( 0, 0, 0, 1 );
-/*	var mesh =  am_createSphere(
-	    am.JOINT_MASS,
-	    am.JOINT_RADISU,
-	    pos,
-	    quat,
-	    material );
-*/	
+
 	var mesh = am_createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
+
+	// var mesh =  am_createParalellepiped( am.JOINT_RADIUS*2,
+	// 				 am.JOINT_RADIUS*2,
+	// 				 am.JOINT_RADIUS*2,
+	// 				 am.JOINT_MASS,
+	// 				 pos,
+	// 				 quat,
+	// 				     material );
+	
 	
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	am.scene.add(mesh);
 	am.meshes.push(mesh);
 	var body = mesh["ammo_obj"];
+	body.setDamping(0.9,0.9);
+	// NOTE: Possibly friction must be set before adding to world?
+	body.setFriction( 0.99 );
 	body.name = alphabetic_name(i);
 	body.structureKind = "joint";
 	mesh.structureKind = "joint";	
@@ -2916,9 +2937,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 	    // Actually, this shoould have the JOINT_RADIUS*2 subtracted,
 	    // and the joint shold actually be a sphere.
-	    var len = am.MEDIAN_EDGE_LENGTH - am.JOINT_RADIUS*2;
+	    var len = am.MEDIAN_EDGE_LENGTH + -am.JOINT_RADIUS*2;
 	    var mesh =  am_createParalellepiped(
-		am.MEDIAN_EDGE_LENGTH,
+		len,
 		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
 		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
 		am.MEMBER_MASS,
@@ -2931,6 +2952,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.scene.add(mesh);
 	    am.meshes.push(mesh);
 	    var memBody = mesh["ammo_obj"];
+	    memBody.setDamping(0.9,0.9);
+	    memBody.setFriction( 0.99 );
+
 	    memBody.structureKind = "member";
 	    mesh.structureKind = "member";	    
 	    memBody.link_a = b_a;
