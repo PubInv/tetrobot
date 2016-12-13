@@ -1097,8 +1097,6 @@ function moveJointToPoint(gui,x,y,z) {
 	// or let the constraint handle!
 	gui.jointBody.setWorldTransform(startTransform);
 
-
-	
 	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
 	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 
@@ -2621,6 +2619,41 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 
 }
 
+// Not sure how to use the quaternion here,
+function am_createSphere(m,r,pos,quat,material) {
+    var c = (pos) ? pos : new Ammo.btVector3(2, 10, 0);
+    
+    var colShape        = new Ammo.btSphereShape(1),
+        startTransform  = new Ammo.btTransform();
+    
+    startTransform.setIdentity();
+
+    var mass          = m,
+        isDynamic     = (mass !== 0),
+        localInertia  = new Ammo.btVector3(0, 0, 0);
+    
+    if (isDynamic)
+      colShape.calculateLocalInertia(mass,localInertia);
+
+    startTransform.setOrigin(pos);
+  
+    var myMotionState = new Ammo.btDefaultMotionState(startTransform),
+        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia),
+        body          = new Ammo.btRigidBody(rbInfo);
+    
+    body.setFriction( 0.5 );
+    body.setDamping(0.9,0.9);
+    
+    var ball = new THREE.Mesh( new THREE.SphereGeometry( r, 18, 16 ), material );
+    ball.castShadow = true;
+    ball.receiveShadow = true;
+
+    ball["ammo_obj"] = body;
+
+    am.am_physicsWorld.addRigidBody(body);
+    return ball;
+}
+
 function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.position.copy( pos );
@@ -2836,13 +2869,14 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	var quat = new THREE.Quaternion();
 	pos.set( v.x, v.y, v.z);
         quat.set( 0, 0, 0, 1 );
-	var mesh =  am_createParalellepiped( am.JOINT_RADIUS*2,
-					 am.JOINT_RADIUS*2,
-					 am.JOINT_RADIUS*2,
-					 am.JOINT_MASS,
-					 pos,
-					 quat,
-					     material );
+/*	var mesh =  am_createSphere(
+	    am.JOINT_MASS,
+	    am.JOINT_RADISU,
+	    pos,
+	    quat,
+	    material );
+*/	
+	var mesh = am_createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
 	
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
@@ -2879,6 +2913,10 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    
 	    pos.set( v_avg.x, v_avg.y, v_avg.z);
             quat.set( 0, 0, 0, 1 );
+
+	    // Actually, this shoould have the JOINT_RADIUS*2 subtracted,
+	    // and the joint shold actually be a sphere.
+	    var len = am.MEDIAN_EDGE_LENGTH - am.JOINT_RADIUS*2;
 	    var mesh =  am_createParalellepiped(
 		am.MEDIAN_EDGE_LENGTH,
 		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
@@ -2908,7 +2946,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.robot.robot_members.push(link);
 
 	    var constraints = [];
-	    var s = am.MEDIAN_EDGE_LENGTH/2 + am.JOINT_RADIUS;
+
+	    var s = am.MEDIAN_EDGE_LENGTH/2;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
