@@ -2887,15 +2887,6 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 	var mesh = am_createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
 
-	// var mesh =  am_createParalellepiped( am.JOINT_RADIUS*2,
-	// 				 am.JOINT_RADIUS*2,
-	// 				 am.JOINT_RADIUS*2,
-	// 				 am.JOINT_MASS,
-	// 				 pos,
-	// 				 quat,
-	// 				     material );
-	
-	
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	am.scene.add(mesh);
@@ -2997,7 +2988,36 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    endpoints.push(b_a);
 	    endpoints.push(b_z);
 	    memBody["endpoints"] = endpoints;
-	    memBody["constraints"] = constraints; 
+	    memBody["constraints"] = constraints;
+
+	    // Now we will add an additional constraint to keep things
+	    // from rolling...only the first for each should be needed...
+
+	    if (!b_a["non-rolling-constraint"]) {
+		var s = 0.02;
+		pos.set( v.x, v.y, v.z);
+		quat.set( 0, 0, 0, 1 );
+		
+		var mesh =  am_createParalellepiped(
+		s,
+		s,
+		s,
+		1.0,
+		pos,
+		quat,
+		this.jointMaterial );
+
+		var bump = mesh["ammo_obj"];
+		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
+		var con = new Ammo.btPoint2PointConstraint(b_a,
+							   bump,
+							   pivotInA,
+							   pivotInB);
+		am.am_physicsWorld.addConstraint(con, true);
+		b_a["non-rolling-constraint"] = con;
+		console.log(b_a.name);
+	    }
 	}
 
     }
