@@ -313,7 +313,7 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 30;
+    this.OBSTACLE_FRACTION = 60;
 //    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 300;
 
@@ -686,7 +686,7 @@ function add_obstacle(world,scene) {
 	mesh.geometry.elementsNeedUpdate = true;        
 	mesh.geometry.colorsNeedUpdate = true;
 
-	mw.push_body_mesh_pair(OBSTACLE_BODY,mesh);
+	am.push_body_mesh_pair(OBSTACLE_BODY,mesh);
 
     }
 
@@ -1688,28 +1688,81 @@ function update_constraints(links,f) {
 	    add_p2p_constraint(b,mem.endpoints[1]);
 	} else if (am.PHYSICS_ENGINE == "AMMO") {
 	    var memBody = link.body;
+	    var b_a = memBody.endpoints[0];
+	    var b_z = memBody.endpoints[1];
+
+	    // First, remove the existing body and mesh
+	    function get_number(b) {
+		for(var i = 0; i < am.bodies.length; i++) {
+		    var bi = am.bodies[i];
+		    if (b.name == bi.name)
+			return i;
+		}
+		throw "Miserable failure: "+b.name+".";
+	    }
+	    var n = get_number(memBody);
+	    // Possibly removing the body removes the constraints, unclear...
 	    am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
 	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
+	    
+	    am.am_physicsWorld.removeRigidBody(memBody);
+	    am.scene.remove(am.meshes[n]);
+	    am.remove_body_mesh_pair(am.meshes[n],memBody);
+	    
+	    // Then add again the the body (this should be a subroutine...
+	   
+	    var o_a = b_a.getWorldTransform().getOrigin();
+	    var o_z = b_z.getWorldTransform().getOrigin();	    
+	    var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
+	    var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
+	    
+	    var v_avg = v_z.add(v_a);
+	    v_avg.multiplyScalar(0.5);
+
+	    var pos = new THREE.Vector3();
+	    var quat = new THREE.Quaternion();
+
+	    pos.set( v_avg.x, v_avg.y, v_avg.z);
+            quat.set( 0, 0, 0, 1 );
+
+	    var mesh = create_actuator(d,pos,quat,b_a,b_z);
+	    var new_memBody = mesh["ammo_obj"];
+	    new_memBody.constraints = [];
+
+	    if (b_a.name > b_z.name) {
+		var t = b_a;
+		b_a = b_z;
+		b_z = t;
+	    }
+	    
+	    // TODO: This is ugly.
+	    var link = { a: b_a, b: b_z, body: new_memBody};	    	    
+	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
+	     	if (am.robot.robot_members[x].body.name == memBody.name) {
+		    am.robot.robot_members[x] = link;
+	     	}
+	    }
+
 	    var s = d/2;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
-		var con = new Ammo.btPoint2PointConstraint(a,
-							   memBody,
+		var con = new Ammo.btPoint2PointConstraint(b_a,
+							   new_memBody,
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
-		memBody.constraints[0] = con;
+		new_memBody.constraints[0] = con;
 	    }
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
-		var con = new Ammo.btPoint2PointConstraint(b,
-							   memBody,
+		var con = new Ammo.btPoint2PointConstraint(b_z,
+							   new_memBody,
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
-		memBody.constraints[1] = con;		
+		new_memBody.constraints[1] = con;		
 	    }
 	}
     }
@@ -2020,7 +2073,6 @@ var AM = function() {
 
     this.INITIAL_HEIGHT = 0.3;
 
-    this.meshes = [];
 
     this.NUMBER_OF_TETRAHEDRA = 5;
 //    this.NUMBER_OF_TETRAHEDRA = 1;
@@ -2048,6 +2100,9 @@ var AM = function() {
 	robot_joints: [],
 	robot_members: []
     };
+    
+    this.meshes = [];
+    this.bodies = [];
 
     this.standard_objs;
     this.standard_ctx;
@@ -2062,6 +2117,16 @@ var AM = function() {
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.meshes.push(mesh);
     this.bodies.push(body);
+}
+AM.prototype.remove_body_mesh_pair = function(body,mesh) {
+    this.meshes.push(mesh);
+    this.bodies.push(body);
+    for(var i = this.meshes.length - 1; i >= 0; i--) {
+	if(this.meshes[i].name === mesh.name) {
+	    this.meshes.splice(i, 1);
+	    this.bodies.splice(i, 1);
+	}
+    }
 }
 
 AM.prototype.clear_non_floor_body_mesh_pairs = function() {
@@ -2557,6 +2622,7 @@ function am_mapIndices( bufGeometry, indexedBufferGeom ) {
 
 }
 
+/*
 function am_createSoftVolume( bufferGeom, mass, pressure ) {
 
     am_processGeometry( bufferGeom );
@@ -2609,6 +2675,7 @@ function am_createSoftVolume( bufferGeom, mass, pressure ) {
     am_softBodies.push( volume );
 
 }
+*/
 
 function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 
@@ -2691,7 +2758,7 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     threeObject.userData.physicsBody = body;
 
     am.scene.add( threeObject );
-    am.meshes.push( threeObject );
+//    am.meshes.push( threeObject );
 
     if ( mass > 0 ) {
 
@@ -2703,7 +2770,9 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     }
 
     am.am_physicsWorld.addRigidBody( body );
-
+    
+    am.push_body_mesh_pair(body,threeObject);
+    
     return body;
 }
 
@@ -2859,6 +2928,43 @@ function am_updatePhysics( deltaTime ) {
 
 }
 
+function create_actuator(d,pos,quat,b_a,b_z) {
+    var len = d+ -am.JOINT_RADIUS*2;
+    var mesh =  am_createParalellepiped(
+	len,
+	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEMBER_MASS,
+	pos,
+	quat,
+	this.jointMaterial );
+    
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    am.scene.add(mesh);
+//    am.meshes.push(mesh);
+    var memBody = mesh["ammo_obj"];
+    memBody.setDamping(0.9,0.9);
+    memBody.setFriction( 0.99 );
+
+    memBody.structureKind = "member";
+    mesh.structureKind = "member";
+    memBody.link_a = b_a;
+    memBody.link_z = b_z;
+    if (b_a.name > b_z.name) {
+	var t = b_a;
+	b_a = b_z;
+	b_z = t;
+    }
+    memBody.name = b_a.name + " " + b_z.name;
+    memBody.endpoints = [];
+    memBody.endpoints[0] = b_a;
+    memBody.endpoints[1] = b_z;
+    mesh.name = memBody.name;
+    am.push_body_mesh_pair(memBody,mesh);
+    return mesh;
+}
+
 
 function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
@@ -2890,7 +2996,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	am.scene.add(mesh);
-	am.meshes.push(mesh);
+//	am.meshes.push(mesh);
 	var body = mesh["ammo_obj"];
 	body.setDamping(0.9,0.9);
 	// NOTE: Possibly friction must be set before adding to world?
@@ -2899,7 +3005,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	body.structureKind = "joint";
 	mesh.structureKind = "joint";	
 	am.robot.robot_joints.push(body);
-
+	am.push_body_mesh_pair(body,mesh);
+	
 	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
 	    var h = i-(k+1);
 
@@ -2907,9 +3014,6 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // necessary to keep the edges from passing through the obstacles.
 	    // This is a very unfortunate tuning...I suspect it is a weakness
 	    // in the solver of physics engine.
-
-
-
 	    var pos = new THREE.Vector3();
 	    var quat = new THREE.Quaternion();
 
@@ -2926,38 +3030,23 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    pos.set( v_avg.x, v_avg.y, v_avg.z);
             quat.set( 0, 0, 0, 1 );
 
-	    // Actually, this shoould have the JOINT_RADIUS*2 subtracted,
-	    // and the joint shold actually be a sphere.
-	    var len = am.MEDIAN_EDGE_LENGTH + -am.JOINT_RADIUS*2;
-	    var mesh =  am_createParalellepiped(
-		len,
-		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
-		am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
-		am.MEMBER_MASS,
-		pos,
-		quat,
-		this.jointMaterial );
-	
-	    mesh.castShadow = true;
-	    mesh.receiveShadow = true;
-	    am.scene.add(mesh);
-	    am.meshes.push(mesh);
+	    var mesh = create_actuator(am.MEDIAN_EDGE_LENGTH,pos,quat,b_a,b_z);
 	    var memBody = mesh["ammo_obj"];
-	    memBody.setDamping(0.9,0.9);
-	    memBody.setFriction( 0.99 );
-
-	    memBody.structureKind = "member";
-	    mesh.structureKind = "member";	    
-	    memBody.link_a = b_a;
-	    memBody.link_z = b_z;
+	    
 	    if (b_a.name > b_z.name) {
 		var t = b_a;
 		b_a = b_z;
 		b_z = t;
 	    }
-	    memBody.name = b_a.name + " " + b_z.name;
+//	    memBody.name = b_a.name + " " + b_z.name;
+//	    mesh.name = memBody.name;
 	    
-	    var link = { a: b_a, b: b_z, body: memBody};
+	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
+		if (am.robot.robot_members[x].body.name == memBody) {
+		    am.robot.robot_member.splice(x,1);
+		}
+	    }
+	    var link = { a: b_a, b: b_z, body: memBody};	    
 	    am.robot.robot_members.push(link);
 
 	    var constraints = [];
@@ -2965,7 +3054,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    var s = am.MEDIAN_EDGE_LENGTH/2;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );
 		var con = new Ammo.btPoint2PointConstraint(b_a,
 							   memBody,
 							   pivotInA,
@@ -2975,7 +3064,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    }
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( -s, 0, 0 );
 		var con = new Ammo.btPoint2PointConstraint(b_z,
 							   memBody,
 							   pivotInA,
@@ -2992,6 +3081,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 	    // Now we will add an additional constraint to keep things
 	    // from rolling...only the first for each should be needed...
+	    // This code is working, but needs to be improved...
+	    // I had trouble tying this to the actuator members themselves,
+	    // which would be more elegant.
 
 	    if (!b_a["non-rolling-constraint"]) {
 		var s = 0.02;
@@ -3009,7 +3101,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 		var bump = mesh["ammo_obj"];
 		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
-		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );
 		var con = new Ammo.btPoint2PointConstraint(b_a,
 							   bump,
 							   pivotInA,
