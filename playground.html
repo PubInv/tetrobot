@@ -1274,7 +1274,6 @@ function name_pose(id) {
     pose["name"] = name;
     pose["geometry"] = "5TetGlussBot";
     pose["pose"] = am;
-    console.log(pose);
     localStorage.setItem(name, JSON.stringify(am));
     update_poses();
 }
@@ -1541,7 +1540,6 @@ function interpolate_model(m1,m2,frac) {
 	    v[key] = iv;
 	}
     }
-    console.log(v);
     return v;
 }
 
@@ -1704,8 +1702,9 @@ function update_constraints(links,f) {
 	    // Possibly removing the body removes the constraints, unclear...
 	    am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
 	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
-	    
 	    am.am_physicsWorld.removeRigidBody(memBody);
+	    
+
 	    am.scene.remove(am.meshes[n]);
 	    am.remove_body_mesh_pair(am.meshes[n],memBody);
 	    
@@ -1740,6 +1739,7 @@ function update_constraints(links,f) {
 	    var link = { a: b_a, b: b_z, body: new_memBody};	    	    
 	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
 	     	if (am.robot.robot_members[x].body.name == memBody.name) {
+		    am.robot.robot_members[x].memBody
 		    am.robot.robot_members[x] = link;
 	     	}
 	    }
@@ -2118,7 +2118,9 @@ var AM = function() {
     this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
 
     this.color_scale = d3.scale.quantile().domain([this.MIN_EDGE_LENGTH, this.MAX_EDGE_LENGTH])
-    .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
+	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
+    this.color_material_palette = {};
+
     
 }
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
@@ -2126,12 +2128,16 @@ AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.bodies.push(body);
 }
 AM.prototype.remove_body_mesh_pair = function(body,mesh) {
-    this.meshes.push(mesh);
-    this.bodies.push(body);
     for(var i = this.meshes.length - 1; i >= 0; i--) {
 	if(this.meshes[i].name === mesh.name) {
 	    this.meshes.splice(i, 1);
 	    this.bodies.splice(i, 1);
+	}
+    }
+    delete mesh["ammo_obj"];
+    for(var i = this.am_rigidBodies.length - 1; i >= 0; i--) {
+	if(this.am_rigidBodies[i].name === body.name) {
+	    this.am_rigidBodies.splice(i, 1);
 	}
     }
 }
@@ -2935,12 +2941,20 @@ function am_updatePhysics( deltaTime ) {
 
 }
 
+function memo_color_mat(tcolor) {
+    var string = tcolor.getHexString();
+    if (!(string in am.color_material_palette)) {
+	var cmat = new THREE.MeshPhongMaterial( { color: tcolor } );
+	am.color_material_palette[string] = cmat;
+    }
+    return am.color_material_palette[string]
+}
 function create_actuator(d,pos,quat,b_a,b_z) {
     var len = d+ -am.JOINT_RADIUS*2;
 
     var color = get_member_color(d);
     var tcolor = new THREE.Color(color.r,color.g,color.b);
-    var cmat = new THREE.MeshPhongMaterial( { color: tcolor } );
+    var cmat = memo_color_mat(tcolor);
     var mesh =  am_createParalellepiped(
 	len,
 	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
@@ -3095,9 +3109,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // This code is working, but needs to be improved...
 	    // I had trouble tying this to the actuator members themselves,
 	    // which would be more elegant.
-
-	    if (!b_a["non-rolling-constraint"]) {
-		var s = 0.02;
+	    function create_non_roll_body(b,s) {
+//		var s = 0.01;
 		pos.set( v.x, v.y, v.z);
 		quat.set( 0, 0, 0, 1 );
 		
@@ -3112,14 +3125,21 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
 		var bump = mesh["ammo_obj"];
 		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
-		var pivotInB = new Ammo.btVector3( s, 0, 0 );
-		var con = new Ammo.btPoint2PointConstraint(b_a,
+		var pivotInB = new Ammo.btVector3(0, 0, 0 );
+		var con = new Ammo.btPoint2PointConstraint(b,
 							   bump,
 							   pivotInA,
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
-		b_a["non-rolling-constraint"] = con;
-		console.log(b_a.name);
+		b["non-rolling-constraint"] = con;
+		    console.log(b.name);
+		}
+	    var s = 0.01;
+	    if (!b_a["non-rolling-constraint"]) {
+		create_non_roll_body(b_a,s)
+	    }
+	    if (!b_z["non-rolling-constraint"]) {
+		create_non_roll_body(b_z,s)
 	    }
 	}
 
