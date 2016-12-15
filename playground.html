@@ -1723,7 +1723,8 @@ function update_constraints(links,f) {
 	    var quat = new THREE.Quaternion();
 
 	    pos.set( v_avg.x, v_avg.y, v_avg.z);
-            quat.set( 0, 0, 0, 1 );
+	    var mbq = memBody.getWorldTransform().getRotation();
+            quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
 
 	    var mesh = create_actuator(d,pos,quat,b_a,b_z);
 	    var new_memBody = mesh["ammo_obj"];
@@ -2035,6 +2036,8 @@ var AM = function() {
 
     this.TIME_BETWEEN_POSES_MS = 3000;
     this.GAIT_SUBDIVISIONS = 30;
+    this.GAIT_SUBDIVISIONS = 30;    
+//    this.GAIT_SUBDIVISIONS = 3;    
     
     // Physics variables
     this.am_gravityConstant = -9.8;
@@ -2112,7 +2115,11 @@ var AM = function() {
     this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
     
-    this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");    
+    this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
+
+    this.color_scale = d3.scale.quantile().domain([this.MIN_EDGE_LENGTH, this.MAX_EDGE_LENGTH])
+    .range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
+    
 }
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.meshes.push(mesh);
@@ -2930,6 +2937,10 @@ function am_updatePhysics( deltaTime ) {
 
 function create_actuator(d,pos,quat,b_a,b_z) {
     var len = d+ -am.JOINT_RADIUS*2;
+
+    var color = get_member_color(d);
+    var tcolor = new THREE.Color(color.r,color.g,color.b);
+    var cmat = new THREE.MeshPhongMaterial( { color: tcolor } );
     var mesh =  am_createParalellepiped(
 	len,
 	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
@@ -2937,7 +2948,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
 	am.MEMBER_MASS,
 	pos,
 	quat,
-	this.jointMaterial );
+	cmat );
     
     mesh.castShadow = true;
     mesh.receiveShadow = true;
