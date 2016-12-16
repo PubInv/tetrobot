@@ -313,7 +313,7 @@ var MW = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 60;
+    this.OBSTACLE_FRACTION = 120;
 //    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 300;
 
@@ -566,8 +566,8 @@ var sprite_controls = new function () {
     this.rotateSystem = true;
 
     this.clear = function (x,y) {
-        gui.sceneOrtho.children.forEach(function (child) {
-            if (child instanceof THREE.Sprite) gui.sceneOrtho.remove(child);
+        am.sceneOrtho.children.forEach(function (child) {
+            if (child instanceof THREE.Sprite) am.sceneOrtho.remove(child);
         })
     };
 
@@ -608,7 +608,7 @@ var sprite_controls = new function () {
 	sprite.scale.set(this.size, this.size, this.size);
 	sprite.position.set(x, y, 0);
 	
-	gui.sceneOrtho.add(sprite);
+	am.sceneOrtho.add(sprite);
 	return sprite;
     };
 };
@@ -2012,6 +2012,7 @@ var AM = function() {
     this.camera;
     this.controls;
     this.scene;
+    this.sceneOrtho;
     this.renderer;
     this.am_textureLoader;
     this.am_clock = new THREE.Clock();
@@ -2346,7 +2347,9 @@ function am_initGraphics() {
     var origin = new THREE.Vector3(0,0,0);
     am.camera.lookAt(origin);
     
-//    am.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
+    //    am.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
+
+
     
     am.scene = new THREE.Scene();
     am.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
@@ -2367,6 +2370,10 @@ function am_initGraphics() {
     am.SCREEN_WIDTH = am.renderer.getSize().width;
     am.SCREEN_HEIGHT = am.renderer.getSize().height;
     am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
+
+
+    am.cameraOrtho = new THREE.OrthographicCamera( 0, am.SCREEN_WIDTH, am.SCREEN_HEIGHT, 0, - 10, 10 );
+    
     am.renderer.shadowMap.enabled = true;
 
     am.renderer.gammaInput = true;
@@ -2431,6 +2438,7 @@ function am_initGraphics() {
 //    am_stats.domElement.style.top = '0px';
 //    am_container.appendChild( am_stats.domElement );
 
+    am.sceneOrtho = new THREE.Scene();
 
     window.addEventListener( 'resize', am_onWindowResize, false );
 
@@ -2873,7 +2881,8 @@ function am_render() {
 
     am.renderer.render( am.scene, am.camera );
     am.renderer.autoClear = false;        
-    am.renderer.render( am.am_grid_scene, am.camera);    
+    am.renderer.render( am.am_grid_scene, am.camera);
+    am.renderer.render(am.sceneOrtho, am.cameraOrtho);    
 }
 
 function am_updatePhysics( deltaTime ) {
@@ -2937,6 +2946,11 @@ function am_updatePhysics( deltaTime ) {
 	    objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
 
 	}
+	var p3 = new THREE.Vector3(p.x(),p.y(),p.z());
+	var p3 = p3.project(am.camera);
+	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
+	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
+	objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
     }
 
 }
