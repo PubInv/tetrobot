@@ -2950,7 +2950,8 @@ function am_updatePhysics( deltaTime ) {
 	var p3 = p3.project(am.camera);
 	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
 	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
-	objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
+	if (objPhys.name) 
+	    objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
     }
 
 }
@@ -3124,7 +3125,6 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // I had trouble tying this to the actuator members themselves,
 	    // which would be more elegant.
 	    function create_non_roll_body(b,s) {
-//		var s = 0.01;
 		pos.set( v.x, v.y, v.z);
 		quat.set( 0, 0, 0, 1 );
 		
@@ -3146,7 +3146,6 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   pivotInB);
 		am.am_physicsWorld.addConstraint(con, true);
 		b["non-rolling-constraint"] = con;
-		    console.log(b.name);
 		}
 	    var s = 0.01;
 	    if (!b_a["non-rolling-constraint"]) {
