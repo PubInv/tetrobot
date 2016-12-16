@@ -223,7 +223,7 @@ function convert_to_number(obj) {
 // TODO: I hate global variables ---- I'd like to encapsulate this
 // into a class.
 
-
+/*
 // The MirroredWorld comtains both the Cannon world of physics
 // and the Three.js world of renderable shapes and meshes.
 var MW = function() {
@@ -432,7 +432,7 @@ GUI.prototype.remove_world = function() {
 
 
 var gui = new GUI(mw);
-
+*/
 var latestLookAtX = 0;
 var latestLookAtY = 0;
 var latestLookAtZ = 0;
@@ -617,13 +617,13 @@ var sprite_controls = new function () {
 
 
 
-function get_member_color(len) {
-    if (len < mw.MIN_EDGE_LENGTH)
+function get_member_color(gui,len) {
+    if (len < am.MIN_EDGE_LENGTH)
 	return d3.rgb("black");
-    else if (len > mw.MAX_EDGE_LENGTH)
+    else if (len > am.MAX_EDGE_LENGTH)
 	return d3.rgb("black");
     else {
-	var p = (len - mw.MIN_EDGE_LENGTH) / (mw.MAX_EDGE_LENGTH - mw.MIN_EDGE_LENGTH);
+	var p = (len - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
 	return d3.rgb(gui.color_scale(len));
     }
 }
@@ -638,19 +638,19 @@ function render(gui) {
     gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
 }
 
-
+/*
 function add_obstacle(world,scene) {
     // Materials
 
     var num = 4;
 
-    var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
-			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
-			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
-			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
+    var positions = [{x:0,y:am.INITIAL_HEIGHT,z:1},
+			  {x:1,y:am.INITIAL_HEIGHT,z:0},
+			  {x:0,y:am.INITIAL_HEIGHT,z:-1},
+			  {x:-1,y:am.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var obstacleShape = new CANNON.Box(new CANNON.Vec3(
-	    mw.obstacleSize/2,mw.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
+	    am.obstacleSize/2,am.obstacleSize/(2*mw.OBSTACLE_FRACTION),mw.obstacleSize/(2*mw.OBSTACLE_FRACTION)));
 	
 	OBSTACLE_BODY = new CANNON.Body({ mass: mw.OBSTACLE_MASS, material: mw.ground_ground_cm
 					  ,
@@ -692,6 +692,7 @@ function add_obstacle(world,scene) {
 
     return [OBSTACLE_BODY,mesh];
 }
+*/
 
 function remove_non_eternal_constraints() {
 /*    world.constraints.forEach(function (c) {
@@ -1567,7 +1568,6 @@ var hi = 900;
 var flat_pose = { A0: 0, A1: 100+mid, A2: 100+mid, A3: 300+lo, A4: mid, A5: mid,
 		  B0: 0, B1: 100+mid, B2: 100+mid, B3: 300+lo, B4: mid, B5: mid};
 
-var actuator_to_length = d3.scale.linear().domain([0,1023]).range([mw.MIN_EDGE_LENGTH,mw.MAX_EDGE_LENGTH]);
 
 function flat() {
     assume_pose(flat_pose);
@@ -1946,51 +1946,7 @@ function reset_to_default(gui,mw) {
     build_world(gui,mw);
 }
 
-function initiation_stuff() {
-    // TODO: Organize these into an init function.
-    $(document).on('click', '.panel-heading span.clickable', function(e){
-	var $this = $(this);
-	if(!$this.hasClass('panel-collapsed')) {
-	    $this.parents('.panel').find('.panel-body').slideUp();
-	    $this.addClass('panel-collapsed');
-	    $this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
-	} else {
-	    $this.parents('.panel').find('.panel-body').slideDown();
-	    $this.removeClass('panel-collapsed');
-	    $this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
-	}
-    });
 
-    $("#poseurl").val(gui.url_for_robot);
-
-    $.getJSON( "./standard_gaits.json")
-	.done(function( json ) {
-	    am.standard_objs = json;
-	    am.standard_ctx = generate_context_from_standard(am.standard_objs);
-
-	    var local_objs = [];
-	    for (var i = 0; i < localStorage.length; i++){
-		var obj = localStorage[localStorage.key(i)];
-		var pobj = JSON.parse(obj);
-		pobj["pose"] = convert_to_number(pobj["pose"])
-		am.standard_ctx[localStorage.key(i)] = pobj;
-	    }
-	    update_standard_poses();	
-	})
-	.fail(function( jqxhr, textStatus, error ) {
-	    var err = textStatus + ", " + error;
-	    console.log( "Request Failed: " + err );
-	});
-
-    $('.panel-heading span.clickable').click();
-
-//    build_world(gui,mw);
-
-    // Initialize Three.js
-    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
-}
-
-initiation_stuff();
 
 
 // Here begins my attempt to integrate the AMMO.js port of the Bullet Physics engine
@@ -2122,7 +2078,14 @@ var AM = function() {
 	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
     this.color_material_palette = {};
 
-    
+    this.url_for_robot = "http://127.0.0.1:9000";
+
+        this.obstacles = [];
+    this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
+    this.OBSTACLE_FRACTION = 40;
+//    this.OBSTACLE_FRACTION = 3;
+    this.OBSTACLE_MASS = 300;
+
 }
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.meshes.push(mesh);
@@ -2160,6 +2123,52 @@ AM.prototype.remove_robot = function() {
 var am = new AM();
 
 // - Main code -
+
+function initiation_stuff() {
+    // TODO: Organize these into an init function.
+    $(document).on('click', '.panel-heading span.clickable', function(e){
+	var $this = $(this);
+	if(!$this.hasClass('panel-collapsed')) {
+	    $this.parents('.panel').find('.panel-body').slideUp();
+	    $this.addClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+	} else {
+	    $this.parents('.panel').find('.panel-body').slideDown();
+	    $this.removeClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+	}
+    });
+
+    $("#poseurl").val(am.url_for_robot);
+
+    $.getJSON( "./standard_gaits.json")
+	.done(function( json ) {
+	    am.standard_objs = json;
+	    am.standard_ctx = generate_context_from_standard(am.standard_objs);
+
+	    var local_objs = [];
+	    for (var i = 0; i < localStorage.length; i++){
+		var obj = localStorage[localStorage.key(i)];
+		var pobj = JSON.parse(obj);
+		pobj["pose"] = convert_to_number(pobj["pose"])
+		am.standard_ctx[localStorage.key(i)] = pobj;
+	    }
+	    update_standard_poses();	
+	})
+	.fail(function( jqxhr, textStatus, error ) {
+	    var err = textStatus + ", " + error;
+	    console.log( "Request Failed: " + err );
+	});
+
+    $('.panel-heading span.clickable').click();
+
+//    build_world(gui,mw);
+
+    // Initialize Three.js
+    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+}
+
+initiation_stuff();
 
 am_init();
 am_animate();
@@ -2487,10 +2496,10 @@ function am_createObstacles() {
     var num = 4;
 
 
-    var positions = [{x:0,y:mw.INITIAL_HEIGHT,z:1},
-			  {x:1,y:mw.INITIAL_HEIGHT,z:0},
-			  {x:0,y:mw.INITIAL_HEIGHT,z:-1},
-			  {x:-1,y:mw.INITIAL_HEIGHT,z:0}];
+    var positions = [{x:0,y:am.INITIAL_HEIGHT,z:1},
+			  {x:1,y:am.INITIAL_HEIGHT,z:0},
+			  {x:0,y:am.INITIAL_HEIGHT,z:-1},
+			  {x:-1,y:am.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
@@ -2500,10 +2509,10 @@ function am_createObstacles() {
 	quat.setFromAxisAngle(new THREE.Vector3( 0, 1, 0 ), i * 90  * Math.PI / 180 )
 	var material = new THREE.MeshPhongMaterial( { color: 0x33AAFF } );
 	
-	var mesh =  am_createParalellepiped( mw.obstacleSize,
-					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
-					     mw.obstacleSize/mw.OBSTACLE_FRACTION,
-					     mw.OBSTACLE_MASS,
+	var mesh =  am_createParalellepiped( am.obstacleSize,
+					     am.obstacleSize/am.OBSTACLE_FRACTION,
+					     am.obstacleSize/am.OBSTACLE_FRACTION,
+					     am.OBSTACLE_MASS,
 					     pos,
 					     quat,
 					     material );
@@ -2525,10 +2534,10 @@ function am_createGround(am) {
     am.am_pos.set( 0, -am.GROUND_WIDTH/2, 0 );
     am.am_quat.set( 0, 0, 0, 1 );
 
-    am.floorTexture.wrapS = mw.floorTexture.wrapT = THREE.RepeatWrapping; 
+    am.floorTexture.wrapS = am.floorTexture.wrapT = THREE.RepeatWrapping; 
     am.floorTexture.repeat.set( 10, 10 );
     
-    var floorMaterial = new THREE.MeshBasicMaterial( { map: mw.floorTexture, side: THREE.DoubleSide } );
+    var floorMaterial = new THREE.MeshBasicMaterial( { map: am.floorTexture, side: THREE.DoubleSide } );
 
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
@@ -2882,13 +2891,22 @@ function am_render() {
     am.renderer.render( am.scene, am.camera );
     am.renderer.autoClear = false;        
     am.renderer.render( am.am_grid_scene, am.camera);
-    am.renderer.render(am.sceneOrtho, am.cameraOrtho);    
+
+    // TODO: I apparently am not clearing the sprits correctly.
+    // am.sceneOrtho.children.forEach(function(object){
+    // 	am.sceneOrtho.remove(object);
+    // });
+    am.renderer.render(am.sceneOrtho, am.cameraOrtho);
+    
+
 }
 
 function am_updatePhysics( deltaTime ) {
 
     // Step world
     am.am_physicsWorld.stepSimulation( deltaTime, 10 );
+
+    sprite_controls.clear();    
 
     // Update soft volumes
     for ( var i = 0, il = am.am_softBodies.length; i < il; i++ ) {
@@ -2967,7 +2985,7 @@ function memo_color_mat(tcolor) {
 function create_actuator(d,pos,quat,b_a,b_z) {
     var len = d+ -am.JOINT_RADIUS*2;
 
-    var color = get_member_color(d);
+    var color = get_member_color(am,d);
     var tcolor = new THREE.Color(color.r,color.g,color.b);
     var cmat = memo_color_mat(tcolor);
     var mesh =  am_createParalellepiped(
@@ -3158,6 +3176,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
     }
 }
+var actuator_to_length = d3.scale.linear().domain([0,1023]).range([am.MIN_EDGE_LENGTH,am.MAX_EDGE_LENGTH]);
 
 
         </script>
