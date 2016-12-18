@@ -55,9 +55,6 @@
 	    <button type="button" onclick="step_con()">
 	      Use STEP MODE
 	    </button>
-	    <button type="button" onclick="reset_to_default(gui,mw)">
-	      Reset to Default
-	    </button>
 	    <button type="button" onclick="toggle_mouse_action()">
 	      Toggle Mouse Cannon/Grab
 	    </button>
@@ -478,13 +475,6 @@ function alphabetic_name(n) {
 var joints_to_link_map = {};
 
 
-function add_floor(mw,gui) {
-    var item = add_ground_plane(mw.cworld,gui.scene)
-    mw.GROUND_PLANE_MESH = item[1];
-    mw.push_body_mesh_pair(item[0],item[1]);
-    gui.scene.add(mw.GROUND_PLANE_MESH);
-}
-
 function disable_con() {
     am.FORCE_REGIME = "DISABLE";
 }
@@ -709,11 +699,6 @@ function moveJointToPoint(gui,x,y,z) {
     }
 }
 
-function render_constraints() {
-    mw.cworld.constraints.forEach(function (c) {
-	console.log("("+c.bodyA.name+","+c.bodyB.name+") = "+c.distance);
-    });
-}
 
 // TODO: This is specific to CANNON
 function removeJointConstraint(gui) {
@@ -1211,18 +1196,12 @@ function small_size() {
 function toggle_gravity() {
     if (am.gravity_on) {
 	am.gravity_on = false;
-	if (mw.cworld) {
-	    mw.cworld.gravity.set(0,0,0);
-	}
 	if (am.am_physicsWorld) {
 	    am.am_physicsWorld.setGravity( am.NO_GRAVITY );
 	}
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
 	am.gravity_on = true;
-	if (mw.cworld) {
-	    mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
-	}
 	if (am.am_physicsWorld) {
 	    am.am_physicsWorld.setGravity( am.FULL_GRAVITY );
 	}
@@ -1512,10 +1491,6 @@ function actuator(b1,b2) {
 }
 
 
-function reset_to_default(gui,mw) {
-    gui.remove_world();
-    build_world(gui,mw);
-}
 
 
 
@@ -1840,17 +1815,6 @@ function am_onMouseDown(e){
 	if (e.shiftKey) {
 	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
 	    // and we will visually represent that by turning the joint red, I guess.
-	    console.log(mw.bodies[idx]);
-	    var b = mw.bodies[idx];
-	    b.fixed_in_world = !b.fixed_in_world;
-	    if (b.fixed_in_world) {
-		b.mass = 0;
-		entity.object.material.color.setHex( 0xff0000 );		
-	    } else {
-		b.mass = mw.BASIC_BODY_MASS;
-		entity.object.material.color.setHex( 0x0000ff );				
-	    }
-	    b.updateMassProperties();	    
 	} else {
 	    //            constraintDown = true;
             // Set marker on contact point
