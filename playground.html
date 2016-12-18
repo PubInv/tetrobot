@@ -1221,7 +1221,6 @@ function auto_rectify_toggle() {
 }
 
 function update_constraints(links,f) {
-    //    remove_non_eternal_constraints(mw.cworld);
     remove_non_eternal_constraints();
     for(var lin in links) {
 	var link = links[lin];  
@@ -1294,6 +1293,9 @@ function update_constraints(links,f) {
 	}
 
 	var s = d/2;
+	var fudge = 0.95;
+	s = s * fudge;
+
 	{
 	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
@@ -1342,11 +1344,6 @@ function assume_pose(pose) {
 	return d;
     });
     am.most_recent_constraints = pose;
-    /*    var STEPS_TO_TAKE = 30;
-	  for(var j = 0; j < STEPS_TO_TAKE; j++) {
-	  updatePhysics(mw);
-	  }
-    */
 }
 
 
@@ -1593,12 +1590,12 @@ var AM = function() {
 
     // These things should actually be a part of the ROBOT, not the mirrored world!
     // These are in meters, measured joint-center to joint-center
-    this.BASIC_BODY_MASS = 1; // This is kilograms.
-    this.MEMBER_MASS = 1;
+    this.BASIC_BODY_MASS = 1.0; // This is kilograms.
+    this.MEMBER_MASS = 1.0;
     this.MAX_EDGE_LENGTH = 0.470;
     this.MIN_EDGE_LENGTH = 0.330;
-    this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
-    this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
+    this.MEAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
+    this.JOINT_RADIUS = 0.03; // This is the current turret joint ball.
 
     this.JOINT_MASS = 1;
 
@@ -1627,10 +1624,10 @@ var AM = function() {
     this.url_for_robot = "http://127.0.0.1:9000";
 
     this.obstacles = [];
-    this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
-    this.OBSTACLE_FRACTION = 40;
+    this.obstacleSize = this.MEAN_EDGE_LENGTH*5;
+    this.OBSTACLE_FRACTION = 25;
     //    this.OBSTACLE_FRACTION = 3;
-    this.OBSTACLE_MASS = 300;
+    this.OBSTACLE_MASS = 3;
     //    this.CONSTRAINT_FORCE_SMALL = 1;
 
     this.FORCE_REGIME = "DISABLE";    
@@ -1717,8 +1714,6 @@ function initiation_stuff() {
 
 
     $('.panel-heading span.clickable').click();
-
-    //    build_world(gui,mw);
 
     // Initialize Three.js
     if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -1815,6 +1810,13 @@ function am_onMouseDown(e){
 	if (e.shiftKey) {
 	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
 	    // and we will visually represent that by turning the joint red, I guess.
+	    if(idx !== -1) {
+		var obj = am.meshes[idx].ammo_obj;
+		am.manipulatedObject = obj;
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(0.0,zero);
+		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+	    }
 	} else {
 	    //            constraintDown = true;
             // Set marker on contact point
@@ -1826,6 +1828,11 @@ function am_onMouseDown(e){
             if(idx !== -1){
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
+		// We may have to restore the mass...would be better if we knew...
+		var mass = ((obj.structureKind == "joint") ? am.JOINT_MASS :
+			    ((obj.structureKind == "member") ? am.MEMBER_MASS : am.OBSTACLE_MASS));
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(mass,zero);
 		obj.setGravity(am.NO_GRAVITY);			
 		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);		            }
 	}
@@ -2268,8 +2275,6 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     threeObject.userData.physicsBody = body;
 
     am.scene.add( threeObject );
-    //    am.meshes.push( threeObject );
-
     if ( mass > 0 ) {
 
 	am.am_rigidBodies.push( threeObject );
@@ -2450,8 +2455,8 @@ function create_actuator(d,pos,quat,b_a,b_z) {
     var cmat = memo_color_mat(tcolor);
     var mesh =  am_createParalellepiped(
 	len,
-	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
-	am.MEDIAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
 	am.MEMBER_MASS,
 	pos,
 	quat,
@@ -2498,7 +2503,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     var mass = am.BASIC_BODY_MASS;
 
     for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,am.MEDIAN_EDGE_LENGTH);
+	var v = ccw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
 	v = v.add(pvec);
 
 	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );
@@ -2547,7 +2552,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    pos.set( v_avg.x, v_avg.y, v_avg.z);
             quat.set( 0, 0, 0, 1 );
 
-	    var mesh = create_actuator(am.MEDIAN_EDGE_LENGTH,pos,quat,b_a,b_z);
+	    var mesh = create_actuator(am.MEAN_EDGE_LENGTH,pos,quat,b_a,b_z);
 	    var memBody = mesh["ammo_obj"];
 	    
 	    if (b_a.name > b_z.name) {
@@ -2565,8 +2570,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.robot.robot_members.push(link);
 
 	    var constraints = [];
-
-	    var s = am.MEDIAN_EDGE_LENGTH/2;
+	    var fudge = 0.95;
+	    var s = am.MEAN_EDGE_LENGTH/2;
+	    s = s * fudge;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( s, 0, 0 );
