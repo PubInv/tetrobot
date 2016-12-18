@@ -500,7 +500,7 @@ function toggle_mouse_action() {
 }
 
 function step_con() {
-		       }
+}
 
 function send_to_robot_url() {
     // Right now, we are just sending the current config
@@ -529,12 +529,12 @@ function send_to_robot_url() {
 }
 
 function updateMouseConstraints(gui,body) {
-	if (gui.FORCE_REGIME == "STEP") {
+    if (gui.FORCE_REGIME == "STEP") {
 
-	} else if (gui.FORCE_REGIME == "DISABLE") {
-	   
-	} else if (gui.FORCE_REGIME == "NONE") {
-	}
+    } else if (gui.FORCE_REGIME == "DISABLE") {
+	
+    } else if (gui.FORCE_REGIME == "NONE") {
+    }
     
 }
 
@@ -611,32 +611,35 @@ function addMouseConstraint(gui,x,y,z,body) {
     updateMouseConstraints(gui,body);
 
     gui.selectedBody = body;	
-    if (gui.FORCE_REGIME == "NONE") {
-	var markerBody = gui.jointBody;
-	var constrainedBody = body;
-	var startTransform = constrainedBody.getWorldTransform();
+    //    if (gui.FORCE_REGIME == "NONE") {
+    var markerBody = gui.jointBody;
+    var constrainedBody = body;
+    var startTransform = constrainedBody.getWorldTransform();
 
 
-	// MAJOR BUG: This is not taking the rotation of the constainedObject into account
-	// We need to use the Transform to transform the point into its position in the
-	// local space, I think.
+    // MAJOR BUG: This is not taking the rotation of the constainedObject into account
+    // We need to use the Transform to transform the point into its position in the
+    // local space, I think.
 
-	var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
-	// x,y,z are in global space.
-	
-	var globalVector = new Ammo.btVector3(x,y,z);
-	var pivotInB = applyBulletTransformInverse(startTransform,globalVector);
+    var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
+    // x,y,z are in global space.
+    
+    var globalVector = new Ammo.btVector3(x,y,z);
+    var pivotInB = applyBulletTransformInverse(startTransform,globalVector);
 
-	var con = new Ammo.btPoint2PointConstraint(markerBody,
-						   constrainedBody,
-						   pivotInA,
-						   pivotInB);
-	gui.mouseConstraint = con;
-	gui.selectedBody = body;
-
-	gui.am_physicsWorld.addConstraint(con, true);
-    } else if (gui.FORCE_REGIME == "DISABLE") {
-    }
+    var con = new Ammo.btPoint2PointConstraint(markerBody,
+					       constrainedBody,
+					       pivotInA,
+					       pivotInB);
+    markerBody.setGravity(am.NO_GRAVITY);
+    constrainedBody.setGravity(am.NO_GRAVITY);
+    
+    gui.mouseConstraint = con;
+    gui.selectedBody = body;
+    
+    gui.am_physicsWorld.addConstraint(con, true);
+    //    } else if (gui.FORCE_REGIME == "DISABLE") {
+    //    }
 
 }
 
@@ -646,30 +649,42 @@ function addMouseConstraint(gui,x,y,z,body) {
 // This functions moves the transparent joint body to a new postion in space
 
 function moveJointToPoint(gui,x,y,z) {
-	if (gui.FORCE_REGIME == "NONE") {
-	    
-	} else if (gui.FORCE_REGIME == "DISABLE") {
-	}
+    var is_obstacle = (gui.selectedBody.structureKind == "obstacle");
+    var act_natural = ((gui.FORCE_REGIME == "NONE") ||
+		       is_obstacle);
+    
+    if (act_natural) {
 	
+    } else {
 	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
-	var startTransform = new Ammo.btTransform();
-	startTransform.setIdentity();
+    }
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
 
-	var n_o = new Ammo.btVector3(x,y,z);
-	startTransform.setOrigin(n_o);
+    var n_o = new Ammo.btVector3(x,y,z);
+    startTransform.setOrigin(n_o);
 
-	// This is wrong...we ned to move x,y,z plus the inverse ...
-	// or let the constraint handle!
-	gui.jointBody.setWorldTransform(startTransform);
+    // This is wrong...we ned to move x,y,z plus the inverse ...
+    // or let the constraint handle!
+    gui.jointBody.setWorldTransform(startTransform);
 
-	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
-	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+    gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
 
-	var cbody = gui.selectedBody;
-	cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
-	cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+    var cbody = gui.selectedBody;
+    cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+//    if (act_natrual || is_obstacle) {
+    gui.jointBody.setGravity(am.NO_GRAVITY);
+    gui.selectedBody.setGravity(am.NO_GRAVITY);
+//    } else {
+//    }
+    
+    if (act_natural) {
+	
+    } else  {
 	gui.am_physicsWorld.addRigidBody(gui.jointBody);
-	gui.jointBody.setGravity(am.NO_GRAVITY);
+
 
 	// Now we want to tell the robot to assume (instantly)?
 	// The pose indicated by placing the selectedBody at x,y,z
@@ -689,11 +704,9 @@ function moveJointToPoint(gui,x,y,z) {
 				      gui.selectedBody,
 				      gui.jointBody,
 				      gui.most_recent_constraints);
-	console.log(act_settings);
 	// now move to the new pose.
 	set_interp_constraints(act_settings,act_settings,1.0);
-	console.log(am.most_recent_constraints);
-    
+    }
 }
 
 function render_constraints() {
@@ -708,10 +721,9 @@ function removeJointConstraint(gui) {
     if (!gui.selectedBody) {
 	return;
     }
-	gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
-	gui.mouseConstraint = false;
-	gui.selectedBody = null;
-
+    gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
+    gui.mouseConstraint = false;
+    gui.selectedBody = null;
 }
 
 function render_physical_model(id) {
@@ -974,11 +986,11 @@ function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms) {
 	setTimeout(function(am0,am1,frac) {
 	    set_interp_constraints(am0,am1,frac);
 	},
-	   j*intertick,
+		   j*intertick,
 		   cur,
-	   atom,
-	   j/(subdivisions*1.0)
-	  );
+		   atom,
+		   j/(subdivisions*1.0)
+		  );
     }
 }
 
@@ -1000,7 +1012,7 @@ function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_m
 	},
 		   time_between_poses_ms,
 		   rest
-		   );
+		  );
     }
 }
 function execute_atom_dummy(ctx,glog) {
@@ -1243,86 +1255,86 @@ function update_constraints(links,f) {
 	}
 	var d = f(link);
 
-	    var memBody = link.body;
-	    var b_a = memBody.endpoints[0];
-	    var b_z = memBody.endpoints[1];
+	var memBody = link.body;
+	var b_a = memBody.endpoints[0];
+	var b_z = memBody.endpoints[1];
 
-	    // First, remove the existing body and mesh
-	    function get_number(b) {
-		for(var i = 0; i < am.bodies.length; i++) {
-		    var bi = am.bodies[i];
-		    if (b.name == bi.name)
-			return i;
-		}
-		throw "Miserable failure: "+b.name+".";
+	// First, remove the existing body and mesh
+	function get_number(b) {
+	    for(var i = 0; i < am.bodies.length; i++) {
+		var bi = am.bodies[i];
+		if (b.name == bi.name)
+		    return i;
 	    }
-	    var n = get_number(memBody);
-	    // Possibly removing the body removes the constraints, unclear...
-	    am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
-	    am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
-	    am.am_physicsWorld.removeRigidBody(memBody);
-	    
+	    throw "Miserable failure: "+b.name+".";
+	}
+	var n = get_number(memBody);
+	// Possibly removing the body removes the constraints, unclear...
+	am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
+	am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
+	am.am_physicsWorld.removeRigidBody(memBody);
+	
 
-	    am.scene.remove(am.meshes[n]);
-	    am.remove_body_mesh_pair(am.meshes[n],memBody);
-	    
-	    // Then add again the the body (this should be a subroutine...
-	   
-	    var o_a = b_a.getWorldTransform().getOrigin();
-	    var o_z = b_z.getWorldTransform().getOrigin();	    
-	    var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
-	    var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
-	    
-	    var v_avg = v_z.add(v_a);
-	    v_avg.multiplyScalar(0.5);
+	am.scene.remove(am.meshes[n]);
+	am.remove_body_mesh_pair(am.meshes[n],memBody);
+	
+	// Then add again the the body (this should be a subroutine...
+	
+	var o_a = b_a.getWorldTransform().getOrigin();
+	var o_z = b_z.getWorldTransform().getOrigin();	    
+	var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
+	var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
+	
+	var v_avg = v_z.add(v_a);
+	v_avg.multiplyScalar(0.5);
 
-	    var pos = new THREE.Vector3();
-	    var quat = new THREE.Quaternion();
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
 
-	    pos.set( v_avg.x, v_avg.y, v_avg.z);
-	    var mbq = memBody.getWorldTransform().getRotation();
-            quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
+	pos.set( v_avg.x, v_avg.y, v_avg.z);
+	var mbq = memBody.getWorldTransform().getRotation();
+        quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
 
-	    var mesh = create_actuator(d,pos,quat,b_a,b_z);
-	    var new_memBody = mesh["ammo_obj"];
-	    new_memBody.constraints = [];
+	var mesh = create_actuator(d,pos,quat,b_a,b_z);
+	var new_memBody = mesh["ammo_obj"];
+	new_memBody.constraints = [];
 
-	    if (b_a.name > b_z.name) {
-		var t = b_a;
-		b_a = b_z;
-		b_z = t;
+	if (b_a.name > b_z.name) {
+	    var t = b_a;
+	    b_a = b_z;
+	    b_z = t;
+	}
+	
+	// TODO: This is ugly.
+	var link = { a: b_a, b: b_z, body: new_memBody};	    	    
+	for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
+	    if (am.robot.robot_members[x].body.name == memBody.name) {
+		am.robot.robot_members[x].memBody
+		am.robot.robot_members[x] = link;
 	    }
-	    
-	    // TODO: This is ugly.
-	    var link = { a: b_a, b: b_z, body: new_memBody};	    	    
-	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
-	     	if (am.robot.robot_members[x].body.name == memBody.name) {
-		    am.robot.robot_members[x].memBody
-		    am.robot.robot_members[x] = link;
-	     	}
-	    }
+	}
 
-	    var s = d/2;
-	    {
-		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( s, 0, 0 );;
-		var con = new Ammo.btPoint2PointConstraint(b_a,
-							   new_memBody,
-							   pivotInA,
-							   pivotInB);
-		am.am_physicsWorld.addConstraint(con, true);
-		new_memBody.constraints[0] = con;
-	    }
-	    {
-		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
-		var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
-		var con = new Ammo.btPoint2PointConstraint(b_z,
-							   new_memBody,
-							   pivotInA,
-							   pivotInB);
-		am.am_physicsWorld.addConstraint(con, true);
-		new_memBody.constraints[1] = con;		
-	    }
+	var s = d/2;
+	{
+	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
+	    var con = new Ammo.btPoint2PointConstraint(b_a,
+						       new_memBody,
+						       pivotInA,
+						       pivotInB);
+	    am.am_physicsWorld.addConstraint(con, true);
+	    new_memBody.constraints[0] = con;
+	}
+	{
+	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+	    var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
+	    var con = new Ammo.btPoint2PointConstraint(b_z,
+						       new_memBody,
+						       pivotInA,
+						       pivotInB);
+	    am.am_physicsWorld.addConstraint(con, true);
+	    new_memBody.constraints[1] = con;		
+	}
     }
 }
 
@@ -1351,11 +1363,11 @@ function assume_pose(pose) {
 	return d;
     });
     am.most_recent_constraints = pose;
-/*    var STEPS_TO_TAKE = 30;
-    for(var j = 0; j < STEPS_TO_TAKE; j++) {
-	updatePhysics(mw);
-    }
-*/
+    /*    var STEPS_TO_TAKE = 30;
+	  for(var j = 0; j < STEPS_TO_TAKE; j++) {
+	  updatePhysics(mw);
+	  }
+    */
 }
 
 
@@ -1407,8 +1419,8 @@ function find_bodies_from_actuator(name) {
     } else {
 	var hi = Math.floor((n - 6) / 3)+4;
 	var lo = hi - (3 -  (n % 3));
-    return [alphabetic_name(lo),alphabetic_name(hi)];
-}
+	return [alphabetic_name(lo),alphabetic_name(hi)];
+    }
 
 }
 function test_find_bodies_from_actuator() {
@@ -1553,7 +1565,7 @@ var AM = function() {
     this.TIME_BETWEEN_POSES_MS = 3000;
     this.GAIT_SUBDIVISIONS = 30;
     this.GAIT_SUBDIVISIONS = 30;    
-//    this.GAIT_SUBDIVISIONS = 3;    
+    //    this.GAIT_SUBDIVISIONS = 3;    
     
     // Physics variables
     this.am_gravityConstant = -9.8;
@@ -1594,10 +1606,11 @@ var AM = function() {
 
 
     this.NUMBER_OF_TETRAHEDRA = 5;
-//    this.NUMBER_OF_TETRAHEDRA = 1;
+    //    this.NUMBER_OF_TETRAHEDRA = 1;
 
 
-    this.MARKER_MASS = 40;
+    // I don't understand this...need to fully understand.
+    this.MARKER_MASS = 0;
     this.Y_GRAVITY_FORCE = -9.8;
     this.MARKER_RADIUS = 0.009;
     
@@ -1612,7 +1625,6 @@ var AM = function() {
     this.MEDIAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.0508 / 2; // This is the 2" ball.
 
-//    this.JOINT_RADIUS = 3 * this.JOINT_RADIUS;
     this.JOINT_MASS = 1;
 
     this.robot = {
@@ -1626,8 +1638,8 @@ var AM = function() {
     this.standard_objs;
     this.standard_ctx;
 
-// This is sometimes useful for debugging.    
-//    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
+    // This is sometimes useful for debugging.    
+    //    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
     this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
     this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
     
@@ -1639,12 +1651,12 @@ var AM = function() {
 
     this.url_for_robot = "http://127.0.0.1:9000";
 
-        this.obstacles = [];
+    this.obstacles = [];
     this.obstacleSize = this.MEDIAN_EDGE_LENGTH*5;
     this.OBSTACLE_FRACTION = 40;
-//    this.OBSTACLE_FRACTION = 3;
+    //    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 300;
-//    this.CONSTRAINT_FORCE_SMALL = 1;
+    //    this.CONSTRAINT_FORCE_SMALL = 1;
 
     this.FORCE_REGIME = "DISABLE";    
 
@@ -1731,7 +1743,7 @@ function initiation_stuff() {
 
     $('.panel-heading span.clickable').click();
 
-//    build_world(gui,mw);
+    //    build_world(gui,mw);
 
     // Initialize Three.js
     if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -1755,8 +1767,6 @@ function am_init() {
 
     am_add_robot(am);
 
-    am_initInput();
-
     am.most_recent_constraints = RELAXED_POSE;
 }
 
@@ -1764,8 +1774,8 @@ function am_add_robot(am) {
     var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
     
     load_NTetGlussBot_Ammo(am,
-		      am.NUMBER_OF_TETRAHEDRA,
-		      pvec);
+			   am.NUMBER_OF_TETRAHEDRA,
+			   pvec);
     
 }
 
@@ -1784,7 +1794,7 @@ function am_onMouseMove(e){
 	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
 					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 					 0.5 );                                            //z
-		mouse3D.unproject( am.camera );
+	mouse3D.unproject( am.camera );
 
         var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
 	
@@ -1812,12 +1822,12 @@ function am_onMouseDown(e){
     
     if (pos &&
 	(
-		(entity.object.structureKind == "obstacle")
+	    (entity.object.structureKind == "obstacle")
 		|| 
 		(entity.object.structureKind == "joint")
 		|| 
 		(entity.object.structureKind == "member")
-		)
+	)
        ){
         var idx = am.meshes.indexOf(entity.object);
 
@@ -1840,9 +1850,9 @@ function am_onMouseDown(e){
 		b.mass = mw.BASIC_BODY_MASS;
 		entity.object.material.color.setHex( 0x0000ff );				
 	    }
-		b.updateMassProperties();	    
+	    b.updateMassProperties();	    
 	} else {
-//            constraintDown = true;
+	    //            constraintDown = true;
             // Set marker on contact point
             setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
 
@@ -1850,14 +1860,10 @@ function am_onMouseDown(e){
             setScreenPerpCenter(pos,am);
 
             if(idx !== -1){
-		    if (am.PHYSICS_ENGINE == "CANNON") {
-			console.log(" Internal error");
-		    } else if (am.PHYSICS_ENGINE == "AMMO") {
-			var obj = am.meshes[idx].ammo_obj;
-			am.manipulatedObject = obj;
-			obj.setGravity(am.NO_GRAVITY);			
-			addMouseConstraint(am,pos.x,pos.y,pos.z,obj);		    }
-            }
+		var obj = am.meshes[idx].ammo_obj;
+		am.manipulatedObject = obj;
+		obj.setGravity(am.NO_GRAVITY);			
+		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);		            }
 	}
     }
 }
@@ -1865,17 +1871,17 @@ function am_onMouseDown(e){
 function am_onMouseUp(e) {
     // DEBUG Hack
 
-	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
-					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
-					 0.5 );                                            //z
-	
-	mouse3D.unproject( am.camera );
+    var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+				     -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
+				     0.5 );                                            //z
+    
+    mouse3D.unproject( am.camera );
 
-       var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
-        if(pos){
-            setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
-            moveJointToPoint(am,pos.x,pos.y,pos.z);
-        }
+    var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+    if(pos){
+        setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
+        moveJointToPoint(am,pos.x,pos.y,pos.z);
+    }
     // remove the marker
     removeClickMarker(am);
 
@@ -1935,7 +1941,6 @@ function am_initGraphics() {
 
     am.controls = new THREE.OrbitControls( am.camera, am.am_container );
     am.controls.target.set(0,0,0);
-//    am.controls.target.y = 2;
 
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
     am.renderer.setClearColor( am.scene.fog.color );
@@ -1995,7 +2000,7 @@ function am_initGraphics() {
     
     am.am_grid_scene.add(light);
     am.scene.add(light);    
-//    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+    //    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
     am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
 
     addShadowedLight(am.am_grid_scene, 1, 1, 1, 0xffffff, 1.35 );
@@ -2008,10 +2013,10 @@ function am_initGraphics() {
 
     am.am_container.appendChild( am.renderer.domElement );
 
-//    am_stats = new Stats();
-//    am_stats.domElement.style.position = 'absolute';
-//    am_stats.domElement.style.top = '0px';
-//    am_container.appendChild( am_stats.domElement );
+    //    am_stats = new Stats();
+    //    am_stats.domElement.style.position = 'absolute';
+    //    am_stats.domElement.style.top = '0px';
+    //    am_container.appendChild( am_stats.domElement );
 
     am.sceneOrtho = new THREE.Scene();
 
@@ -2063,9 +2068,9 @@ function am_createObstacles() {
 
 
     var positions = [{x:0,y:am.INITIAL_HEIGHT,z:1},
-			  {x:1,y:am.INITIAL_HEIGHT,z:0},
-			  {x:0,y:am.INITIAL_HEIGHT,z:-1},
-			  {x:-1,y:am.INITIAL_HEIGHT,z:0}];
+		     {x:1,y:am.INITIAL_HEIGHT,z:0},
+		     {x:0,y:am.INITIAL_HEIGHT,z:-1},
+		     {x:-1,y:am.INITIAL_HEIGHT,z:0}];
     for(var i = 0; i < num; i++) {
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
@@ -2208,7 +2213,7 @@ function am_mapIndices( bufGeometry, indexedBufferGeom ) {
 
 	    var j3 = j * 3;
 	    if ( am_isEqual( idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
-			  vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ] ) ) {
+			     vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ] ) ) {
 		association.push( j3 );
 	    }
 
@@ -2217,61 +2222,6 @@ function am_mapIndices( bufGeometry, indexedBufferGeom ) {
     }
 
 }
-
-/*
-function am_createSoftVolume( bufferGeom, mass, pressure ) {
-
-    am_processGeometry( bufferGeom );
-
-    var volume = new THREE.Mesh( bufferGeom, new THREE.MeshPhongMaterial( { color: 0xFFFFFF } ) );
-    volume.castShadow = true;
-    volume.receiveShadow = true;
-    volume.frustumCulled = false;
-    am.scene.add( volume );
-    am.meshes.push( volume );
-
-    am.am_textureLoader.load( "textures/colors.png", function( texture ) {
-	volume.material.map = texture;
-	volume.material.needsUpdate = true;
-    } );
-
-    // Volume physic object
-
-    var volumeSoftBody = am.am_softBodyHelpers.CreateFromTriMesh(
-	am.am_physicsWorld.getWorldInfo(),
-	bufferGeom.ammoVertices,
-	bufferGeom.ammoIndices,
-	bufferGeom.ammoIndices.length / 3,
-	true );
-
-    var sbConfig = volumeSoftBody.get_m_cfg();
-    sbConfig.set_viterations( 40 );
-    sbConfig.set_piterations( 40 );
-
-    // Soft-soft and soft-rigid collisions
-    sbConfig.set_collisions( 0x11 );
-
-    // Friction
-    sbConfig.set_kDF( 0.1 );
-    // Damping
-    sbConfig.set_kDP( 0.01 );
-    // Pressure
-    sbConfig.set_kPR( pressure );
-    // Stiffness
-    volumeSoftBody.get_m_materials().at( 0 ).set_m_kLST( 0.9 );
-    volumeSoftBody.get_m_materials().at( 0 ).set_m_kAST( 0.9 );
-
-    volumeSoftBody.setTotalMass( mass, false )
-    Ammo.castObject( volumeSoftBody, Ammo.btCollisionObject ).getCollisionShape().setMargin( am.am_margin );
-    am_physicsWorld.addSoftBody( volumeSoftBody, 1, -1 );
-    volume.userData.physicsBody = volumeSoftBody;
-    // Disable deactivation
-    volumeSoftBody.setActivationState( 4 );
-
-    am_softBodies.push( volume );
-
-}
-*/
 
 function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 
@@ -2304,10 +2254,10 @@ function am_createSphere(m,r,pos,quat,material) {
         localInertia  = new Ammo.btVector3(0, 0, 0);
     
     if (isDynamic)
-      colShape.calculateLocalInertia(mass,localInertia);
+	colShape.calculateLocalInertia(mass,localInertia);
 
     startTransform.setOrigin(pos);
-  
+    
     var myMotionState = new Ammo.btDefaultMotionState(startTransform),
         rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia);
 
@@ -2354,7 +2304,7 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     threeObject.userData.physicsBody = body;
 
     am.scene.add( threeObject );
-//    am.meshes.push( threeObject );
+    //    am.meshes.push( threeObject );
 
     if ( mass > 0 ) {
 
@@ -2372,26 +2322,6 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     return body;
 }
 
-function am_initInput() {
-/*
-    window.addEventListener( 'mousedown', function( event ) {
-
-    	if ( ! am.am_clickRequest ) {
-
-    	    am.am_mouseCoords.set(
-    		( event.clientX / window.innerWidth ) * 2 - 1,
-    		    - ( event.clientY / (window.innerHeight*am.am_window_height_factor) ) * 2 + 1
-    	    );
-
-    	    am.am_clickRequest = true;
-
-    	}
-    }, false );
-*/
-    
-//    establish_controls(am);
-    
-}
 
 function am_processClick() {
     if (!am.MOUSE_FIRES)
@@ -2566,7 +2496,6 @@ function create_actuator(d,pos,quat,b_a,b_z) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     am.scene.add(mesh);
-//    am.meshes.push(mesh);
     var memBody = mesh["ammo_obj"];
     memBody.setDamping(0.9,0.9);
     memBody.setFriction( 0.99 );
@@ -2620,7 +2549,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	am.scene.add(mesh);
-//	am.meshes.push(mesh);
+
 	var body = mesh["ammo_obj"];
 	body.setDamping(0.9,0.9);
 	// NOTE: Possibly friction must be set before adding to world?
@@ -2662,8 +2591,6 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		b_a = b_z;
 		b_z = t;
 	    }
-//	    memBody.name = b_a.name + " " + b_z.name;
-//	    mesh.name = memBody.name;
 	    
 	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
 		if (am.robot.robot_members[x].body.name == memBody) {
@@ -2713,13 +2640,13 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		quat.set( 0, 0, 0, 1 );
 		
 		var mesh =  am_createParalellepiped(
-		s,
-		s,
-		s,
-		1.0,
-		pos,
-		quat,
-		this.jointMaterial );
+		    s,
+		    s,
+		    s,
+		    1.0,
+		    pos,
+		    quat,
+		    this.jointMaterial );
 
 		var bump = mesh["ammo_obj"];
 		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
