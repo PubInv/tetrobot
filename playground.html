@@ -227,9 +227,7 @@ function convert_to_number(obj) {
 // into a class.
 
 
-var latestLookAtX = 0;
-var latestLookAtY = 0;
-var latestLookAtZ = 0;
+
 
 function establish_controls(gui) {
     gui.controls = new THREE.OrbitControls( gui.camera, gui.container );
@@ -240,10 +238,7 @@ function establish_controls(gui) {
 
     // We may be able to make this the last object clicked to change the controls.
     gui.controls.target.set(0,0,0);
-    gui.controls.target.set(latestLookAtX,latestLookAtY,latestLookAtZ);
-
-//    var origin = new THREE.Vector3(0,0,0);
-//    gui.camera.lookAt(origin);
+    gui.controls.target.set(gui.latestLookAt.x,gui.latestLookAt.y,gui.latestLookAt.z);
 }
 
 function addShadowedLight(scene, x, y, z, color, intensity ) {
@@ -462,18 +457,8 @@ function ccw_tetrahelix_vertex(n,edge_length) {
     var theta = Math.acos(-2/3);
     // I want to make sure "B and C" land on the ground first!    
     var twist = 45*(Math.PI / 180.0);
-    return new CANNON.Vec3( r * Math.cos(n*theta+twist),  r * Math.sin(n*theta+twist), n*h );
+    return new THREE.Vector3( r * Math.cos(n*theta+twist),  r * Math.sin(n*theta+twist), n*h );
 }
-
-// function add_member_spring(a,b,world) {
-//     var stiffness = 10;
-//     var damping = 0.3;
-//     restlength = a.position.distanceTo(b.position);
-    
-//     var c = new CANNON.DistanceConstraint(a,b,restlength,am.CONSTRAINT_FORCE_SMALL);
-//     world.addConstraint(c);
-    
-// }
 
 
 // To do a great job with this, we really need to know the
@@ -610,54 +595,23 @@ function testApplyBulletTransformInverse() {
 // There is a real problem here that body is either an Ammo body or a Cannon body!
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
+    var constrainedBody = body;
     
-    
-    if (gui.PHYSICS_ENGINE == "CANNON") {
-	// var constrainedBody = body;
+    gui.am_physicsWorld.removeRigidBody(gui.jointBody);
 
-	// // Vector to the clicked point, relative to the body
-	// var v1 = new CANNON.Vec3(x,y,z).vsub(constrainedBody.position);
-
-	// // Apply anti-quaternion to vector to tranform it into the local body coordinate system
-	// var antiRot = constrainedBody.quaternion.inverse();
-	// var pivot = antiRot.vmult(v1); // pivot is not in local body coordinates
-
-	// // Move the cannon click marker particle to the click position
-	// // TODO: This set does NOT work in the AMMO world!  Must do something more complicated.
-
-	// gui.jointBody.position.set(x,y,z);
-    } else if (gui.PHYSICS_ENGINE == "AMMO") {
-	var constrainedBody = body;
-	
-	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
-
-	var startTransform = new Ammo.btTransform();
-	startTransform.setIdentity();
-	startTransform.setOrigin(new Ammo.btVector3(x, y, z));
-	gui.jointBody.setCenterOfMassTransform(startTransform);
-	//	gui.jointBody.clearForces();
-	gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
-	gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
-	gui.am_physicsWorld.addRigidBody(gui.jointBody);
-    }
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+    startTransform.setOrigin(new Ammo.btVector3(x, y, z));
+    gui.jointBody.setCenterOfMassTransform(startTransform);
+    //	gui.jointBody.clearForces();
+    gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+    gui.am_physicsWorld.addRigidBody(gui.jointBody);
 
     updateMouseConstraints(gui,body);
 
-    // Create a new constraint
-    // The pivot for the gui.jointBody is zero
-    if (gui.PHYSICS_ENGINE == "CANNON") {
-	// gui.mouseConstraint = new CANNON.PointToPointConstraint(constrainedBody, pivot, gui.jointBody, new CANNON.Vec3(0,0,0));
-	// gui.mouseConstraint.name = "mouseConstraint";
-	// gui.mouseConstraint.attachedBody = body;
-
-
-	// // Add the constriant to world
-	// mw.cworld.addConstraint(gui.mouseConstraint);
-	// // We want to turn gravity offf while we are editing....
-	// mw.cworld.gravity.set(0,0,0);
-    } else if (gui.PHYSICS_ENGINE == "AMMO") {
-	gui.selectedBody = body;	
-	if (gui.FORCE_REGIME == "NONE") {
+    gui.selectedBody = body;	
+    if (gui.FORCE_REGIME == "NONE") {
 	var markerBody = gui.jointBody;
 	var constrainedBody = body;
 	var startTransform = constrainedBody.getWorldTransform();
@@ -677,14 +631,13 @@ function addMouseConstraint(gui,x,y,z,body) {
 						   constrainedBody,
 						   pivotInA,
 						   pivotInB);
-	    gui.mouseConstraint = con;
-	    gui.selectedBody = body;
+	gui.mouseConstraint = con;
+	gui.selectedBody = body;
 
-	    gui.am_physicsWorld.addConstraint(con, true);
-	} else if (gui.FORCE_REGIME == "DISABLE") {
-	}
-
+	gui.am_physicsWorld.addConstraint(con, true);
+    } else if (gui.FORCE_REGIME == "DISABLE") {
     }
+
 }
 
 
@@ -693,60 +646,6 @@ function addMouseConstraint(gui,x,y,z,body) {
 // This functions moves the transparent joint body to a new postion in space
 
 function moveJointToPoint(gui,x,y,z) {
-    if (gui.PHYSICS_ENGINE == "CANNON") {
-
-	// Move the joint body to a new position
-	gui.jointBody.position.set(x,y,z);
-
-	var body = gui.selectedBody;
-	
-	var w = mw.MEDIAN_EDGE_LENGTH / mw.MEMBER_FRACTION;
-
-	mw.bodies.forEach(function (bx,i) {
-	    var bx = mw.bodies[i];
-	    if (bx.structureKind == "member") {
-		var a = bx.link_a;
-		var b = bx.link_z;
-
-		if ((a == body) || ( b == body)) {
-		    // HERE is where we must deal with the mesh changing sizes, not in physics.
-		    var ap = a.position;
-		    var bp = b.position;
-		    var len = ap.distanceTo(bp);
-		    
-		    var cd3 = d3.rgb(gui.color_scale(len));
-		    
-		    var d = len;
-		    
-		    var h = a.position.distanceTo(b.position);
-		    var cubeGeo = new THREE.BoxGeometry( w,h,w );
-
-		    var mesh = new THREE.Mesh(cubeGeo, mw.cubeMaterial);
-
-		    gui.scene.remove(mw.meshes[i]);
-		    gui.scene.add(mesh);
-		    mw.meshes[i] = mesh;
-		    for(var j = 0; j < mesh.geometry.faces.length; j++) {
-    			mesh.geometry.faces[j].color.setStyle( gui.color_scale(d) );
-		    }
-		    
-		    mesh.position.set(a.position.x,a.position.y,a.position.z);
-		    mesh.castShadow = true;
-		    mesh.receiveShadow = true;
-		    
-		    mesh.geometry.verticesNeedUpdate = true;
-		    mesh.geometry.elementsNeedUpdate = true;        
-		    mesh.geometry.colorsNeedUpdate = true;
-
-		}
-	    }
-	});
-
-
-	updateMouseConstraints(gui,null);
-	gui.mouseConstraint.update();
-
-    } else if (gui.PHYSICS_ENGINE == "AMMO") {
 	if (gui.FORCE_REGIME == "NONE") {
 	    
 	} else if (gui.FORCE_REGIME == "DISABLE") {
@@ -794,7 +693,6 @@ function moveJointToPoint(gui,x,y,z) {
 	// now move to the new pose.
 	set_interp_constraints(act_settings,act_settings,1.0);
 	console.log(am.most_recent_constraints);
-    }
     
 }
 
@@ -810,41 +708,9 @@ function removeJointConstraint(gui) {
     if (!gui.selectedBody) {
 	return;
     }
-    if (gui.PHYSICS_ENGINE == "CANNON") {
-	// mw.cworld.removeConstraint(gui.mouseConstraint);
-	// // Now we want to disable all attached length constraints (and actually add others)
-
-	// var body = gui.mouseConstraint.attachedBody;
-	// if (body) {
-	//     mw.cworld.constraints.forEach(function (c) {
-	// 	var newrestlength = c.bodyA.position.distanceTo(c.bodyB.position);
-	// 	// HACK: This is an experiment...
-	// 	if (gui.auto_rectify_on) {
-	// 	    newrestlength = Math.max(Math.min(newrestlength,mw.MAX_EDGE_LENGTH),mw.MIN_EDGE_LENGTH);
-	// 	}
-	// 	c.distance = newrestlength;
-	// 	c.update();
-	// 	c.enable();
-	//     });
-	// }
-	// gui.mouseConstraint = false;
-
-	// // Turn gravity back on...
-	// // We want to turn gravity offf while we are editing....
-	// if (gui.gravity_on) {
-	//     mw.cworld.gravity.set(0,mw.Y_GRAVITY_FORCE,0);
-	// }
-	// update_constraints(mw.robot.robot_members,link => {
-	//     var a = link.a;
-	//     var b = link.b;
-	//     var d = a.position.distanceTo(b.position);
-	//     return d;
-	// });
-    } else if (gui.PHYSICS_ENGINE == "AMMO") {
 	gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
 	gui.mouseConstraint = false;
 	gui.selectedBody = null;
-    }
 
 }
 
@@ -1377,33 +1243,6 @@ function update_constraints(links,f) {
 	}
 	var d = f(link);
 
-	if (am.PHYSICS_ENGINE == "CANNON") {
-	    // var c = new CANNON.DistanceConstraint(a,b,d,mw.CONSTRAINT_FORCE_LARGE);
-	    // mw.cworld.addConstraint(c);
-	    // // now we want to find the Cannon Object associated with these links,
-	    // // and put a distance constraint between the member object and the two
-	    // // joint objects.
-	    // var mem = joints_to_link_map[a.name][b.name]
-	    // if (!mem) {
-	    // 	console.log("Can't find a.name, b.name "+a.name + b.name);
-	    // }
-	    // var s = (d/2);
-	    // var memShape = mem.shapes[0];
-	    // memShape.halfExtents.set(s,
-	    // 			     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION),
-	    // 			     mw.MEDIAN_EDGE_LENGTH/(2*mw.MEMBER_FRACTION));
-	    // memShape.updateConvexPolyhedronRepresentation();
-	    // mem.computeAABB();
-	    // var pivotA = new CANNON.Vec3(0,0,0);
-
-	    // function add_p2p_constraint(a,mem) {
-	    // 	var ca = new CANNON.PointToPointConstraint(a,pivotA,mem,0,mw.CONSTRAINT_FORCE_LARGE);
-	    // 	mw.cworld.addConstraint(ca);
-	    // }
-
-	    // add_p2p_constraint(a,mem.endpoints[0]);
-	    // add_p2p_constraint(b,mem.endpoints[1]);
-	} else if (am.PHYSICS_ENGINE == "AMMO") {
 	    var memBody = link.body;
 	    var b_a = memBody.endpoints[0];
 	    var b_z = memBody.endpoints[1];
@@ -1484,7 +1323,6 @@ function update_constraints(links,f) {
 		am.am_physicsWorld.addConstraint(con, true);
 		new_memBody.constraints[1] = con;		
 	    }
-	}
     }
 }
 
@@ -1814,6 +1652,8 @@ var AM = function() {
     this.GROUND_BODY;
     // This is whatever body we are operating on with the locator.
     this.selectedBody;
+
+    this.latestLookAt = new THREE.Vector3(0,0,0);    
 }
 AM.prototype.push_body_mesh_pair = function(body,mesh) {
     this.meshes.push(mesh);
@@ -1921,7 +1761,7 @@ function am_init() {
 }
 
 function am_add_robot(am) {
-    var pvec = new CANNON.Vec3(0,am.INITIAL_HEIGHT,0);
+    var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
     
     load_NTetGlussBot_Ammo(am,
 		      am.NUMBER_OF_TETRAHEDRA,
@@ -1982,9 +1822,9 @@ function am_onMouseDown(e){
         var idx = am.meshes.indexOf(entity.object);
 
 	if (e.ctrlKey) {
-	    latestLookAtX = pos.x;
-	    latestLookAtY = pos.y;
-	    latestLookAtZ = pos.z;
+	    am.latestLookAt.x = pos.x;
+	    am.latestLookAt.y = pos.y;
+	    am.latestLookAt.z = pos.z;
 	}
 	
 	if (e.shiftKey) {
@@ -2766,7 +2606,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,am.MEDIAN_EDGE_LENGTH);
-	v = v.vadd(pvec);
+	v = v.add(pvec);
 
 	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );
 
