@@ -1808,11 +1808,15 @@ function onMouseDown(e){
 		var zero = new Ammo.btVector3(0, 0, 0 );
 		am.manipulatedObject.setMassProps(0.0,zero);
 		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		// Now we want to change color to show locked...
+		// TODO: This is a global...
+		am.meshes[idx].material.color.setHex( 0xFF0000 );
 	    }
 	} else {
 	    //            constraintDown = true;
             // Set marker on contact point
             setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
+	    am.meshes[idx].material.color.setHex( 0xFF00FF );	    
 
             // Set the movement plane
             setScreenPerpCenter(pos,am);
@@ -2487,11 +2491,13 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     var n = tets+3;    
     var mass = am.BASIC_BODY_MASS;
 
+
+
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
 	v = v.add(pvec);
 
-	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );
+	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );    
 
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
