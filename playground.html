@@ -665,11 +665,9 @@ function moveJointToPoint(gui,x,y,z) {
     var cbody = gui.selectedBody;
     cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
     cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
-//    if (act_natrual || is_obstacle) {
+
     gui.jointBody.setGravity(am.NO_GRAVITY);
     gui.selectedBody.setGravity(am.NO_GRAVITY);
-//    } else {
-//    }
     
     if (act_natural) {
 	
@@ -717,9 +715,6 @@ function render_physical_model(id) {
     var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
 }
 
-function send_pose_to_robot() {
-    alert("Yes, I will send!");
-}
 
 // This is now rendering in an "emacs-ready" way --- that needs to be
 // made clear.
@@ -2036,9 +2031,10 @@ function createObstacles() {
 
 
     var positions = [{x:0,y:am.INITIAL_HEIGHT,z:1},
-		     {x:1,y:am.INITIAL_HEIGHT,z:0},
-		     {x:0,y:am.INITIAL_HEIGHT,z:-1},
-		     {x:-1,y:am.INITIAL_HEIGHT,z:0}];
+    		     {x:1,y:am.INITIAL_HEIGHT,z:0},
+    		     {x:0,y:am.INITIAL_HEIGHT,z:-1},
+    		     {x:-1,y:am.INITIAL_HEIGHT,z:0}];
+
     for(var i = 0; i < num; i++) {
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
