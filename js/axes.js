@@ -29,19 +29,6 @@ function createAGrid(opts) {
     stepw = 2 * config.width / config.linesWidth,
     steph = 2 * config.height / config.linesHeight;
 
-    // This code creates a grid, but not centered on zero....
-  // //width
-  // for (var i = -config.width; i <= config.width; i += stepw) {
-  //   gridGeo.vertices.push(new THREE.Vector3(-config.height, i, 0));
-  //   gridGeo.vertices.push(new THREE.Vector3(config.height, i, 0));
-
-  // }
-  // //height
-  // for (var i = -config.height; i <= config.height; i += steph) {
-  //   gridGeo.vertices.push(new THREE.Vector3(i, -config.width, 0));
-  //   gridGeo.vertices.push(new THREE.Vector3(i, config.width, 0));
-  // }
-
     //width
     for (var i = -config.width; i <= config.width; i += stepw) {
       gridGeo.vertices.push(new THREE.Vector3(-config.height, i, 0));
