@@ -267,7 +267,8 @@ function setClickMarker(gui,x,y,z) {
     gui.clickMarker.position.set(x,y,z);
     gui.movedButNotSent = true;
 }
-// TODO: This is not Ammo compatible!
+
+
 function removeClickMarker(gui){
     gui.clickMarker.visible = false;
 }
@@ -428,8 +429,8 @@ function render(gui) {
 function remove_non_eternal_constraints() {
     am.robot.robot_members.forEach(function (c) {
 	var cs = c.body.constraints;
-	am.am_physicsWorld.removeConstraint(cs[0]);
-	am.am_physicsWorld.removeConstraint(cs[1]);
+	am.physicsWorld.removeConstraint(cs[0]);
+	am.physicsWorld.removeConstraint(cs[1]);
     });
 
 }
@@ -587,7 +588,7 @@ function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
     var constrainedBody = body;
     
-    gui.am_physicsWorld.removeRigidBody(gui.jointBody);
+    gui.physicsWorld.removeRigidBody(gui.jointBody);
 
     var startTransform = new Ammo.btTransform();
     startTransform.setIdentity();
@@ -596,7 +597,7 @@ function addMouseConstraint(gui,x,y,z,body) {
     //	gui.jointBody.clearForces();
     gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
     gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
-    gui.am_physicsWorld.addRigidBody(gui.jointBody);
+    gui.physicsWorld.addRigidBody(gui.jointBody);
 
     updateMouseConstraints(gui,body);
 
@@ -627,7 +628,7 @@ function addMouseConstraint(gui,x,y,z,body) {
     gui.mouseConstraint = con;
     gui.selectedBody = body;
     
-    gui.am_physicsWorld.addConstraint(con, true);
+    gui.physicsWorld.addConstraint(con, true);
     //    } else if (gui.FORCE_REGIME == "DISABLE") {
     //    }
 
@@ -646,7 +647,7 @@ function moveJointToPoint(gui,x,y,z) {
     if (act_natural) {
 	
     } else {
-	gui.am_physicsWorld.removeRigidBody(gui.jointBody);
+	gui.physicsWorld.removeRigidBody(gui.jointBody);
     }
     var startTransform = new Ammo.btTransform();
     startTransform.setIdentity();
@@ -673,7 +674,7 @@ function moveJointToPoint(gui,x,y,z) {
     if (act_natural) {
 	
     } else  {
-	gui.am_physicsWorld.addRigidBody(gui.jointBody);
+	gui.physicsWorld.addRigidBody(gui.jointBody);
 
 
 	// Now we want to tell the robot to assume (instantly)?
@@ -706,7 +707,7 @@ function removeJointConstraint(gui) {
     if (!gui.selectedBody) {
 	return;
     }
-    gui.am_physicsWorld.removeConstraint(gui.mouseConstraint);
+    gui.physicsWorld.removeConstraint(gui.mouseConstraint);
     gui.mouseConstraint = false;
     gui.selectedBody = null;
 }
@@ -1196,14 +1197,14 @@ function small_size() {
 function toggle_gravity() {
     if (am.gravity_on) {
 	am.gravity_on = false;
-	if (am.am_physicsWorld) {
-	    am.am_physicsWorld.setGravity( am.NO_GRAVITY );
+	if (am.physicsWorld) {
+	    am.physicsWorld.setGravity( am.NO_GRAVITY );
 	}
 	$("#gravity_ctl").html("Turn Gravity On");
     } else {
 	am.gravity_on = true;
-	if (am.am_physicsWorld) {
-	    am.am_physicsWorld.setGravity( am.FULL_GRAVITY );
+	if (am.physicsWorld) {
+	    am.physicsWorld.setGravity( am.FULL_GRAVITY );
 	}
 	$("#gravity_ctl").html("Turn Gravity Off");
     }
@@ -1248,9 +1249,9 @@ function update_constraints(links,f) {
 	}
 	var n = get_number(memBody);
 	// Possibly removing the body removes the constraints, unclear...
-	am.am_physicsWorld.removeConstraint(memBody.constraints[0]);
-	am.am_physicsWorld.removeConstraint(memBody.constraints[1]);
-	am.am_physicsWorld.removeRigidBody(memBody);
+	am.physicsWorld.removeConstraint(memBody.constraints[0]);
+	am.physicsWorld.removeConstraint(memBody.constraints[1]);
+	am.physicsWorld.removeRigidBody(memBody);
 	
 
 	am.scene.remove(am.meshes[n]);
@@ -1303,7 +1304,7 @@ function update_constraints(links,f) {
 						       new_memBody,
 						       pivotInA,
 						       pivotInB);
-	    am.am_physicsWorld.addConstraint(con, true);
+	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[0] = con;
 	}
 	{
@@ -1313,7 +1314,7 @@ function update_constraints(links,f) {
 						       new_memBody,
 						       pivotInA,
 						       pivotInB);
-	    am.am_physicsWorld.addConstraint(con, true);
+	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[1] = con;		
 	}
     }
@@ -1335,7 +1336,6 @@ function fixed_size(s) {
     });
 }
 
-// TODO: This is not working
 function assume_pose(pose) {
     update_constraints(am.robot.robot_members,link => {
 	var act = find_actuator(link.a.name,link.b.name);
@@ -1355,9 +1355,6 @@ function assume_pose(pose) {
 // An alternative pattern would be to make the first tetradra irregular.
 // That is perhaps more sensible than what we have here.  Then each
 // additional controller can be added in a completely regular way.
-
-
-// These are now obsolete and must be removed!!
 
 var ACTUATORS_PER_CONTROLLER = 6;
 function actuator_name_from_number(n) {
@@ -1506,21 +1503,21 @@ if ( ! Detector.webgl ) {
 // This will have to be split later
 var AM = function() {
     this.PHYSICS_ENGINE = "AMMO";
-    this.am_container,
-    this.am_stats;
+    this.container,
+    this.stats;
     this.camera;
     this.controls;
     this.scene;
     this.sceneOrtho;
     this.renderer;
-    this.am_textureLoader;
-    this.am_clock = new THREE.Clock();
-    this.am_clickRequest = false;
-    this.am_mouseCoords = new THREE.Vector2();
-    this.am_raycaster = new THREE.Raycaster();
-    this.am_ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
-    this.am_pos = new THREE.Vector3();
-    this.am_quat = new THREE.Quaternion();
+    this.textureLoader;
+    this.clock = new THREE.Clock();
+    this.clickRequest = false;
+    this.mouseCoords = new THREE.Vector2();
+    this.raycaster = new THREE.Raycaster();
+    this.ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
+    this.pos = new THREE.Vector3();
+    this.quat = new THREE.Quaternion();
 
     this.jointBody = null;
 
@@ -1540,31 +1537,31 @@ var AM = function() {
     //    this.GAIT_SUBDIVISIONS = 3;    
     
     // Physics variables
-    this.am_gravityConstant = -9.8;
+    this.gravityConstant = -9.8;
 
     this.NO_GRAVITY = new Ammo.btVector3( 0, 0, 0 );
-    this.FULL_GRAVITY = new Ammo.btVector3( 0, this.am_gravityConstant, 0 )
+    this.FULL_GRAVITY = new Ammo.btVector3( 0, this.gravityConstant, 0 )
     
-    this.am_collisionConfiguration;
-    this.am_dispatcher;
-    this.am_broadphase;
-    this.am_solver;
-    this.am_physicsWorld;
-    this.am_rigidBodies = [];
-    this.am_softBodies = [];
-    this.am_margin = 0.05;
-    this.am_hinge;
-    this.am_transformAux1 = new Ammo.btTransform();
-    this.am_softBodyHelpers = new Ammo.btSoftBodyHelpers();
+    this.collisionConfiguration;
+    this.dispatcher;
+    this.broadphase;
+    this.solver;
+    this.physicsWorld;
+    this.rigidBodies = [];
+    this.softBodies = [];
+    this.margin = 0.05;
+    this.hinge;
+    this.transformAux1 = new Ammo.btTransform();
+    this.softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
-    this.am_armMovement = 0;
+    this.armMovement = 0;
 
-    //    this.am_window_height_factor = 1/4.0;
-    this.am_window_height_factor = 0.5;
+    //    this.window_height_factor = 1/4.0;
+    this.window_height_factor = 0.5;
     // Sadly, this seems to do nothing!
     this.CAMERA_RADIUS_FACTOR = 1;
 
-    this.am_grid_scene = null;
+    this.grid_scene = null;
     // Used in manipulation of objects
     this.gplane=false;
     this.clickMarker=false;
@@ -1651,9 +1648,9 @@ AM.prototype.remove_body_mesh_pair = function(body,mesh) {
 	}
     }
     delete mesh["ammo_obj"];
-    for(var i = this.am_rigidBodies.length - 1; i >= 0; i--) {
-	if(this.am_rigidBodies[i].name === body.name) {
-	    this.am_rigidBodies.splice(i, 1);
+    for(var i = this.rigidBodies.length - 1; i >= 0; i--) {
+	if(this.rigidBodies[i].name === body.name) {
+	    this.rigidBodies.splice(i, 1);
 	}
     }
 }
@@ -1723,24 +1720,24 @@ function initiation_stuff() {
 
 // - Functions -
 
-function am_init() {
+function init() {
 
-    am_initGraphics();
+    initGraphics();
 
-    am_initHandlers();
+    initHandlers();
 
-    am_initPhysics();
+    initPhysics();
 
-    am_createGround(am);
+    createGround(am);
     
-    am_createObstacles();
+    createObstacles();
 
-    am_add_robot(am);
+    add_robot(am);
 
     am.most_recent_constraints = RELAXED_POSE;
 }
 
-function am_add_robot(am) {
+function add_robot(am) {
     var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
     
     load_NTetGlussBot_Ammo(am,
@@ -1756,7 +1753,7 @@ function am_add_robot(am) {
 // disable the physics for the object until MouseUp.  I am not
 // sure how to do this in Bullet.
 
-function am_onMouseMove(e){
+function onMouseMove(e){
 
     // Move and project on the plane
     if (am.gplane && am.selectedBody) {
@@ -1776,7 +1773,7 @@ function am_onMouseMove(e){
 }
 // BUG: It is easy to get to constrainedBodies someone both constrained,
 // But that is not the intention of the interaction tool, and is very annoying.
-function am_onMouseDown(e){
+function onMouseDown(e){
     // Find mesh from a ray
     
     var mouse3D = new THREE.Vector3( ( e.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
@@ -1839,7 +1836,7 @@ function am_onMouseDown(e){
     }
 }
 
-function am_onMouseUp(e) {
+function onMouseUp(e) {
     // DEBUG Hack
 
     var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
@@ -1879,22 +1876,22 @@ function am_onMouseUp(e) {
 }
 
 
-function am_initHandlers() {
-    am.am_container = document.getElementById( 'container' );
-    am.am_container.addEventListener("mousemove", am_onMouseMove, true );
-    am.am_container.addEventListener("mousedown", am_onMouseDown, true );
-    am.am_container.addEventListener("mouseup", am_onMouseUp, true );
+function initHandlers() {
+    am.container = document.getElementById( 'container' );
+    am.container.addEventListener("mousemove", onMouseMove, true );
+    am.container.addEventListener("mousedown", onMouseDown, true );
+    am.container.addEventListener("mouseup", onMouseUp, true );
 }
 
 
-function am_initGraphics() {
+function initGraphics() {
 
-    am.am_container = document.getElementById( 'container' );
+    am.container = document.getElementById( 'container' );
 
     var PERSPECTIVE_NEAR = 0.1;
-    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / (window.innerHeight * am.am_window_height_factor), PERSPECTIVE_NEAR, 2000 );
+    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / (window.innerHeight * am.window_height_factor), PERSPECTIVE_NEAR, 2000 );
 
-    am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.window_height_factor);
 
     var origin = new THREE.Vector3(0,0,0);
     am.camera.lookAt(origin);
@@ -1910,14 +1907,14 @@ function am_initGraphics() {
     am.camera.position.y = 0.5;
     am.camera.position.z =  2;
 
-    am.controls = new THREE.OrbitControls( am.camera, am.am_container );
+    am.controls = new THREE.OrbitControls( am.camera, am.container );
     am.controls.target.set(0,0,0);
 
     am.renderer = new THREE.WebGLRenderer( { antialias: true } );
     am.renderer.setClearColor( am.scene.fog.color );
     
     am.renderer.setPixelRatio( window.devicePixelRatio );
-    am.renderer.setSize( window.innerWidth, window.innerHeight*am.am_window_height_factor );
+    am.renderer.setSize( window.innerWidth, window.innerHeight*am.window_height_factor );
     am.SCREEN_WIDTH = am.renderer.getSize().width;
     am.SCREEN_HEIGHT = am.renderer.getSize().height;
     am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
@@ -1930,7 +1927,7 @@ function am_initGraphics() {
     am.renderer.gammaInput = true;
     am.renderer.gammaOutput = true;
 
-    am.am_textureLoader = new THREE.TextureLoader();
+    am.textureLoader = new THREE.TextureLoader();
 
     var ambientLight = new THREE.AmbientLight( 0x404040 );
     am.scene.add( ambientLight );
@@ -1944,10 +1941,10 @@ function am_initGraphics() {
     addShadowedLight(am.scene, 0.5, 1, -1, 0xffaa00, 1 );
 
 
-    am.am_grid_scene = new THREE.Scene();
-    am.am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    am.grid_scene = new THREE.Scene();
+    am.grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
     
-    am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
     
     light = new THREE.DirectionalLight( 0xffffff, 1.75 );
     var d = 20;
@@ -1969,46 +1966,46 @@ function am_initGraphics() {
     light.shadow.CameraNear = d;
     light.shadow.Darkness = 0.5;
     
-    am.am_grid_scene.add(light);
+    am.grid_scene.add(light);
     am.scene.add(light);    
-    //    am_grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
-    am.am_grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
+    //    grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+    am.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
 
-    addShadowedLight(am.am_grid_scene, 1, 1, 1, 0xffffff, 1.35 );
-    addShadowedLight(am.am_grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    addShadowedLight(am.grid_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
     
     // HACK:  These diemensions are probably not right here!
-    gridInit(am.am_grid_scene,am.playgroundDimensions);
+    gridInit(am.grid_scene,am.playgroundDimensions);
     
-    am.am_container.innerHTML = "";
+    am.container.innerHTML = "";
 
-    am.am_container.appendChild( am.renderer.domElement );
+    am.container.appendChild( am.renderer.domElement );
 
-    //    am_stats = new Stats();
-    //    am_stats.domElement.style.position = 'absolute';
-    //    am_stats.domElement.style.top = '0px';
-    //    am_container.appendChild( am_stats.domElement );
+    //    stats = new Stats();
+    //    stats.domElement.style.position = 'absolute';
+    //    stats.domElement.style.top = '0px';
+    //    container.appendChild( stats.domElement );
 
     am.sceneOrtho = new THREE.Scene();
 
-    window.addEventListener( 'resize', am_onWindowResize, false );
+    window.addEventListener( 'resize', onWindowResize, false );
 
 }
 
-function am_initPhysics() {
+function initPhysics() {
 
     // Physics configuration
 
-    am.am_collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
-    am.am_dispatcher = new Ammo.btCollisionDispatcher( am.am_collisionConfiguration );
-    am.am_broadphase = new Ammo.btDbvtBroadphase();
-    am.am_solver = new Ammo.btSequentialImpulseConstraintSolver();
-    am.am_softBodySolver = new Ammo.btDefaultSoftBodySolver();
-    am.am_physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am.am_dispatcher, am.am_broadphase, am.am_solver, am.am_collisionConfiguration, am.am_softBodySolver);
-    am.am_physicsWorld.setGravity( new Ammo.btVector3( 0,
-						       am.gravity_on ? am.am_gravityConstant : 0,
+    am.collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    am.dispatcher = new Ammo.btCollisionDispatcher( am.collisionConfiguration );
+    am.broadphase = new Ammo.btDbvtBroadphase();
+    am.solver = new Ammo.btSequentialImpulseConstraintSolver();
+    am.softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    am.physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am.dispatcher, am.broadphase, am.solver, am.collisionConfiguration, am.softBodySolver);
+    am.physicsWorld.setGravity( new Ammo.btVector3( 0,
+						       am.gravity_on ? am.gravityConstant : 0,
 						       0 ) );
-    am.am_physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am.am_gravityConstant, 0 ) );
+    am.physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am.gravityConstant, 0 ) );
 
     var material = new THREE.MeshPhongMaterial( { color: 0xFF0000 } );
     
@@ -2016,7 +2013,7 @@ function am_initPhysics() {
     var quat = new Ammo.btQuaternion( 0, 0, 0, 1 );
 
     // So we jort of want the jointbody to be non-kinematic, if that works with constraints.
-    var mesh =  am_createParalellepiped( am.MARKER_RADIUS*2,
+    var mesh =  createParalellepiped( am.MARKER_RADIUS*2,
 					 am.MARKER_RADIUS*2,
 					 am.MARKER_RADIUS*2,
 					 am.MARKER_MASS,
@@ -2033,7 +2030,7 @@ function am_initPhysics() {
     //am.jointBody.forceActivationState(DISABLE_SIMULATION)
 }
 
-function am_createObstacles() {
+function createObstacles() {
 
     var num = 4;
 
@@ -2051,7 +2048,7 @@ function am_createObstacles() {
 	quat.setFromAxisAngle(new THREE.Vector3( 0, 1, 0 ), i * 90  * Math.PI / 180 )
 	var material = new THREE.MeshPhongMaterial( { color: 0x33AAFF } );
 	
-	var mesh =  am_createParalellepiped( am.obstacleSize,
+	var mesh =  createParalellepiped( am.obstacleSize,
 					     am.obstacleSize/am.OBSTACLE_FRACTION,
 					     am.obstacleSize/am.OBSTACLE_FRACTION,
 					     am.OBSTACLE_MASS,
@@ -2069,12 +2066,12 @@ function am_createObstacles() {
 
 }
 
-function am_createGround(am) {
+function createGround(am) {
     // Ground
     // TODO: make these local!
-    //    am.am_pos.set( 0, -GROUND_WIDTH/2, 0 );
-    am.am_pos.set( 0, -am.GROUND_WIDTH/2, 0 );
-    am.am_quat.set( 0, 0, 0, 1 );
+    //    am.pos.set( 0, -GROUND_WIDTH/2, 0 );
+    am.pos.set( 0, -am.GROUND_WIDTH/2, 0 );
+    am.quat.set( 0, 0, 0, 1 );
 
     am.floorTexture.wrapS = am.floorTexture.wrapT = THREE.RepeatWrapping; 
     am.floorTexture.repeat.set( 10, 10 );
@@ -2084,9 +2081,9 @@ function am_createGround(am) {
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
 
-    var ground = am_createParalellepiped( am.playgroundDimensions.w, am.GROUND_WIDTH, 
+    var ground = createParalellepiped( am.playgroundDimensions.w, am.GROUND_WIDTH, 
 					  am.playgroundDimensions.d,
-					  0, am.am_pos, am.am_quat, floorMaterial );
+					  0, am.pos, am.quat, floorMaterial );
     
     ground["ammo_obj"].setFriction( 0.99 );
     
@@ -2094,7 +2091,7 @@ function am_createGround(am) {
     ground.receiveShadow = true;
 }
 
-function am_processGeometry( bufGeometry ) {
+function processGeometry( bufGeometry ) {
 
     // Obtain a Geometry
     var geometry = new THREE.Geometry().fromBufferGeometry( bufGeometry );
@@ -2103,14 +2100,14 @@ function am_processGeometry( bufGeometry ) {
     var vertsDiff = geometry.mergeVertices();
 
     // Convert again to BufferGeometry, indexed
-    var indexedBufferGeom = am_createIndexedBufferGeometryFromGeometry( geometry );
+    var indexedBufferGeom = createIndexedBufferGeometryFromGeometry( geometry );
 
     // Create index arrays mapping the indexed vertices to bufGeometry vertices
-    am_mapIndices( bufGeometry, indexedBufferGeom );
+    mapIndices( bufGeometry, indexedBufferGeom );
 
 }
 
-function am_createIndexedBufferGeometryFromGeometry( geometry ) {
+function createIndexedBufferGeometryFromGeometry( geometry ) {
 
     var numVertices = geometry.vertices.length;
     var numFaces = geometry.faces.length;
@@ -2149,7 +2146,7 @@ function am_createIndexedBufferGeometryFromGeometry( geometry ) {
     return bufferGeom;
 }
 
-function am_isEqual( x1, y1, z1, x2, y2, z2 ) {
+function isEqual( x1, y1, z1, x2, y2, z2 ) {
 
     var delta = 0.000001;
     return Math.abs( x2 - x1 ) < delta &&
@@ -2158,7 +2155,7 @@ function am_isEqual( x1, y1, z1, x2, y2, z2 ) {
 
 }
 
-function am_mapIndices( bufGeometry, indexedBufferGeom ) {
+function mapIndices( bufGeometry, indexedBufferGeom ) {
 
     // Creates ammoVertices, ammoIndices and ammoIndexAssociation in bufGeometry
 
@@ -2183,7 +2180,7 @@ function am_mapIndices( bufGeometry, indexedBufferGeom ) {
 	for ( var j = 0; j < numVertices; j++ ) {
 
 	    var j3 = j * 3;
-	    if ( am_isEqual( idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
+	    if ( isEqual( idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
 			     vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ] ) ) {
 		association.push( j3 );
 	    }
@@ -2194,13 +2191,13 @@ function am_mapIndices( bufGeometry, indexedBufferGeom ) {
 
 }
 
-function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
+function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 
     var threeObject = new THREE.Mesh( new THREE.BoxGeometry( sx, sy, sz, 1, 1, 1 ), material );
     var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
-    shape.setMargin( am.am_margin );
+    shape.setMargin( am.margin );
 
-    var body = am_createRigidBody( threeObject, shape, mass, pos, quat );
+    var body = createRigidBody( threeObject, shape, mass, pos, quat );
 
     body.setDamping(0.9,0.9);
 
@@ -2210,14 +2207,14 @@ function am_createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 }
 
 // Not sure how to use the quaternion here,
-function am_createSphere(m,r,pos,quat,material) {
+function createSphere(m,r,pos,quat,material) {
     var c = (pos) ? pos : new Ammo.btVector3(2, 10, 0);
     
     var colShape        = new Ammo.btSphereShape(r),
         startTransform  = new Ammo.btTransform();
 
     // Don't know if this is needed!
-    colShape.setMargin( am.am_margin );
+    colShape.setMargin( am.margin );
     startTransform.setIdentity();
 
     var mass          = m,
@@ -2232,7 +2229,7 @@ function am_createSphere(m,r,pos,quat,material) {
     var myMotionState = new Ammo.btDefaultMotionState(startTransform),
         rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia);
 
-    // Possibly it would make more sense to call this am_createRigidobdy herere...
+    // Possibly it would make more sense to call this createRigidobdy herere...
     var body          = new Ammo.btRigidBody(rbInfo);
 
     
@@ -2240,20 +2237,20 @@ function am_createSphere(m,r,pos,quat,material) {
     ball.castShadow = true;
     ball.receiveShadow = true;
 
-    var body = am_createRigidBody(ball,colShape,mass,c,quat);
+    var body = createRigidBody(ball,colShape,mass,c,quat);
 
     body.setFriction( 0.99 );
     
     ball["ammo_obj"] = body;
 
-    // am.am_physicsWorld.addRigidBody(body);
+    // am.physicsWorld.addRigidBody(body);
     // am.scene.add( ball );
     // am.meshes.push( ball );
 
     return ball;
 }
 
-function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
+function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.position.copy( pos );
     threeObject.quaternion.copy( quat );
@@ -2277,14 +2274,14 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
     am.scene.add( threeObject );
     if ( mass > 0 ) {
 
-	am.am_rigidBodies.push( threeObject );
+	am.rigidBodies.push( threeObject );
 
 	// Disable deactivation
 	body.setActivationState( 4 );
 
     }
 
-    am.am_physicsWorld.addRigidBody( body );
+    am.physicsWorld.addRigidBody( body );
     
     am.push_body_mesh_pair(body,threeObject);
     
@@ -2292,44 +2289,44 @@ function am_createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 }
 
 
-function am_processClick() {
+function processClick() {
     if (!am.MOUSE_FIRES)
 	return;
 
-    if ( am.am_clickRequest ) {
+    if ( am.clickRequest ) {
 
-	am.am_raycaster.setFromCamera( am.am_mouseCoords, am.camera );
+	am.raycaster.setFromCamera( am.mouseCoords, am.camera );
 
 	// Creates a ball
 	var ballMass = 3;
 	var ballRadius = 0.4;
 
-	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am.am_ballMaterial );
+	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am.ballMaterial );
 	ball.castShadow = true;
 	ball.receiveShadow = true;
 	var ballShape = new Ammo.btSphereShape( ballRadius );
-	ballShape.setMargin( am.am_margin );
-	am.am_pos.copy( am.am_raycaster.ray.direction );
-	am.am_pos.add( am.am_raycaster.ray.origin );
-	am.am_quat.set( 0, 0, 0, 1 );
-	var ballBody = am_createRigidBody( ball, ballShape, ballMass, am.am_pos, am.am_quat );
+	ballShape.setMargin( am.margin );
+	am.pos.copy( am.raycaster.ray.direction );
+	am.pos.add( am.raycaster.ray.origin );
+	am.quat.set( 0, 0, 0, 1 );
+	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat );
 	ballBody.setFriction( 0.5 );
 
 	ballBody.setDamping(0.9,0.9);
 
-	am.am_pos.copy( am.am_raycaster.ray.direction );
-	am.am_pos.multiplyScalar( 14 );
-	ballBody.setLinearVelocity( new Ammo.btVector3( am.am_pos.x, am.am_pos.y, am.am_pos.z ) );
+	am.pos.copy( am.raycaster.ray.direction );
+	am.pos.multiplyScalar( 14 );
+	ballBody.setLinearVelocity( new Ammo.btVector3( am.pos.x, am.pos.y, am.pos.z ) );
 
-	am.am_clickRequest = false;
+	am.clickRequest = false;
 
     }
 
 }
 
-function am_onWindowResize() {
-    am.camera.aspect = window.innerWidth / (window.innerHeight * am.am_window_height_factor);
-    am.renderer.setSize( window.innerWidth, window.innerHeight * am.am_window_height_factor );
+function onWindowResize() {
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.window_height_factor);
+    am.renderer.setSize( window.innerWidth, window.innerHeight * am.window_height_factor );
     
     am.camera.updateProjectionMatrix();
     am.SCREEN_WIDTH = am.renderer.getSize().width;
@@ -2339,43 +2336,35 @@ function am_onWindowResize() {
     am.cameraOrtho = new THREE.OrthographicCamera( 0, am.SCREEN_WIDTH, am.SCREEN_HEIGHT, 0, - 10, 10 );    
 }
 
-function am_animate() {
+function animate() {
     // Seems this is likely to be a problem...
-    requestAnimationFrame( am_animate );
-    am_render();
+    requestAnimationFrame( animate );
+    render();
 }
 
-function am_render() {
-    var deltaTime = am.am_clock.getDelta();
-    am_updatePhysics( deltaTime );
-    am_processClick();
+function render() {
+    var deltaTime = am.clock.getDelta();
+    updatePhysics( deltaTime );
+    processClick();
     am.controls.update( deltaTime );
 
     // note this....
-
     am.renderer.render( am.scene, am.camera );
     am.renderer.autoClear = false;        
-    am.renderer.render( am.am_grid_scene, am.camera);
-
-    // TODO: I apparently am not clearing the sprits correctly.
-    // am.sceneOrtho.children.forEach(function(object){
-    // 	am.sceneOrtho.remove(object);
-    // });
+    am.renderer.render( am.grid_scene, am.camera);
     am.renderer.render(am.sceneOrtho, am.cameraOrtho);
-    
-
 }
 
-function am_updatePhysics( deltaTime ) {
+function updatePhysics( deltaTime ) {
 
     // Step world
-    am.am_physicsWorld.stepSimulation( deltaTime, 10 );
+    am.physicsWorld.stepSimulation( deltaTime, 10 );
 
     sprite_controls.clear();    
 
     // Update soft volumes
-    for ( var i = 0, il = am.am_softBodies.length; i < il; i++ ) {
-	var volume = am.am_softBodies[ i ];
+    for ( var i = 0, il = am.softBodies.length; i < il; i++ ) {
+	var volume = am.softBodies[ i ];
 	var geometry = volume.geometry;
 	var softBody = volume.userData.physicsBody;
 	var volumePositions = geometry.attributes.position.array;
@@ -2416,15 +2405,15 @@ function am_updatePhysics( deltaTime ) {
     }
 
     // Update rigid bodies
-    for ( var i = 0, il = am.am_rigidBodies.length; i < il; i++ ) {
-	var objThree = am.am_rigidBodies[ i ];
+    for ( var i = 0, il = am.rigidBodies.length; i < il; i++ ) {
+	var objThree = am.rigidBodies[ i ];
 	var objPhys = objThree.userData.physicsBody;
 	var ms = objPhys.getMotionState();
 	if ( ms ) {
 
-	    ms.getWorldTransform( am.am_transformAux1 );
-	    var p = am.am_transformAux1.getOrigin();
-	    var q = am.am_transformAux1.getRotation();
+	    ms.getWorldTransform( am.transformAux1 );
+	    var p = am.transformAux1.getOrigin();
+	    var q = am.transformAux1.getRotation();
 	    objThree.position.set( p.x(), p.y(), p.z() );
 	    objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
 
@@ -2453,7 +2442,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
     var color = get_member_color(am,d);
     var tcolor = new THREE.Color(color.r,color.g,color.b);
     var cmat = memo_color_mat(tcolor);
-    var mesh =  am_createParalellepiped(
+    var mesh =  createParalellepiped(
 	len,
 	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
 	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
@@ -2513,7 +2502,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	pos.set( v.x, v.y, v.z);
         quat.set( 0, 0, 0, 1 );
 
-	var mesh = am_createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
+	var mesh = createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
 
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
@@ -2580,7 +2569,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   memBody,
 							   pivotInA,
 							   pivotInB);
-		am.am_physicsWorld.addConstraint(con, true);
+		am.physicsWorld.addConstraint(con, true);
 		constraints.push(con);
 	    }
 	    {
@@ -2590,7 +2579,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   memBody,
 							   pivotInA,
 							   pivotInB);
-		am.am_physicsWorld.addConstraint(con, true);
+		am.physicsWorld.addConstraint(con, true);
 		constraints.push(con);		
 	    }
 
@@ -2609,7 +2598,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		pos.set( v.x, v.y, v.z);
 		quat.set( 0, 0, 0, 1 );
 		
-		var mesh =  am_createParalellepiped(
+		var mesh =  createParalellepiped(
 		    s,
 		    s,
 		    s,
@@ -2625,7 +2614,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   bump,
 							   pivotInA,
 							   pivotInB);
-		am.am_physicsWorld.addConstraint(con, true);
+		am.physicsWorld.addConstraint(con, true);
 		b["non-rolling-constraint"] = con;
 		}
 	    var s = 0.01;
@@ -2643,8 +2632,8 @@ var actuator_to_length = d3.scale.linear().domain([0,1023]).range([am.MIN_EDGE_L
 
 initiation_stuff();
 
-am_init();
-am_animate();
+init();
+animate();
 
 
         </script>
