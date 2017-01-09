@@ -2504,8 +2504,48 @@ Return the results of all forms as a list."
   )
 
 (defvar glusscon-timer nil)
-(defvar glusscon-url "http://127.0.0.1:8000")
+(defvar glusscon-url "http://192.168.1.244")
 
+(defun convert-to-json (str)
+  (let ((n (string-match "<html>*" str)))
+    (print n)
+    (substring str (+ 7 n) nil)
+    )
+  )
+
+(defun test-convert-to-json-0 ()
+  (let ((converted (convert-to-json "HTTP/1.1 200 OK\n
+Content-Type: text/html\n
+Connection: close\n
+\n
+<!DOCTYPE HTML>\n
+<html>\
+{ 
+A0: 383,
+A1: 387,
+A2: 376,
+A3: 386,
+A4: 383,
+A5: 377,
+}
+")))
+    (print converted)
+  (assert
+   (equal
+    converted
+    "{ 
+A0: 383,
+A1: 387,
+A2: 376,
+A3: 386,
+A4: 383,
+A5: 377,
+}
+"
+    )
+   )
+  ))
+  
 
 ;; I apparently don't understand scoping -- I can't seem to
 ;; get run-at-time to take a thunk with a local variable!
@@ -2520,12 +2560,26 @@ Return the results of all forms as a list."
   (cancel-timer glusscon-timer)
   )
 
+
 (defun glusscon-query (url)
   (let ((url-request-method "GET"))
     (url-retrieve url
 		  (lambda (status)
 		    (print status)
-		    (with-current-buffer (current-buffer)
-		      (buffer-string))))))
+		    (let* ((str 
+			    (with-current-buffer (current-buffer)
+			      (print "XXX")
+			      (print (buffer-string))
+			      (buffer-string)))
+			   (json (convert-to-json str)))
+		      (print "JSON")
+		      (print json)
+		      ;;
+		      ;;		      (print str)
+		      ;;		      (print "JSON = ")
+		      ;;		      (print json)
+		      ;;		      (move-to-from json)
+		      (move-from-json json)
+		      )))))
 
 
