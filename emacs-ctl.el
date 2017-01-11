@@ -4,7 +4,7 @@
 ;; This is necessar because 'web-server doesn't support options...I need to make a pull-request about this
 (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS))
 (require 'web-server)
-
+(require 'url-queue)
       
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
@@ -2546,15 +2546,32 @@ A5: 377,
    )
   ))
   
-
+;; It seems likelty that there is a serious limit to how quickly this can work.
+;; I may have to do something far more sophisticated.  Possibly we should even
+;; switch to "push" model on the Arduino.
 ;; I apparently don't understand scoping -- I can't seem to
 ;; get run-at-time to take a thunk with a local variable!
+;; First of all, prove that I can cancel a timer correctly.
+(defvar numprobes 0)
+(defvar numanswered 0)
 (defun establish-timer-for-glusscon-probe (period-seconds)
-  (let* ((thunk #'(lambda () (glusscon-query glusscon-url)))
+  (setq numprobes 0)
+  (setq numanswered 0)  
+  (let* ((thunk #'(lambda ()
+		    (let ((d (- numprobes numanswered)))
+;;		      (print (format "%d unanswered probes" d))
+;;		      (if (<= d 0)
+;;			  (progn
+;;			    (setq numprobes (+ 1 numprobes))			    
+			    (glusscon-query glusscon-url)
+;;			    )
+;;			(print "sitttng this one wout until we get answered!")
+;;			    )
+		    )))
 	 (timer (run-at-time t period-seconds
-		    thunk)))
+			     thunk)))
     (setq glusscon-timer timer))
-  )
+    )
 
 (defun cancel-glusscon-timer ()
   (cancel-timer glusscon-timer)
@@ -2563,23 +2580,36 @@ A5: 377,
 
 (defun glusscon-query (url)
   (let ((url-request-method "GET"))
-    (url-retrieve url
+   (condition-case err
+    (url-queue-retrieve url
 		  (lambda (status)
+		    (print "STATUS = ")
 		    (print status)
-		    (let* ((str 
-			    (with-current-buffer (current-buffer)
-			      (print "XXX")
-			      (print (buffer-string))
-			      (buffer-string)))
-			   (json (convert-to-json str)))
-		      (print "JSON")
-		      (print json)
-		      ;;
-		      ;;		      (print str)
-		      ;;		      (print "JSON = ")
-		      ;;		      (print json)
-		      ;;		      (move-to-from json)
-		      (move-from-json json)
-		      )))))
+		    (print numprobes)
+		    (print numanswered)
+		    (if (equal (car status) :error)
+			(progn
+			  (print "SOMETHING WRONG WITH CONNECTION!")
+			  (setq numanswered (+ 1 numanswered))
+			  )
+		      (progn
+			(setq numanswered (+ 1 numanswered))
+			(let* ((str 
+				(with-current-buffer (current-buffer)
+				  (print "XXX")
+				  (print (buffer-string))
+				  (buffer-string)))
+			       (json (convert-to-json str)))
+			  ;;		      (print "JSON")
+			  ;;		      (print json)
+			  (move-from-json json))))))
+    (error
+     ;; Display the usual message for this error.
+     (print "AAAA error in url-retrieve")
+     (setq numanswered (+ 1 numanswered))
+     (print err)
+     (message "%s" (error-message-string err))
+     ))))
+
 
 
