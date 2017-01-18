@@ -583,7 +583,7 @@ function testApplyBulletTransformInverse() {
 
     
 }
-// There is a real problem here that body is either an Ammo body or a Cannon body!
+
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
     var constrainedBody = body;
@@ -687,12 +687,15 @@ function moveJointToPoint(gui,x,y,z) {
 	//	var act_settings = model_to_actuator_space(pose,am.robot);
 	
 	// TODO: change most_recent_constraints -> most recent model
-	
+	console.log("constraints:");
+	console.log(gui.most_recent_constraints);
 	var act_settings =
 	    actuator_space_model_func(gui.robot,
 				      gui.selectedBody,
 				      gui.jointBody,
 				      gui.most_recent_constraints);
+	console.log("settings:");
+	console.log(act_settings);
 	// now move to the new pose.
 	set_interp_constraints(act_settings,act_settings,1.0);
     }
@@ -831,16 +834,16 @@ function name_pose(id) {
 function set_named_pose(id) {
     var pose = localStorage.getItem(localStorage.key(id));
     var constraints = JSON.parse(pose);
-    execute(am.standard_ctx,am.most_recent_contraints,execute_atom,constraints.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,constraints.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_pose(num) {
     var pose = am.standard_objs[num];
     var constraints = pose.pose;
-    execute(am.standard_ctx,am.most_recent_contraints,execute_atom,pose.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,pose.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
 }
 function set_standard_gait(num) {
     var gait = am.standard_objs[num];
-    execute(am.standard_ctx,am.most_recent_contraints,execute_atom,gait.gait,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,gait.gait,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
 }
 
 // This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
@@ -1000,18 +1003,18 @@ function execute_atom_dummy(ctx,glog) {
     console.log("atom"+glog);
 }
 
-var RELAXED_POSE = {"A0":500,"A1":500,"A2":500,"A3":500,"A4":500,"A5":500,"B0":500,"B1":500,"B2":500,"B3":500,"B4":500,"B5":500,"C0":500,"C1":500,"C2":500,"C3":500,"C4":500,"C5":500};
+//var RELAXED_POSE = {"A0":500,"A1":500,"A2":500,"A3":500,"A4":500,"A5":500,"B0":500,"B1":500,"B2":500,"B3":500,"B4":500,"B5":500,"C0":500,"C1":500,"C2":500,"C3":500,"C4":500,"C5":500};
 
 function test_execute_0() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(am.standard_objs,am.most_recent_contraints,execute_atom_dummy,glog,10,1000);
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom_dummy,glog,10,1000);
 }
 
 function test_execute_1() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
-    execute(am.standard_objs,am.most_recent_contraints,execute_atom,glog,10,1000);
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 function generate_context_from_standard(objects) {
@@ -1032,12 +1035,12 @@ function test_execute_2() {
     var n0 = am.standard_objs[5].name;
     var n1 = am.standard_objs[6].name;
     var glog = [n0,n1];
-    execute(am.standard_ctx,am.most_recent_contraints,execute_atom,glog,10,1000);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 function test_execute_3() {
     var glog = ["thinwalk"];
-    execute(am.standard_ctx,am.most_recent_contraints,execute_atom,glog,10,1000);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 
 // The purpose of this is to return the context with more definitions...
@@ -1146,8 +1149,11 @@ var lo = 0;
 var mid = 450;
 var hi = 900;
 
+
+// We really want to iterate over all members here...
 function relax() {
-    assume_pose(RELAXED_POSE);
+    fixed_size((am.MIN_EDGE_LENGTH+am.MAX_EDGE_LENGTH)/2);
+//    assume_pose(RELAXED_POSE);
 }
 
 // TODO: This is not using the argument --- something is terribly wrong.
@@ -1566,11 +1572,11 @@ var AM = function() {
     
     this.MOUSE_FIRES = false;
 
-    this.INITIAL_HEIGHT = 0.3;
+    this.INITIAL_HEIGHT = 0.1;
 
 
-    this.NUMBER_OF_TETRAHEDRA = 5;
-    //    this.NUMBER_OF_TETRAHEDRA = 1;
+   this.NUMBER_OF_TETRAHEDRA = 7;
+//       this.NUMBER_OF_TETRAHEDRA = 5;
 
 
     // I don't understand this...need to fully understand.
@@ -1617,6 +1623,8 @@ var AM = function() {
 
     this.obstacles = [];
     this.obstacleSize = this.MEAN_EDGE_LENGTH*5;
+
+    this.NUMBER_OF_OBSTACLES = 4;
     this.OBSTACLE_FRACTION = 25;
     //    this.OBSTACLE_FRACTION = 3;
     this.OBSTACLE_MASS = 3;
@@ -1729,7 +1737,13 @@ function init() {
 
     add_robot(am);
 
-    am.most_recent_constraints = RELAXED_POSE;
+    var pmodel = extract_physical_node_model(am.robot);
+    if (pmodel.length > 0) {
+	var amx = model_to_actuator_space(pmodel,am.robot);
+	am.most_recent_constraints = amx;	
+    }
+
+
 }
 
 function add_robot(am) {
@@ -2031,13 +2045,13 @@ function initPhysics() {
 
 function createObstacles() {
 
-    var num = 4;
+    var num = am.NUMBER_OF_OBSTACLES;
+    var OB_DIS = 1.25;
 
-
-    var positions = [{x:0,y:am.INITIAL_HEIGHT,z:1},
-    		     {x:1,y:am.INITIAL_HEIGHT,z:0},
-    		     {x:0,y:am.INITIAL_HEIGHT,z:-1},
-    		     {x:-1,y:am.INITIAL_HEIGHT,z:0}];
+    var positions = [{x:0,y:am.INITIAL_HEIGHT,z:OB_DIS},
+    		     {x:OB_DIS,y:am.INITIAL_HEIGHT,z:0},
+    		     {x:0,y:am.INITIAL_HEIGHT,z:-OB_DIS},
+    		     {x:-OB_DIS,y:am.INITIAL_HEIGHT,z:0}];
 
     for(var i = 0; i < num; i++) {
 	var pos = new THREE.Vector3();
