@@ -724,8 +724,8 @@ function render_physical_model(id) {
 function render_actuator_model(form) {
     var pmodel = extract_physical_node_model(am.robot);
     
-    var am = model_to_actuator_space(pmodel,am.robot);
-    var x = JSON.stringify(am,null,2);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    var x = JSON.stringify(actmodel,null,2);
     if (form === 'escaped')
 	x = '"'+x.replace(/"/gi,'\\"')+'"';
     var command = $("#amodel").val(x);
@@ -744,12 +744,15 @@ function get_body_by_name(name) {
     return retval;
 }
 
-function set_constraints(a) {
-    update_constraints(a.robot.robot_members,link => {
-	var e = actuator_to_length(a[key]);	
+function set_constraints(actmodel) {
+    update_constraints(am.robot.robot_members,link => {
+	var a = link.a;
+	var b = link.b;
+	var act = find_actuator(link.a.name,link.b.name);
+	var e = actuator_to_length(actmodel[act]);	
 	return e;
     });
-    am.most_recent_constraints = a;
+    am.most_recent_constraints = actmodel;
 }
 
 function interp(x,y,frac) {
@@ -798,18 +801,6 @@ function set_interp_constraints(am0,am1,frac) {
     am.most_recent_constraints = am1;
 }
 
-function rectify(id) {
-    var pmodel = extract_physical_node_model(am.robot);
-    
-    var am = model_to_actuator_space(pmodel,am.robot);
-
-    for (var key in am) {
-	if (am.hasOwnProperty(key)) {
-	    am[key] = Math.min(Math.max(am[key],0),1023);
-	}
-    }
-    set_constraints(am);
-}
 
 function load_pose(id) {
     var pose_string = $("#amodel").val();
@@ -820,14 +811,14 @@ function load_pose(id) {
 
 function name_pose(id) {
     var pmodel = extract_physical_node_model(am.robot);
-    var am = model_to_actuator_space(pmodel,am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
     var name = $("#posename").val();
     var pose = {};
     pose["type"] = "pose";
     pose["name"] = name;
     pose["geometry"] = "5TetGlussBot";
-    pose["pose"] = am;
-    localStorage.setItem(name, JSON.stringify(am));
+    pose["pose"] = actmodel;
+    localStorage.setItem(name, JSON.stringify(actmodel));
     update_poses();
 }
 
@@ -2650,6 +2641,19 @@ initiation_stuff();
 
 init();
 animate();
+
+function rectify(id) {
+    var pmodel = extract_physical_node_model(am.robot);
+    
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+
+    for (var key in actmodel) {
+	if (actmodel.hasOwnProperty(key)) {
+	    actmodel[key] = Math.min(Math.max(actmodel[key],0),1023);
+	}
+    }
+    set_constraints(actmodel);
+}
 
 
         </script>
