@@ -1289,6 +1289,12 @@ function update_constraints(links,f) {
 	var fudge = 0.95;
 	s = s * fudge;
 
+	// This is guessed from the enumeration in Bullet's btTypeConstraint.h
+/*	var BT_CONSTRAINT_STOP_CFM = 3;
+	var BT_CONSTRAINT_STOP_ERP = 1
+	var myCFMvalue = 0.95;
+	var myERPvalue = 0.95;
+*/
 	{
 	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
@@ -1296,6 +1302,11 @@ function update_constraints(links,f) {
 						       new_memBody,
 						       pivotInA,
 						       pivotInB);
+	    // Apparently setLimit is not expected in the javascript engine.
+	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+	    
 	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[0] = con;
 	}
@@ -1306,6 +1317,11 @@ function update_constraints(links,f) {
 						       new_memBody,
 						       pivotInA,
 						       pivotInB);
+	    // Apparently setLimit is not expected in the javascript engine.	    
+	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+	    
 	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[1] = con;		
 	}
@@ -1510,6 +1526,12 @@ var AM = function() {
     this.ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
     this.pos = new THREE.Vector3();
     this.quat = new THREE.Quaternion();
+
+
+    this.BT_CONSTRAINT_STOP_CFM = 3;
+    this.BT_CONSTRAINT_STOP_ERP = 1
+    this.myCFMvalue = 0.0;
+    this.myERPvalue = 0.8;
 
     this.jointBody = null;
 
@@ -2004,6 +2026,8 @@ function initPhysics() {
     am.dispatcher = new Ammo.btCollisionDispatcher( am.collisionConfiguration );
     am.broadphase = new Ammo.btDbvtBroadphase();
     am.solver = new Ammo.btSequentialImpulseConstraintSolver();
+
+
     am.softBodySolver = new Ammo.btDefaultSoftBodySolver();
     am.physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am.dispatcher, am.broadphase, am.solver, am.collisionConfiguration, am.softBodySolver);
     am.physicsWorld.setGravity( new Ammo.btVector3( 0,
@@ -2569,6 +2593,11 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    var fudge = 0.95;
 	    var s = am.MEAN_EDGE_LENGTH/2;
 	    s = s * fudge;
+	    // This is guessed from the enumeration in Bullet's btTypeConstraint.h
+//	    var BT_CONSTRAINT_STOP_CFM = 3;
+//	    var BT_CONSTRAINT_STOP_ERP = 1
+//	    var myCFMvalue = 0.95;
+//	    var myERPvalue = 0.95;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( s, 0, 0 );
@@ -2576,6 +2605,9 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   memBody,
 							   pivotInA,
 							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+		
 		am.physicsWorld.addConstraint(con, true);
 		constraints.push(con);
 	    }
@@ -2586,6 +2618,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 							   memBody,
 							   pivotInA,
 							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
 		am.physicsWorld.addConstraint(con, true);
 		constraints.push(con);		
 	    }
