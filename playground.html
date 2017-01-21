@@ -52,9 +52,6 @@
 	    <button type="button" onclick="allow_con()">
 	      Allow Constraints On Manipulation
 	    </button>
-	    <button type="button" onclick="step_con()">
-	      Use STEP MODE
-	    </button>
 	    <button type="button" onclick="toggle_mouse_action()">
 	      Toggle Mouse Cannon/Grab
 	    </button>
@@ -480,10 +477,7 @@ function disable_con() {
     am.FORCE_REGIME = "DISABLE";
 }
 function allow_con() {
-    am.FORCE_REGIME = "NONE";    
-}
-function step_con() {
-    am.FORCE_REGIME = "STEP";    
+    am.FORCE_REGIME = "ALLOW";    
 }
 
 function toggle_mouse_action() {
@@ -524,7 +518,7 @@ function updateMouseConstraints(gui,body) {
 
     } else if (gui.FORCE_REGIME == "DISABLE") {
 	
-    } else if (gui.FORCE_REGIME == "NONE") {
+    } else if (gui.FORCE_REGIME == "ALLOW") {
     }
     
 }
@@ -602,7 +596,7 @@ function addMouseConstraint(gui,x,y,z,body) {
     updateMouseConstraints(gui,body);
 
     gui.selectedBody = body;	
-    //    if (gui.FORCE_REGIME == "NONE") {
+    //    if (gui.FORCE_REGIME == "ALLOW") {
     var markerBody = gui.jointBody;
     var constrainedBody = body;
     var startTransform = constrainedBody.getWorldTransform();
@@ -641,7 +635,7 @@ function addMouseConstraint(gui,x,y,z,body) {
 
 function moveJointToPoint(gui,x,y,z) {
     var is_obstacle = (gui.selectedBody.structureKind == "obstacle");
-    var act_natural = ((gui.FORCE_REGIME == "NONE") ||
+    var act_natural = ((gui.FORCE_REGIME == "ALLOW") ||
 		       is_obstacle);
     
     if (act_natural) {
@@ -1290,11 +1284,6 @@ function update_constraints(links,f) {
 	s = s * fudge;
 
 	// This is guessed from the enumeration in Bullet's btTypeConstraint.h
-/*	var BT_CONSTRAINT_STOP_CFM = 3;
-	var BT_CONSTRAINT_STOP_ERP = 1
-	var myCFMvalue = 0.95;
-	var myERPvalue = 0.95;
-*/
 	{
 	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
@@ -1640,7 +1629,7 @@ var AM = function() {
     this.NUMBER_OF_OBSTACLES = 4;
     this.OBSTACLE_FRACTION = 25;
     //    this.OBSTACLE_FRACTION = 3;
-    this.OBSTACLE_MASS = 3;
+    this.OBSTACLE_MASS = 300;
     //    this.CONSTRAINT_FORCE_SMALL = 1;
 
     this.FORCE_REGIME = "DISABLE";    
@@ -1649,6 +1638,10 @@ var AM = function() {
     this.GROUND_BODY;
     // This is whatever body we are operating on with the locator.
     this.selectedBody;
+
+    this.lockedGroups = { handlocked: [],
+			  temporary: []}
+    
 
     this.latestLookAt = new THREE.Vector3(0,0,0);    
 }
@@ -1838,6 +1831,7 @@ function onMouseDown(e){
 		// Now we want to change color to show locked...
 		// TODO: This is a global...
 		am.meshes[idx].material.color.setHex( 0xFF0000 );
+		am.lockedGroups.handlocked.push(obj);
 	    }
 	} else {
 	    //            constraintDown = true;
@@ -1857,8 +1851,25 @@ function onMouseDown(e){
 		var zero = new Ammo.btVector3(0, 0, 0 );
 		am.manipulatedObject.setMassProps(mass,zero);
 		obj.setGravity(am.NO_GRAVITY);			
-		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);		            }
+		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		// Now we want to set all others to be empty mass until mouseUp!
+		if (am.FORCE_REGIME != "ALLOW") {
+		    for(var i = 0; i < am.robot.robot_joints.length; i++) {
+			var joint = am.robot.robot_joints[i];
+			if (joint != obj) {
+			    if (am.lockedGroups.handlocked.indexOf(joint) >= -1) {
+				var zero = new Ammo.btVector3(0, 0, 0 );
+				joint.setMassProps(0.0,zero);
+				console.log("joint:");
+				console.log(joint);
+				am.lockedGroups.temporary.push(joint);
+			    }
+			}
+		    }
+		}
+	    }
 	}
+
     }
 }
 
@@ -1885,6 +1896,20 @@ function onMouseUp(e) {
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
+
+    // Restore joint masses....
+    // Actually, this is really wrong, we need to keep track of the nodes that are truly locked
+    // in place as compared to those that we have locked for convenience.
+    for(var i = 0; i < am.lockedGroups.temporary.length; i++) {
+    	var joint = am.lockedGroups.temporary[i];
+    	var zero = new Ammo.btVector3(0, 0, 0 );
+    	joint.setMassProps(am.JOINT_MASS,zero);
+    }
+    am.lockedGroups.temporary = [];
+    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+    if (index > -1) {
+	 am.lockedGroups.handlocked.splice(index, 1);
+    }
 
     if (am.movedButNotSent) {
 	send_to_robot_url();
@@ -2590,14 +2615,10 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    am.robot.robot_members.push(link);
 
 	    var constraints = [];
-	    var fudge = 0.95;
+	    var fudge = 1.01;
 	    var s = am.MEAN_EDGE_LENGTH/2;
 	    s = s * fudge;
 	    // This is guessed from the enumeration in Bullet's btTypeConstraint.h
-//	    var BT_CONSTRAINT_STOP_CFM = 3;
-//	    var BT_CONSTRAINT_STOP_ERP = 1
-//	    var myCFMvalue = 0.95;
-//	    var myERPvalue = 0.95;
 	    {
 		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 		var pivotInB = new Ammo.btVector3( s, 0, 0 );
@@ -2635,6 +2656,8 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // This code is working, but needs to be improved...
 	    // I had trouble tying this to the actuator members themselves,
 	    // which would be more elegant.
+	    var blocking_mass = 1.0;
+;
 	    function create_non_roll_body(b,s) {
 		pos.set( v.x, v.y, v.z);
 		quat.set( 0, 0, 0, 1 );
@@ -2643,22 +2666,27 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		    s,
 		    s,
 		    s,
-		    1.0,
+		    blocking_mass,
 		    pos,
 		    quat,
 		    this.jointMaterial );
 
 		var bump = mesh["ammo_obj"];
+		bump.setDamping(0.9,0.9);
+		bump.setFriction( 0.99 );
+
 		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
 		var pivotInB = new Ammo.btVector3(0, 0, 0 );
 		var con = new Ammo.btPoint2PointConstraint(b,
 							   bump,
 							   pivotInA,
 							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
 		am.physicsWorld.addConstraint(con, true);
 		b["non-rolling-constraint"] = con;
 		}
-	    var s = 0.01;
+	    var s = 0.02;
 	    if (!b_a["non-rolling-constraint"]) {
 		create_non_roll_body(b_a,s)
 	    }
