@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Gluss Pusher Main Page
+title: Gluss Main Page
 ---
 
 
@@ -55,6 +55,7 @@ We've made a couple of videos showing physcial models and discussing our motivat
 <iframe width="280" height="157" src="https://www.youtube.com/embed/lLmkdvR1NCo" frameborder="0" allowfullscreen></iframe>
 
 </span>
+
 
 ## How You Can Get Involved
 
@@ -164,6 +165,8 @@ The Gluss Projects engenders many research opportunities.
 
 We need a software-only simulator so that gaits and other forms of motion can be investigated and developed without having to actually have Glussbot. Ideally this would have a 3D rendering display and allow both programatic and interactive design of motion.
 
+Note: The simulator is in an early, poorly documented and buggy stage, but is available.
+
 ### Build a physical model with sensors
 
 It would be magical to control a Glussbot by holding in your hands a small model of the robot that you can move and reshape. Such a model would not need acutators, but each member would need to sense and report its length. Then a change with your hands would immediately create a change in the Glussbot, allowing you to control it elegantly.
@@ -172,9 +175,14 @@ It would be magical to control a Glussbot by holding in your hands a small model
 
 Although the turret joint is a valuale embodiment, it may be possible to build a larger version of the magnet-and-ball-bearing system known as "Geo Mag". Nothing is stopping us from testing this but the time it takes to develop mounts that holds magnets and mount to the Firgelli actuators.
 
+Note: This has been done.  The results were that it works---but it does not scale up well.
+It probably does scale down well, however, but we are no longer researching that.
+
 ### Explore more numerous tetrahedral Gluss systems
 
 Our immediate plans are to build a 5-tetrahedron Glussbot and explore if it can crawl faster than the 3-Tet system. However, we could build and control significantly larger systems.
+
+Note: We currently have built a 7-tetradra Glussbot system.
 
 ### Build a very small Glussbot
 
@@ -188,6 +196,11 @@ Some gluss constructed out of the enormously powerful hydraulic actauators used 
 
 The current control system is very primitive, although it is able to accomplish crawling. It is now clear that we need a way to express and think about more complex and smooth motion over time---the choreography of a gluss dance. This math would be applicable to other sorts of robots as well.
 
+#### Introduction of a Mathematical Approach to the Control Problem.
+
+A very preliminary set of notes on a mathematic approach to the problem of
+controlling the 
+<a href="https://github.com/PubInv/gluss/controltheory.md">Public Invention</a>
 
 
 
