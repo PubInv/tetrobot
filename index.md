@@ -198,9 +198,8 @@ The current control system is very primitive, although it is able to accomplish 
 
 #### Introduction of a Mathematical Approach to the Control Problem.
 
-A very preliminary set of notes on a mathematic approach to the problem of
-controlling the 
-<a href="https://github.com/PubInv/gluss/controltheory.md">Public Invention</a>
+A very preliminary set of notes on a mathematic approach to the  
+<a href="https://pubinv.github.io/gluss/controltheory.html">Control Theory</a>.
 
 
 
