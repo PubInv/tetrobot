@@ -91,9 +91,13 @@ ground gait" with a "hold your head up" pose to successfully rescue the human be
 # What We Could Try
 
 We will parametrize the curve on the space [0..1]. Then we will try to define
-the curvature of the curve by a wavelet (let's say a Ricker (Mexican hat) wavelet.)
+the curvature of the curve by a wavelet. If we were operating on the physical displacement,
+we would want to use a differnetiable wavelet like the Ricker Wavelet (also called
+the Mexican Hat wavelet).  However, by operating directly on the curvature, it
+is somewhat analysis to apply force to a particle.  The force need not be differentiable
+to keep the physical path in 3-space smooth. Therefore it seems reasonable to use
+a simple "square wave" Haar wavelet.
 
-So a set of Ricker wavelets will define a curve in space.
 
 We could then map a tetrahelix onto such a curve by placing the N-nodes at evenly
 space 1/Nth intervals.  The curve evaluated at these N points gives us N
