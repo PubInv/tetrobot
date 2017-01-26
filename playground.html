@@ -63,6 +63,9 @@
 	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
 	  <div class="panel-body">
+	    <button type="button" onclick="tetrabeam()">
+	      Tetrabeam
+	    </button>
 	    <button type="button" onclick="big_size()">
 	      Big size
 	    </button>
@@ -999,6 +1002,49 @@ function test_execute_0() {
 function test_execute_1() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+function fraction_from_length(l) {
+    return (l - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
+}
+// In reality, we will nedd to implement the Tetrahelix coloring in order to have a way of
+// designing actuators must comfortably. However, here I am testing it by hand.
+function tetrabeam() {
+    // To implement the "tetrabream", we need to make the "green odd" as the Sqrt(2) times the
+    // unity of the other lenghts. (note --- this would better be done through the physical mapping.
+    var min_len = am.MIN_EDGE_LENGTH;
+    var diagonal_len = am.MIN_EDGE_LENGTH * Math.sqrt(2.0);
+    var mid = 1000 * fraction_from_length(min_len);
+    var diag = 1000 * fraction_from_length(diagonal_len);
+    // Now the "Green Odd" nodes are:
+    // B1, C4
+    var glog = [{"A0": mid,
+		 "A1": mid,
+		 "A2": mid,
+		 "A3": mid,
+		 "A4": mid,
+		 "A5": mid,
+		 "B0": mid,
+		 "B1": diag,
+		 "B2": mid,
+		 "B3": mid,
+		 "B4": mid,
+		 "B5": mid,
+		 "C0": mid,
+		 "C1": mid,
+		 "C2": mid,
+		 "C3": mid,
+		 "C4": diag,
+		 "C5": mid,
+		 "D0": mid,
+		 "D1": mid,
+		 "D2": mid,
+		 "D3": mid,
+		 "D4": mid,
+		 "D5": mid
+		}
+	       ];
     execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 
