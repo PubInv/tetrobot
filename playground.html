@@ -62,7 +62,10 @@
 	    <h3 class="panel-title">Standard Poses</h3>
 	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
 	  </div>
-	  <div class="panel-body">
+    <div class="panel-body">
+	    <button type="button" onclick="equitetrabeam()">
+	      Equitetrabeam
+	    </button>
 	    <button type="button" onclick="tetrabeam()">
 	      Tetrabeam
 	    </button>
@@ -787,11 +790,15 @@ function set_interp_constraints(am0,am1,frac) {
 	    links.push({a: a, b: b, k: key, body: body.body });
 	}
     }
+    console.log("XXXXXX");
     update_constraints(links,link => {
 	var a = link.a;
 	var b = link.b;
 	var key = link.k;
 	var e = actuator_to_length(interp(am0[key],am1[key],frac));
+	var aname = find_actuator(a.name,b.name);
+	console.log(get_class_of_actuator(aname));
+	console.log(e/am.MIN_EDGE_LENGTH);
 	return e;
     });
 
@@ -1007,6 +1014,104 @@ function test_execute_1() {
 
 function fraction_from_length(l) {
     return (l - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
+}
+
+function get_class_of_actuator(act) {
+    if ("A0" == act) { return "pe";}
+    if ("A1" == act) { return "oe";}
+    if ("A2" == act) { return "r,";}
+    if ("A3" == act) { return "ge";}
+    if ("A4" == act) { return "oo";}
+    if ("A5" == act) { return "po";}
+    if ("B0" == act) { return "y,";}
+    if ("B1" == act) { return "go";}
+    if ("B2" == act) { return "pe";}
+    if ("B3" == act) { return "b,";}
+    if ("B4" == act) { return "oe";}
+    if ("B5" == act) { return "ge";}
+    if ("C0" == act) { return "r,";}
+    if ("C1" == act) { return "po";}
+    if ("C2" == act) { return "oo";}
+    if ("C3" == act) { return "y,";}
+    if ("C4" == act) { return "go";}
+    if ("C5" == act) { return "pe";}
+    if ("D0" == act) { return "b,";}
+    if ("D1" == act) { return "oe";}
+    if ("D2" == act) { return "ge";}
+    if ("D3" == act) { return "r,";}
+    if ("D4" == act) { return "po";}
+    if ("D5" == act) { return "oo";}
+}
+
+function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
+{
+    var mean_len = am.MIN_EDGE_LENGTH;
+    var r = 1000 * fraction_from_length(mean_len * red);
+    var y = 1000 * fraction_from_length(mean_len * yellow);
+    var b = 1000 * fraction_from_length(mean_len * blue);    
+
+    var oe = 1000 * fraction_from_length(mean_len * orange_even);
+    var oo = 1000 * fraction_from_length(mean_len * orange_odd);
+    var pe = 1000 * fraction_from_length(mean_len * purple_even);    
+    var po = 1000 * fraction_from_length(mean_len * purple_odd);
+
+    var ge = 1000 * fraction_from_length(mean_len * green_even);
+    var go = 1000 * fraction_from_length(mean_len * green_odd);
+
+    // This is done by hand, but in the future we should do this by number, so as
+    // to be completely independent of the number of tetrahedra
+    var glog = [{"A0": pe,
+		 "A1": oe,
+		 "A2": r,
+		 "A3": ge,
+		 "A4": oo,
+		 "A5": po,
+		 "B0": y,
+		 "B1": go,
+		 "B2": pe,
+		 "B3": b,
+		 "B4": oe,
+		 "B5": ge,
+		 "C0": r,
+		 "C1": po,
+		 "C2": oo,
+		 "C3": y,
+		 "C4": go,
+		 "C5": pe,
+		 "D0": b,
+		 "D1": oe,
+		 "D2": ge,
+		 "D3": r,
+		 "D4": po,
+		 "D5": oo
+		}
+	       ];
+    return glog;
+}
+
+function equitetrabeam() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    // var orange_even = 1.05946024;
+    // var orange_odd = 	1.192667598;
+    // var purple_even = 	1.192667598;
+    // var purple_odd = 1.05946024;
+    var green_even = 1.044030651;
+    var green_odd = 1.220655562;
+
+    // I've had to reverse these, and I have no idea why!
+    var orange_even = 1.192667598;
+    var orange_odd = 	1.05946024;
+    var purple_even = 1.05946024;
+    var purple_odd =  	1.192667598;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 // In reality, we will nedd to implement the Tetrahelix coloring in order to have a way of
 // designing actuators must comfortably. However, here I am testing it by hand.
