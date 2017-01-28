@@ -24,7 +24,7 @@
 
 % See the ``Article customise'' template for come common customisations
 
-\title{Untwisting a Tetrahelix}
+\title{The Tetrabeam: an Untwisted Tetrahelix}
 \author{Robert L. Read
   \thanks{read.robert@gmail.com}
 }
@@ -41,9 +41,12 @@
 %% \tableofcontents
 
 \begin{abstract}
-  By using irregular tetrahedra, one can transform a tetrahelix into a spaceframe that is not twisted, forming a ``tetrabeam''.
-  In the case of an equilateral profile, an analytic set of members lengths is provided which are shown to be optimal.
-  This tetrabeam is formed with only three member lengths ($\sqrt{13/9}, \sqrt{10/9}$, and $1$.) 
+  By using irregular tetrahedra, one can transform a tetrahelix into a spaceframe that is not twisted, forming a novel object, a
+  ``tetrabeam''.
+  In the case of an equilateral profile, an analytic set of member lengths is provided which are shown to be optimal in minimize
+  maximum lenghth difference.
+  This ``equitetrabeam'' is formed with only three member lengths ( 2 of $\sqrt{13/9}, 3 are \sqrt{10/9}$, and 1 of $1$.) It has 3-fold symmetry about
+  axis.  The three irregular tetrahedra stack together to form an oblque equilateral prism with parallel base faces.
 \end{abstract}
 
 
@@ -126,14 +129,40 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
  length is minimized when $Y = 1/3$ and $B = 2/3$.
 
  \begin{theorem}
-Let $f$ be a function whose derivative exists in every point, then $f$ is 
-a continuous function.
+A Tetrabeam of mininimum maximum difference between edge lengths is formed when $Y = 1/3$ and $B = 2/3$.
 \end{theorem}
 
  \begin{proof}
-   Assume that $1 = Y + B$.  I don't have a great argument for this at present.
+   First we show that asserting $Y + B = 1$ does not worsen our solution.
 
-   Assume that $Y < 1/2$. Then $B > 1/2$. Substituing $1 - Y$ for $B$ in our equations:
+   Assume $Y'' = Y' + k, B'' = B' + k$, where $k > 0$. Algebraically, subsituting $Y'', B''$ into the equations for the $green$
+   classes above does not change them. Geometrically, swinging  the yellow or blue rail by the same amount does not change the
+   shape of the green triangles. Therefore we may choose the sum $ Y+B $ to be whatever we want without increasing the length
+   of $green_e$ or $green_o$.
+
+   By assume, $Y < B$, therefore $orange_e < purple_e$ and $orange_o > purple_o$. $Y$ cannot be greater than $1/2$, because
+   if it were we could shorten the longest member $purple_e$ by lowering both $Y$ and $B$. Therefore $orange_e < orange_o$.
+   Similarly $purple_o < purple_e$. So $orange_e$ and $purple_o$ cannot be the longest members of the four.
+
+   Of the four remaining member lengths, suppose that $orange_o$ or $purple_e$ is one of the longest. Whichever it is can ben be shortened
+   until it is equal to the other, or:
+ \begin{align*}
+ orange_o^2  &= 1 + (1-Y)^2 & &=  purple_e^2  &= 1 + B^2\\
+ \end{align*}
+ or, by algebra,
+ \begin{align*}
+   1 + (1-Y)^2 &= 1 + B^2\\
+   (1-Y)^2 &= B^2\\
+ \end{align*}
+ which is solved by $Y+B = 1$.
+
+ Thus an optimal minimax solution will have $orange_o = purple_e$ and $orange_e = purple_o$, and $Y+B = 1$.
+ (Note: Although these classes are the same for the purpose of the Equitetrabeam, for other purposes of robotics
+ they may not be. We therefore retain our color naming scheme.)
+
+ We now need only choose $Y$ so as to miniize these two classes against the $green$ class.
+
+   Assume that $Y \leq 1/2$. Then $B \geq 1/2$. Substituing $1 - Y$ for $B$ in our equations:
  \begin{align*}
    orange_e^2 &= 1 + Y^2 \\
  orange_o^2 &= 1 + (1-Y)^2 \\
@@ -143,7 +172,22 @@ a continuous function.
  green_o^2 &= 1 + ((1+Y) - B)^2 & &= 1 + ((1+Y) - (1 - Y))^2 & &= 1 + (2Y)^2 \\
  \end{align*}
 
- Now assume $green_o$ and $orange_o$ are the two largest of these values, so that we minimize the entire group by setting them equal.
+ By graph inspection we observe that $green_o$ > $green_e$ for $Y > 1/4$ and $green_e < orange_o$ for $Y < 2/3$.
+
+ For the case $Y < 1/4$, $green_o < green_e < orange_o$. Because $Y \leq 1/2$, $orange_e < orange_o$. So $orange_o$
+ is the longest member, and its length increases as $Y$ goes to $0$. So at $Y = 1/4$, $orange_o$ attains its
+ minimum value of:
+\begin{align*}
+ orange_o^2 &= 1 + (1-Y)^2 \\
+ orange_o^2 &\geq 1 + (1-1/4)^2 \\
+ orange_o^2 &\geq 1 + (3/4)^2 \\
+ orange_o^2 &\geq 1 + 9/16 \\
+ orange_o &\geq \sqrt{25/16} \\
+    orange_o &\geq 5/4 \\ 
+ \end{align*}
+  
+For the case $Y >= 1/4$, $green_o$ and $orange_o$ are the two largest of these values, so that
+we minimize the entire group by setting them equal.
  Then:
 \begin{align*}
   green_o^2 &= orange_o^2 \\
@@ -151,10 +195,10 @@ a continuous function.
   4Y^2 = 1 + -2Y + Y^2 \\
   3Y^2 + 2Y - 1 = 0 \\
 \end{align*}
-Which has two solutions, $Y = -1$, which we throw out because we assumed $0 \leq Y$, and $Y = 1/3$.
+Which has two solutions, one of which is $Y = -1$, which we throw out because we assumed $0 \leq Y$. The other is $Y = 1/3$.
 
 Therefore $Y = 1/3$ minimizes the length difference of all members.
- \end{proof}
+
 
 Our complete solution is therefore:
 \begin{align*}
@@ -166,7 +210,12 @@ Our complete solution is therefore:
  purple_o &=  orange_e \\
  green_e &=  \sqrt{ 1 + (1 - 2/3)^2} & &= \sqrt{10/9} \\ 
  green_o &=  \sqrt{1 + (2/3)^2} & &= \sqrt{13/9} \\
- \end{align*}
+\end{align*}
+
+Since $\sqrt{13/9} < 5/4$ the solution $Y = 1/3$ is better than $Y = 1/4$.
+
+ \end{proof}
+
 So in fact we can construct a tetrabeam using only three member lengths $1$,
 $\sqrt{10/9} = 1.05409\cdots$, and $\sqrt{13/9} = 1.20185\cdots$.
 In other words, our longest members is only 21\% longer than our shortest member.
@@ -174,30 +223,50 @@ As it happens, the current Tetrobot implementation can support about a 50\%
 change in length, so it can easily realize this Tetrabeam configuration. If one were
 to construct a static tetrabeam by welding, this limit number of member lengths would be convenient.
 
-Note that this solution appears to exhibit tri-fold symmetry.
+\secton{About the Equitetrabeam}
 
-Is there anything surpsing about this?
+The irregular tetrahedron $ABCD$ of edge lengths $AD = 1, AB = BC = CD = \sqrt{10/9}, AC = BD = \sqrt{10/9}$ stacks
+such that three together form a oblique equilateral prism of parallel base faces. Such prism stack linearly into
+a prism of any length.
 
- 
- 
 \section{Open Questions}
 
 I hardly dare claim these to be ``open questions'', yet they are questions of interest to the Tetrobot/Glussbot project.
 
 \begin{conjecture}
 
-  Using the six member classes defined by the non-primary colors, it is possible to smoothly twist and untwist a tetrahelix.
+  Using the six member classes defined by the non-primary colors, it is possible to smoothly twist and untwist a tetrahelix by
+  using a linear combination of lengths.
   
-  \end{conjecture}
+\end{conjecture}
+
+Idea: we can smoothly integrate between the tetrahelix and the tetrabeam by a linear combination of node lengths.
 
 
 Cite this patent:
 
 US4557097A
 
-Note this patent seems to have a similar shape:
+Note this patent seems to have a similar shape, but uses an assymmetric square bottom.
 
 US4633566A
+
+This patent motivates adjustable truss:
+
+US5701713A
+
+Another deployable truss:
+
+US4958474A
+
+Another deployable, non-triangular truss:
+
+https://patents.google.com/patent/US20030041548A1/en?q=equilateral&q=truss&q=beam
+
+
+Another such patent:
+
+US4930930A
 
 \section{Contact and Getting Involved}
 
