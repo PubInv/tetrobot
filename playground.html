@@ -1045,7 +1045,9 @@ function get_class_of_actuator(act) {
 
 function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
 {
-    var mean_len = am.MIN_EDGE_LENGTH;
+    // TODO: This needs to be a parameter, or we need to use the difference
+    // between the maximum and minimum of the 9 input parameters.
+    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
     var r = 1000 * fraction_from_length(mean_len * red);
     var y = 1000 * fraction_from_length(mean_len * yellow);
     var b = 1000 * fraction_from_length(mean_len * blue);    
@@ -2696,13 +2698,13 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     var n = tets+3;    
     var mass = am.BASIC_BODY_MASS;
 
-
+    var colors = [ "red", "yellow", "blue" ];
 
     for(var i = 0; i < n; i++) {
 	var v = ccw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
 	v = v.add(pvec);
 
-	var material = new THREE.MeshPhongMaterial( { color: 0xFF00FF } );    
+	var material = new THREE.MeshPhongMaterial( { color: colors[i % 3] } );    
 
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
