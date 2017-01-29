@@ -1112,8 +1112,11 @@ function equitetrabeam() {
     // Possibly my number from my spreadsheet are somehow wrong!
 
     var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
-    
-    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+
+
+//        execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
 }
 // In reality, we will nedd to implement the Tetrahelix coloring in order to have a way of
 // designing actuators must comfortably. However, here I am testing it by hand.
@@ -1687,8 +1690,8 @@ var AM = function() {
     this.gravity_on = true;
 
 
-    this.TIME_BETWEEN_POSES_MS = 3000;
-    this.GAIT_SUBDIVISIONS = 30;
+    //    this.TIME_BETWEEN_POSES_MS = 3000;
+    this.TIME_BETWEEN_POSES_MS = 3000;    
     this.GAIT_SUBDIVISIONS = 30;    
     //    this.GAIT_SUBDIVISIONS = 3;    
     
@@ -1990,7 +1993,10 @@ function onMouseDown(e){
 	    //            constraintDown = true;
             // Set marker on contact point
             setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
-	    am.meshes[idx].material.color.setHex( 0xFF00FF );	    
+	    // what we really want to do here is to change the color, but stash the old color first to restore...
+	    am.meshes[idx].material.original_color = am.meshes[idx].material.color.getHex();
+	    am.meshes[idx].material.color.setHex( 0xFF00FF );
+
 
             // Set the movement plane
             setScreenPerpCenter(pos,am);
@@ -1998,6 +2004,7 @@ function onMouseDown(e){
             if(idx !== -1){
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
+		am.manipulatedObject.mesh = am.meshes[idx];
 		// We may have to restore the mass...would be better if we knew...
 		var mass = ((obj.structureKind == "joint") ? am.JOINT_MASS :
 			    ((obj.structureKind == "member") ? am.MEMBER_MASS : am.OBSTACLE_MASS));
@@ -2045,6 +2052,7 @@ function onMouseUp(e) {
 
     if (am.manipulatedObject) {
 	am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.mesh.material.original_color);	
     }
 
     // Send the remove mouse joint to server
@@ -2629,8 +2637,9 @@ function updatePhysics( deltaTime ) {
 	var p3 = p3.project(am.camera);
 	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
 	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
-	if (objPhys.name) 
-	    objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
+	// WARNING: This was removed only to get a good screen shot.
+//	if (objPhys.name) 
+//	    objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
     }
 
 }
