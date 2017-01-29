@@ -11,13 +11,14 @@
 
 \usepackage{float}
 
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{conjecture}[theorem]{Conjecture}
-%% \usepackage{draftwatermark}
+\newtheorem{theorem}{Theorem}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{proofsketch}{Proof Sketech}
+\usepackage{draftwatermark}
 
-%% \SetWatermarkText{DRAFT}
-%% \SetWatermarkScale{6}
-%% \SetWatermarkLightness{0.95}
+\SetWatermarkText{DRAFT}
+\SetWatermarkScale{6}
+\SetWatermarkLightness{0.95}
 
 % \geometry{letter} % or letter or a5paper or ... etc
 % \geometry{landscape} % rotated page geometry
@@ -45,7 +46,7 @@
   ``tetrabeam''.
   In the case of an equilateral profile, an analytic set of member lengths is provided which are shown to be optimal in minimize
   maximum lenghth difference.
-  This ``equitetrabeam'' is formed with only three member lengths ( 2 of $\sqrt{13/9}, 3 are \sqrt{10/9}$, and 1 of $1$.) It has 3-fold symmetry about
+  This ``equitetrabeam'' is formed with only three member lengths ( 2 of $\sqrt{13/9}$, 3 are $\sqrt{10/9}$, and 1 of $1$.) It has 3-fold symmetry about
   axis.  The three irregular tetrahedra stack together to form an oblque equilateral prism with parallel base faces.
 \end{abstract}
 
@@ -57,10 +58,10 @@ lie upon three
 helices about the central axes. The Tetrobot/Glussbot project
 uses this regularity of this geometry to make a tentacle-like robot that can move like a slug or mollusc. The Tetrobot concept
 is to use mechanical members, called actuators, which can change their length, connected by special joints which allow many
-members to come to a single point. Such machines can follow purely mathematical models such as the Boerdijk–Coxeter helix or the Octet Truss.
+members to come to a single point. Such machines can follow purely mathematical models such as the Boerdijk–-Coxeter helix or the Octet Truss.
 
 However, a tetrahelix does not rest on a plane in a simple way. It is convenient to have it ``untwist'' and form a spaceframe that
-has a flat planar surface. By making length changes in a certain way, we can untwist a tetrahelix to form a ``tetrabean'' which
+has a flat planar surface. By making length changes in a certain way, we can untwist a tetrahelix to form a ``tetrabeam'' which
 is perfectly flat and has, for example, an equilateral triangular profile.
 
 \section{Approach}
@@ -85,7 +86,7 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
 
  \begin{figure}[H]
      \centering
-     \includegraphics[width=0.5\textwidth]{TetrahelixColoringDiagram.png}
+     \includegraphics[width=0.9\textwidth]{TetrahelixColoringDiagram.png}
      \caption{Coloring of an (untwisted) Tetrabeam}
  \end{figure}
 
@@ -223,24 +224,122 @@ As it happens, the current Tetrobot implementation can support about a 50\%
 change in length, so it can easily realize this Tetrabeam configuration. If one were
 to construct a static tetrabeam by welding, this limit number of member lengths would be convenient.
 
-\secton{About the Equitetrabeam}
+\section{Additional Properties of the Equitetrabeam}
 
 The irregular tetrahedron $ABCD$ of edge lengths $AD = 1, AB = BC = CD = \sqrt{10/9}, AC = BD = \sqrt{10/9}$ stacks
 such that three together form a oblique equilateral prism of parallel base faces. Such prism stack linearly into
-a prism of any length.
+a prism of any length. If we imagine a long prism made of many cells, there is one node at each 1/3rd of a unit length
+along the axis. The cross-sectional face of the equitetrabeam is an equilateral triangle, although none of the faces
+are.
 
-\section{Open Questions}
+\begin{theorem}
+  The Equitetrabeam is also optimal under the metric of the sum of the squares of all members
+  for an equilateral tetrabream isomorphic to the Boerdijk--Coxeter helix.
+  \end{theorem}
 
-I hardly dare claim these to be ``open questions'', yet they are questions of interest to the Tetrobot/Glussbot project.
+\begin{proof}
+  Summing together all 6 squared lengths:
+\begin{align*}
+  sum &= orange_e^2 + orange_o^2 + purple_e^2 + purple_e^2 + purple_o^2 + green_e^2 + green_o^2 \\
+   &= 1 + Y^2 + 1 + (1-Y)^2 +  1 + B^2 +  1+ (1-B)^2 + 1 + (B - Y)^2 + 1 + ((1+Y) - B)^2 
+\end{align*}
+  creates expression most easily minimized with Wolfram Alpha, which gives:
+\begin{align*}
+min\{1 + Y^2 1 + (1 - Y)^2 + 1 + B^2 + 1 + (1 - B)^2 + 1 + (B - Y)^2 \\
+  + 1 + ((1 + Y) - B)^2\} = 20/3 \\
+at (B, Y) = (2/3, 1/3)
+\end{align*}
+  
+\end{proof}
 
 \begin{conjecture}
+  The Equitetrabeam is also optimal under the metric of the total length of all members 
+  for an equilateral tetrabream isomorphic to the Boerdijk--Coxeter helix.
+\end{conjecture}
+
+\begin{proof}
+  Summing together all lengths:
+  \begin{align*}
+  sum &= orange_e + orange_o + purple_e + purple_e + purple_o + green_e + green_o \\    
+  &= \sqrt{1 + Y^2} + \sqrt{1 + (1-Y)^2} + \sqrt{1 + B^2} + \sqrt{1+ (1-B)^2} +  \sqrt{1 + (B - Y)^2} +  \sqrt{1 + ((1+Y) - B)^2} \\
+  \end{align*} 
+
+  Wolfram Alpha, evaluating this numerically, gives the same minima:
+\begin{align*}
+  min\{\sqrt(1 + Y^2) + \sqrt{1 + (1 - Y)^2} + \sqrt{1 + B^2} + \sqrt{1 + (1 - B)^2} + \\
+    \sqrt{1 + (B - Y)^2} + \sqrt{1 + ((1 + Y) - B)^2}\} \approx 6.76783 at (B, Y) \approx (0.666667, 0.333333)
+\end{align*}
+  
+\end{proof}
+
+The equitetrabeam has chirality.
+
+\section{Untwisting the Tetrahelix}
+
+If you can choose member lengths, you can form a linear combination of the equitetrabream lengths and the completely regular
+lengths of the tetrahelix, thereby choosing the torsion.  If you are designing a spaceframe, this is a static design choice,
+in a robot, it is a dynamic choice that can be used to twist the robot and/or exert torsion on the environment.
+
+From the Wikipedia article:
+The length of a circular helix of radius $a$ and slope $b/a$ (or pitch $2θ b$) expressed in rectangular coordinates as
+$ t\mapsto (a\cos t, a\sin t, bt), t\in [0,T] $
+equals
+$ T\cdot {\sqrt {a^{2}+b^{2}}} $, its curvature is $ \frac {|a|}{a^{2}+b^{2}} $
+and its torsion is $ \frac {b}{a^{2}+b^{2}}  $.
+
+Ideally we would have a simple formula for defining the nodes based on any torsion we choose.
+Unfortunately, it is not obvious that a linear combination of lengths produces a simple formular.
+It is a goal of this paper to relate these two approaches to generating a tetrahelix continnum.
+
+From Robert Gray's site:
+
+theta = arccos(-2/3) (approximately 131.8103149 degrees)
+
+Vn = (r cos(n*theta), r sin(n*theta), n*h)
+
+From which we can compute the torsion.  In a perfect world, we would have formulae for
+both the vertices and the lengths based on an input torsion. Note however, that the
+formulation above can not represent the three vertices when theta is zero!  So  a
+different formulation is probably valuable.
+
+
+\section{Utility for Robotics}
+
+Starting twenty years, Sanderson, Hamlin, and others created a style of robotics based on changing the lengths of members
+joined at the center of a joint, thereby creating a connection to pure geometry. More recently NASA has experimented with
+tensegrities, a different point in the same design spectrum. These fields create a need to explore the notion of
+geometries changing over time, not generally considered directly by pure geometry.
+
+As suggested by Buckminster Fuller, the most convenient geometries to consider are those that have regular member
+lengths, in order to facilitate the inexpensive manufacture and construction of the robot.  In a plane, the octest truss
+is such a geometry, but in a line, the Boerdijk--Coxeter helix is a regular structure.
+
+However, a robot must move, and so it is interesting to consider the transmuations of these geometries, which was in
+fact the motivation for creating the equitetrabream.
+
+\begin{theorem}
 
   Using the six member classes defined by the non-primary colors, it is possible to smoothly twist and untwist a tetrahelix by
   using a linear combination of lengths.
   
-\end{conjecture}
+\end{theorem}
 
-Idea: we can smoothly integrate between the tetrahelix and the tetrabeam by a linear combination of node lengths.
+\begin{proofsketch}
+  Proof by our computer program that does this.
+\end{proofsketch}
+
+\begin{figure}[H] %float with two figures
+  \centering
+     \includegraphics[width=0.4\textwidth]{figures/Tetrahelix0.png}
+     \caption{Regular Tetrahelix}
+     \includegraphics[width=0.4\textwidth]{figures/Tetrahelix1.png}
+     \caption{2/3rd Twisted Tetrahelix}
+     \includegraphics[width=0.4\textwidth]{figures/Tetrahelix2.png}
+     \caption{1/3rd Twisted, 2/3rd Untwisted Tetrahelix}
+     \includegraphics[width=0.4\textwidth]{figures/Tetrahelix3.png}
+     \caption{The Equitetrabream: Fully Untwisted Tetrahelix}
+\end{figure}
+
 
 
 Cite this patent:
@@ -261,7 +360,7 @@ US4958474A
 
 Another deployable, non-triangular truss:
 
-https://patents.google.com/patent/US20030041548A1/en?q=equilateral&q=truss&q=beam
+https://patents.google.com/patent/US20030041548A1
 
 
 Another such patent:
