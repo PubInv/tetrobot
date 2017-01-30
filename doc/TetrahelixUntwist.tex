@@ -47,7 +47,7 @@
   In the case of an equilateral profile, an analytic set of member lengths is provided which are shown to be optimal in minimize
   maximum lenghth difference.
   This ``equitetrabeam'' is formed with only three member lengths ( 2 of $\sqrt{13/9}$, 3 are $\sqrt{10/9}$, and 1 of $1$.) It has 3-fold symmetry about
-  axis.  The three irregular tetrahedra stack together to form an oblque equilateral prism with parallel base faces.
+  axis, and chirality.  The three irregular tetrahedra stack together to form an oblque equilateral prism with parallel base faces. 
 \end{abstract}
 
 
@@ -324,9 +324,9 @@ fact the motivation for creating the equitetrabream.
   
 \end{theorem}
 
-\begin{proofsketch}
-  Proof by our computer program that does this.
-\end{proofsketch}
+\begin{proof}
+  Proof by our computer program that does this by forming a linear interpolation of links.
+\end{proof}
 
 \begin{figure}[H] %float with two figures
   \centering
@@ -341,8 +341,27 @@ fact the motivation for creating the equitetrabream.
 \end{figure}
 
 
+\begin{theorem}
+
+
+  \begin{conjecture}
+    There is a closed-form expression which can be used to generate a cotinnum of tetrahelices with a parameter which is
+    multiplied by the length parameter based on the Robert W. Gray formula and the equitetrahelix.
+  \end{conjecture}
+
+  \begin{proof}
+    Consider $\lambda$ to be a rate of winding. Use the R.W. Gray formula to generate the cartesian coordinates of all nodes.
+    The radius will also be a linear interpolation of $lambda$. The lengths are then also given as a closed-form expression.
+    The range of $\lambda$ can be negative, producing a different chirality. $\lambda$ is closely related to the torsion
+    and the chirality. Using this formula, you can design tetrahelices of any integral lenght and integral turns, for example.
+    \end{proof}
+
+
+
+https://arxiv.org/pdf/1302.1174.pdf
 
 Cite this patent:
+
 
 US4557097A
 
