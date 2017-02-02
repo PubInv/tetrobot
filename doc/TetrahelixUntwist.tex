@@ -325,20 +325,24 @@ V(n,c) =
   \end{tabular}
 \right ]
 \]
-where $c \in \{0,1,2\}$ to represent red, yellow, or blue.
+where $c \in \{0,1,2\}$ to represent red, yellow, or blue. Note: Does this require a proof?
+
 In this formula, $n$ may be taken as a node number for one rail. Allowing $n$ to take non-integer values defines a continuous
 helix in space which is close to the segmented polyline of the outer tetrahedra edges, and coincides with them at integer
 values.
 The quantity $ (3 \theta - 2 \pi) \approx 35.43 \degree $, and is the approximate angular shift between $V(n,color)$ and
 $V(n+1,color)$.
-From this we can see that there are approximately $10.16$ red, blue or yellow tetrahedra one rail in a single revolution.
-The pitch of the Boerdijk--Coxeter helix of edge length $1$ is:
+Since:
+\[ \frac{2 \pi}{3 \theta - 2 \pi} \approx 10.1606....
+\]
+We can see that there are approximately $10.16$ red, blue or yellow tetrahedra one rail in a single revolution.
+The pitch of the Boerdijk--Coxeter helix of edge length $1$ is the length of three tetrahedra times this number:
 \begin{align*}
-  &= \frac{2 \pi  3  h}{3 \theta - 2\pi} \\
+  &= \frac{2 \cdot 3 \pi h}{3 \theta - 2\pi} \\
   &= \frac{3  \sqrt{\frac{2}{5}}  \pi}{3  \theta - 2 \pi} \\
   &\approx 9.6392... \\
 \end{align*}
-
+The pitch is less than the number of tetrahedra because the tetrahedra are not lined up perfectly.
 
 
 

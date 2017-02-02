@@ -7,17 +7,17 @@
 // load math.js (using node.js)
 var math = require('mathjs');
 
-var red_phase = math.bignumber(0);
-var yellow_phase = math.bignumber(1);
-var blue_phase = math.bignumber(2);
+var red_phase = 0;
+var yellow_phase = 1;
+var blue_phase = 2;
 
 var BCrot = math.acos(math.divide(math.bignumber(-2),math.bignumber(3)));
-
+var BCH = (1/math.sqrt(10));
 function Cox(n) {
     console.log("cox",n);
     var pnt = [];
     var r = (3 * math.sqrt(3) / 10);
-    var h = (1/math.sqrt(10));
+    var h = BCH;
     var theta = Math.acos(-2/3);
     pnt[0] = r * math.cos(n*theta);
     pnt[1] = r * math.sin(n*theta);
@@ -32,7 +32,7 @@ function CoxHelix(k,phase) {
 function RedHelix(n) {
     var pnt = [];
     var r = (3 * math.sqrt(3) / 10);
-    var h = (3/math.sqrt(10));
+    var h = (3*BCH);
     var theta = Math.acos(-2/3);
     pnt[0] = r * math.cos(n * 3 * theta);
     pnt[1] = r * math.sin(n * 3 * theta);
@@ -47,13 +47,55 @@ function RedHelix(n) {
 function ColorHelix(n,phase) {
     var pnt = [];
     var r = (3 * math.sqrt(3) / 10);
-    var h = (1/math.sqrt(10));
+    var h = BCH;
     var theta = math.acos(-2/3);
     var slow = (3*theta - math.pi*2);
+    var third = 2*math.pi/3;
     var angle = slow*n+ phase*theta;
     pnt[0] = r * math.cos(angle);
     pnt[1] = r * math.sin(angle);
+    console.log("ColorHelix",phase/3);
     pnt[2] = (n+phase/3) * 3 * h;
+    return pnt;
+}
+
+function NColorHelix(n,phase) {
+    var pnt = [];
+    var r = (3 * math.sqrt(3) / 10);
+    var h = BCH;
+    var x = n+phase/3.0;
+    var theta = math.acos(-2/3);
+    var slow = (3*theta - math.pi*2);
+    var third = 2*math.pi/3.0;
+    // Note the subtle distinct here...
+    // in fact:
+    //   slow *(n+phase/3.0) + phase*third == slow * n + phase*theta!
+    //
+    var angle = slow*x+ phase*third;
+    pnt[0] = r * math.cos(angle);
+    pnt[1] = r * math.sin(angle);
+    pnt[2] = (x) * 3 * h;
+    return pnt;
+}
+
+function PColorHelix(n,phase,lambda) {
+    var pnt = [];
+    var r = (3 * math.sqrt(3) / 10);
+    var rl = (r - 1/math.sqrt(3))*lambda + 1/math.sqrt(3);
+    var h = BCH;
+    var hl = (h - 1/3)*lambda + 1/3;    
+    var x = n+phase/3.0;
+    var theta = math.acos(-2/3);
+    var slow = (3*theta - math.pi*2);
+    var third = 2*math.pi/3.0;
+    // Note the subtle distinct here...
+    // in fact:
+    //   slow *(n+phase/3.0) + phase*third == slow * n + phase*theta!
+    //
+    var angle = slow * x * lambda+ phase*third;
+    pnt[0] = rl * math.cos(angle);
+    pnt[1] = rl * math.sin(angle);
+    pnt[2] = (x) * 3 * hl;
     return pnt;
 }
 
@@ -61,33 +103,6 @@ function ColorHelix(n,phase) {
 // NOTE: This seems to work for Lambda = 0.0 and lambda = 1.0, but
 // not the intermediate values. I need to think carefully about it.
 
-
-function ColorPHelix(n,phase,lambda) {
-    var pnt = [];
-    var r = (3 * math.sqrt(3) / 10);
-    var rl = (r - 1/math.sqrt(3))*lambda + 1/math.sqrt(3);
-    var h = (1/math.sqrt(10));
-    var hl = (h - 1/3)*lambda + 1/3;
-    var theta = Math.acos(-2/3);
-    
-    var thetal = theta*lambda 
-    var itheta = (1.0 - lambda)*phase*2*math.pi/3;
-    
-    console.log("phase "+phase);
-    console.log("thetal "+thetal);
-    
-    var slow = (3 * theta - math.pi*2);
-    var angle = slow*n+ phase*theta;
-    
-    pnt[0] = rl * math.cos(angle);
-    pnt[1] = rl * math.sin(angle);
-    
-    console.log("3*n Phase");
-    console.log(((3*n)+phase)*hl);
-    pnt[2] = (n+phase/3) * 3 * h;    
-    return pnt;
-    
-}
 function Helix(x,lambda,phase) {
 
 //    var twist = 45*(math.pi / 180.0);
@@ -134,21 +149,20 @@ var otheryells = [];
 var yells = [];
 var otherblues = [];
 // var lambda = 1.0;
-var lambda = 1.0;
+var lambda = 0.0;
 var third = math.multiply(math.bignumber(120),(math.divide(math.bignumber(math.pi),math.bignumber(180.0))));    
 for(var i = 0; i < 4; i++) {
 //    var red = Helix(math.bignumber(i),lambda,math.multiply(third,red_phase));
 //    var yell = Helix(math.bignumber((i+(1/3))),lambda,math.multiply(third,yellow_phase));
 //    var blue = Helix(math.bignumber((i+(2/3))),lambda,math.multiply(third,blue_phase));
-    var red = ColorHelix(i,red_phase);
-    var otherr = ColorPHelix(i,math.number(red_phase),lambda);
+    var red = PColorHelix(i,red_phase,lambda);
+    var otherr = ColorHelix(i,red_phase);
     otherreds.push(otherr);
-    var yell = ColorHelix(i,yellow_phase);
-    var othery = ColorPHelix(i,math.number(yellow_phase),lambda);
+    var yell = PColorHelix(i,yellow_phase,lambda);
+    var othery = ColorHelix(i,yellow_phase);
     otheryells.push(othery);
-    
-    var blue = ColorHelix(i,blue_phase);
-    var otherb = ColorPHelix(i,math.number(blue_phase),lambda);
+    var blue = PColorHelix(i,blue_phase,lambda);
+    var otherb = ColorHelix(i,blue_phase);
     otherblues.push(otherb);
     
     reds.push(red);
@@ -223,6 +237,19 @@ for(var i = 0; i < 3; i++) {
 
  //   console.log("longest by shortest");
     //  console.log(red_dist/ green_odd_dist);
+/*    for(var j = 0; j < 1; j = j + 0.1) {
+	var azero = NColorHelix(j,red_phase);
+	var yzero = NColorHelix(j,yellow_phase);
+	//	var bzero = NColorHelix(j,blue_phase);
+	var bzero = NColorHelix(j,blue_phase);	
+	console.log(azero,yzero,bzero);
+	// These angle calculations appear to be wrong.
+	var ar = Math.tan(azero[1]/azero[0]);	
+	var ay = Math.tan(yzero[1]/yzero[0]);
+	var ab = Math.tan(bzero[1]/bzero[0]);
+	console.log(180*ar/math.pi,180*ay/math.pi,180*ab/math.pi);
+    }
+*/
     
 }
 
