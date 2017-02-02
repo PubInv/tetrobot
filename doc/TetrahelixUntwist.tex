@@ -25,7 +25,7 @@
 
 % See the ``Article customise'' template for come common customisations
 
-\title{The Tetrabeam: an Untwisted Tetrahelix}
+\title{A Continuum of Somewhat Optimal Untwisted Boerdijk--Coxeter Helices}
 \author{Robert L. Read
   \thanks{read.robert@gmail.com}
 }
@@ -42,12 +42,18 @@
 %% \tableofcontents
 
 \begin{abstract}
-  By using irregular tetrahedra, one can transform a tetrahelix into a spaceframe that is not twisted, forming a novel object, a
+  The Boerdijk--Coxeter helix (BC helix) is a face-to-face stack of regular tetrahedra whose outer vertices lie on helices.
+  By using irregular tetrahedra, one can transform a BC helix, or tetrahelix, into a spaceframe that is not twisted, forming a novel object, a
   ``tetrabeam''.
   In the case of an equilateral profile, an analytic set of member lengths is provided which are shown to be optimal in minimize
-  maximum lenghth difference.
-  This ``equitetrabeam'' is formed with only three member lengths ( 2 of $\sqrt{13/9}$, 3 are $\sqrt{10/9}$, and 1 of $1$.) It has 3-fold symmetry about
-  axis, and chirality.  The three irregular tetrahedra stack together to form an oblque equilateral prism with parallel base faces. 
+  maximum lenghth difference, total member length, and sum of squared member lengths.
+  This ``equitetrabeam'' is formed with only three member lengths ( two of $\sqrt{13/9}$, three are $\sqrt{10/9}$, and one of $1$.)
+  It has 3-fold symmetry about  axis, and chirality.  
+  A formula for the individual outer helices (and therby vertices) of the BC helix is given and
+  unified with the formula for the equitetrabeam to create a continuum of ``untwisted'' BC helices optimal
+  in the same senses mentioned above. This formula allows structures to in the continuum to be
+  designed for pitch, curvature, torsion etc. by choice of $\lambda \in [0,1]$. Utility for truss/spaceframe design and
+  robotics are discussed.
 \end{abstract}
 
 
@@ -222,7 +228,7 @@ $\sqrt{10/9} = 1.05409\cdots$, and $\sqrt{13/9} = 1.20185\cdots$.
 In other words, our longest members is only 21\% longer than our shortest member.
 As it happens, the current Tetrobot implementation can support about a 50\%
 change in length, so it can easily realize this Tetrabeam configuration. If one were
-to construct a static tetrabeam by welding, this limit number of member lengths would be convenient.
+to construct a static tetrabeam by welding, this limited number of member lengths would be convenient.
 
 \section{Additional Properties of the Equitetrabeam}
 
@@ -252,10 +258,10 @@ at (B, Y) = (2/3, 1/3)
   
 \end{proof}
 
-\begin{conjecture}
+\begin{theorem}
   The Equitetrabeam is also optimal under the metric of the total length of all members 
   for an equilateral tetrabream isomorphic to the Boerdijk--Coxeter helix.
-\end{conjecture}
+\end{theorem}
 
 \begin{proof}
   Summing together all lengths:
@@ -287,51 +293,58 @@ It is a goal of this paper to relate these two approaches to generating a tetrah
 H. S. M. Coxeter constructs the Tetrahelix as a repeated rotation and translation of the tetrahedra, showing the
 rotation is:
 \[
-\theta = \arccos(-2/3) 
+\theta = \acos(-2/3) 
 \]
 and the translation:
 \[
-h = 1/\sqrt{10}
+h_{BC} = 1/\sqrt{10}
 \]
 
 
 $\theta$ is approximately $131.8103149$ degrees.
 The angle $\theta$ is the rotation of a \emph{each} tetrahedra.
 That is, a yellow tetrahedron is rotated slightly more than a $1/3$ of a revolution to match the face of the red tetrahedra.
-$3*theta - 2*\pi$ is the apparent roation of $V_3$ relative to $V_0$.
+$3 \theta - 2\pi$ is the apparent roation of $V_3$ relative to $V_0$.
 
 From Robert Gray's site, repeating formula by H.S.M Coxeter:
 \[
-Vn = (r \cos(n \theta), r \sin(n \theta), n*h)
+V_n =
+\left [
+  \begin{tabular}{c}
+   $ r_{BC} \cos(n \theta $\\
+   $ r_{BC} \sin(n \theta) $\\
+   $ n h_{BC}  $
+  \end{tabular}
+\right ]  
 \],
 where:
 \[
-r = 3\sqrt{3} / 10, 
+r_{BC} = 3\sqrt{3} / 10, 
 \]
-and where n represents each node in succession. That is, in our coloring scheme, $V_0$ is red, and$ V_1$ is yellow,  $V_2$ is blue,
+and where n represents each integer numbered node in succession. That is, in our coloring scheme, $V_0$ is red, and$ V_1$ is yellow,  $V_2$ is blue,
 $V_3$ is red, etc. 
 
 This formula defines a helix, but it is not any of the helices of the Tetrahelix, but rather one that winds three times
 as rapidly through all nodes. However, it is convenient to have a formula that gives us the nodes of just
-each colored helix.
+each colored helix. Such a helix can be written:
 
 \[
-V(n,c) =
+H_{BCcolored}(n,c) =
 \left [
   \begin{tabular}{c}
-   $ r  \cos((3 \theta - 2 \pi)n + c  \theta $\\
-   $ r  \sin((3 \theta - 2 \pi)n + c  \theta $\\
-   $ (n + color/3) 3  h $
+   $ r_{BC}  \cos((3 \theta - 2 \pi)n + c  \theta $\\
+   $ r_{BC} \sin((3 \theta - 2 \pi)n + c  \theta $\\
+   $ (n + c/3) 3  h_{BC} $
   \end{tabular}
 \right ]
 \]
-where $c \in \{0,1,2\}$ to represent red, yellow, or blue. Note: Does this require a proof?
+where $c \in \{0,1,2\}$ to represent red, yellow, or blue.
 
 In this formula, $n$ may be taken as a node number for one rail. Allowing $n$ to take non-integer values defines a continuous
 helix in space which is close to the segmented polyline of the outer tetrahedra edges, and coincides with them at integer
 values.
 The quantity $ (3 \theta - 2 \pi) \approx 35.43 \degree $, and is the approximate angular shift between $V(n,color)$ and
-$V(n+1,color)$.
+$V(n+1,color)$. This quantity appears so often below that we call it the ``rail angle rho'', $\rho = (3 \theta - 2 \pi)$.
 Since:
 \[ \frac{2 \pi}{3 \theta - 2 \pi} \approx 10.1606....
 \]
@@ -344,11 +357,86 @@ The pitch of the Boerdijk--Coxeter helix of edge length $1$ is the length of thr
 \end{align*}
 The pitch is less than the number of tetrahedra because the tetrahedra are not lined up perfectly.
 
+\section{Adding an Untwisting Parameter}
+
+We observe that it by thinking of the straight lines of the Equitetrabeam as a degenerate helix of zero curvature,
+it should be possible to define a smoothly varying continuum between the Boerdijk--Coxeter helix and the Equitetrabeam and every
+curvature and torsion betwen the two.
+
+This formulation $V(n,c)$ above is valuable, but obscures the essentially fact that the red, yellow, and blue helices are 120 degree rotations
+of each other. In order to rewrite this expression with an explict rotation of $2\pi/3$, we expand 
+the expression and seek to isolate the term $c2\pi/3$. (This took some searching.)
+\begin{align*}
+  (3 \theta - 2 \pi)n + c \theta  &=  & \text{we aim for 3 in denom} \\
+    (3 \theta - 2 \pi)n + (c/3)  (\theta /3)  &=  & \text{we want $2\pi$ in numerator, so add canceling terms} \\
+  (3 \theta - 2 \pi)n + (c/ 3) (3 \theta - 2 \pi  + 2 \pi) &= & \text{associate} \\
+  (3 \theta - 2 \pi)n + (c/ 3) ((3 \theta - 2 \pi)  + 2 \pi) &= & \text{distribute} \\  
+  (3 \theta - 2 \pi)n + (c / 3) (3 \theta - 2 \pi)  + c 2 \pi /3 &=  \text{collect like factors} \\
+  (3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3  \\
+\end{align*}
+Now the the formula on the left is the only one that depends on the scalar $n$. We use this to a create
+a new formulation $H_{symmetric}(n,c) = H_{colored}(n,c)$
+
+\[
+H_{BCsymmmetric}(n,c) =
+\left [
+  \begin{tabular}{c}
+   $ r  \cos((3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3) $\\
+   $ r  \sin((3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3) $\\
+   $ (n + c/3) 3  h $
+  \end{tabular}
+\right ]
+\]
+
+We seek to unify this with degenerate helix formula for the equitetrabeam:
+\[
+H_{beam}(n,c) =
+\left [
+  \begin{tabular}{c}
+   $ r_{etb}  \cos( 0 \cdot (n + c/3)  + c 2 \pi /3) $\\
+   $ r_{etb}  \sin( 0 \cdot (n + c/3)  + c 2 \pi /3) $\\
+   $ (n + c/3) h_{etb} $
+  \end{tabular}
+\right ]  
+\]
+where $ r_{etb} = 1/\sqrt(3)$, $h_{etb} = 1/3$,
+
+Now basic components of the helix, which are the radius $r$, the rate of rotation $(3 \theta - 2 \pi)(n + c/3)$, and the rate of
+axial growth $ (n + c/3) 3  h $ can all be linearly interpolated with a parameter $\lambda$ between their high values (for the BC helix)
+and low values (for the equitetrabeam):
+
+\begin{align*}
+r_{\lambda}  &= (3 \sqrt(3) / 10 - 1/\sqrt(3)) \lambda +  1/\sqrt(3) \\
+h_{\lambda} &=  (3 / \sqrt(10) - 1) \lambda + 1 \\
+rot_{\lambda} &= (3 \theta - 2 \pi) \lambda  \\
+\end{align*}
+to create a formula that generates a continuum of tetrahedral structures:
+
+\[
+H_{continnum}(n,c,\lambda) =
+\left [
+  \begin{tabular}{c}
+   $ r_{\lambda} \cos(rot_{lambda} (n + c/3) + c 2 \pi /3) $\\
+   $ r_{\lambda}  \sin(rot_{lambda} (n + c/3) + c 2 \pi /3) $\\
+   $ h_{\lambda} (n + c/3) + 0 $
+  \end{tabular}
+\right ]
+\]
+A value of $\lambda = 0$ generates the Equitetrabeam, and $\lambda = 1$ generates the Boerdijk--Coxeter helix, and every
+value $\lambda \in [0,1]$ generates an attractive structure which if physcially realized is an inherently rigid structure
+with member lengths of no greater disparity than $21\%$.
+In the sense of structureal engineering, it would be a relatively strong spaceframe.
+
+Furhtermore, this formula allows one to design the pitch (in edge length units) as a function of $\lambda$ of the helix (along one rail)
+where $\lambda \neq 0$:
+\[
+2 \pi  \cdot \frac{((3/\sqrt(10) -1) \lambda +1)}{ (\lambda ( \theta 3 - 2 \pi)}
+\]
 
 
 \section{Utility for Robotics}
 
-Starting twenty years, Sanderson, Hamlin, and others created a style of robotics based on changing the lengths of members
+Starting twenty years ago, Sanderson, Hamlin, and others created a style of robotics based on changing the lengths of members
 joined at the center of a joint, thereby creating a connection to pure geometry. More recently NASA has experimented with
 tensegrities, a different point in the same design spectrum. These fields create a need to explore the notion of
 geometries changing over time, not generally considered directly by pure geometry.
@@ -382,23 +470,6 @@ fact the motivation for creating the equitetrabream.
      \includegraphics[width=0.4\textwidth]{figures/Tetrahelix3.png}
      \caption{The Equitetrabream: Fully Untwisted Tetrahelix}
 \end{figure}
-
-
-
-
-  \begin{conjecture}
-    There is a closed-form expression which can be used to generate a cotinnum of tetrahelices with a parameter which is
-    multiplied by the length parameter based on the Robert W. Gray formula and the equitetrahelix.
-  \end{conjecture}
-
-  \begin{proof}
-    Consider $\lambda$ to be a rate of winding. Use the R.W. Gray formula to generate the cartesian coordinates of all nodes.
-    The radius will also be a linear interpolation of $lambda$. The lengths are then also given as a closed-form expression.
-    The range of $\lambda$ can be negative, producing a different chirality. $\lambda$ is closely related to the torsion
-    and the chirality. Using this formula, you can design tetrahelices of any integral lenght and integral turns, for example.
-    \end{proof}
-
-  
 
 
   Best reference is from Coxeter:
