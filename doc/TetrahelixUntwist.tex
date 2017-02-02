@@ -280,27 +280,66 @@ If you can choose member lengths, you can form a linear combination of the equit
 lengths of the tetrahelix, thereby choosing the torsion.  If you are designing a spaceframe, this is a static design choice,
 in a robot, it is a dynamic choice that can be used to twist the robot and/or exert torsion on the environment.
 
-From the Wikipedia article:
-The length of a circular helix of radius $a$ and slope $b/a$ (or pitch $2θ b$) expressed in rectangular coordinates as
-$ t\mapsto (a\cos t, a\sin t, bt), t\in [0,T] $
-equals
-$ T\cdot {\sqrt {a^{2}+b^{2}}} $, its curvature is $ \frac {|a|}{a^{2}+b^{2}} $
-and its torsion is $ \frac {b}{a^{2}+b^{2}}  $.
-
 Ideally we would have a simple formula for defining the nodes based on any torsion we choose.
 Unfortunately, it is not obvious that a linear combination of lengths produces a simple formular.
 It is a goal of this paper to relate these two approaches to generating a tetrahelix continnum.
 
-From Robert Gray's site:
+H. S. M. Coxeter constructs the Tetrahelix as a repeated rotation and translation of the tetrahedra, showing the
+rotation is:
+\[
+\theta = \arccos(-2/3) 
+\]
+and the translation:
+\[
+h = 1/\sqrt{10}
+\]
 
-theta = arccos(-2/3) (approximately 131.8103149 degrees)
 
-Vn = (r cos(n*theta), r sin(n*theta), n*h)
+$\theta$ is approximately $131.8103149$ degrees.
+The angle $\theta$ is the rotation of a \emph{each} tetrahedra.
+That is, a yellow tetrahedron is rotated slightly more than a $1/3$ of a revolution to match the face of the red tetrahedra.
+$3*theta - 2*\pi$ is the apparent roation of $V_3$ relative to $V_0$.
 
-From which we can compute the torsion.  In a perfect world, we would have formulae for
-both the vertices and the lengths based on an input torsion. Note however, that the
-formulation above can not represent the three vertices when theta is zero!  So  a
-different formulation is probably valuable.
+From Robert Gray's site, repeating formula by H.S.M Coxeter:
+\[
+Vn = (r \cos(n \theta), r \sin(n \theta), n*h)
+\],
+where:
+\[
+r = 3\sqrt{3} / 10, 
+\]
+and where n represents each node in succession. That is, in our coloring scheme, $V_0$ is red, and$ V_1$ is yellow,  $V_2$ is blue,
+$V_3$ is red, etc. 
+
+This formula defines a helix, but it is not any of the helices of the Tetrahelix, but rather one that winds three times
+as rapidly through all nodes. However, it is convenient to have a formula that gives us the nodes of just
+each colored helix.
+
+\[
+V(n,c) =
+\left [
+  \begin{tabular}{c}
+   $ r  \cos((3 \theta - 2 \pi)n + c  \theta $\\
+   $ r  \sin((3 \theta - 2 \pi)n + c  \theta $\\
+   $ (n + color/3) 3  h $
+  \end{tabular}
+\right ]
+\]
+where $c \in \{0,1,2\}$ to represent red, yellow, or blue.
+In this formula, $n$ may be taken as a node number for one rail. Allowing $n$ to take non-integer values defines a continuous
+helix in space which is close to the segmented polyline of the outer tetrahedra edges, and coincides with them at integer
+values.
+The quantity $ (3 \theta - 2 \pi) \approx 35.43 \degree $, and is the approximate angular shift between $V(n,color)$ and
+$V(n+1,color)$.
+From this we can see that there are approximately $10.16$ red, blue or yellow tetrahedra one rail in a single revolution.
+The pitch of the Boerdijk--Coxeter helix of edge length $1$ is:
+\begin{align*}
+  &= \frac{2 \pi  3  h}{3 \theta - 2\pi} \\
+  &= \frac{3  \sqrt{\frac{2}{5}}  \pi}{3  \theta - 2 \pi} \\
+  &\approx 9.6392... \\
+\end{align*}
+
+
 
 
 \section{Utility for Robotics}
@@ -341,7 +380,6 @@ fact the motivation for creating the equitetrabream.
 \end{figure}
 
 
-\begin{theorem}
 
 
   \begin{conjecture}
@@ -356,7 +394,12 @@ fact the motivation for creating the equitetrabream.
     and the chirality. Using this formula, you can design tetrahelices of any integral lenght and integral turns, for example.
     \end{proof}
 
+  
 
+
+  Best reference is from Coxeter:
+  
+  http://cms.math.ca/openaccess/cmb/v28/cmb1985v28.0385-0393.pdf
 
 https://arxiv.org/pdf/1302.1174.pdf
 
