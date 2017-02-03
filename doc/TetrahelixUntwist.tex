@@ -25,7 +25,7 @@
 
 % See the ``Article customise'' template for come common customisations
 
-\title{A Continuum of Somewhat Optimal Untwisted Boerdijk--Coxeter Helices}
+\title{A Continuum of Member-length Optimal Untwisted Boerdijk--Coxeter Helices}
 \author{Robert L. Read
   \thanks{read.robert@gmail.com}
 }
@@ -59,9 +59,9 @@
 
 \section{Introduction}
 
-The Boerdijk--Coxeter helix is a stack of tetrahedra face to face that winds about a straight line. The vertices of the tetrahedra
+The Boerdijk--Coxeter helix\cite{coxeter1985simplicial} (BC helix), also called the tetrahelix by Buckminster Fuller\cite{fuller1982synergetics}, is a stack of tetrahedra face to face that winds about a straight line. The vertices of the tetrahedra
 lie upon three
-helices about the central axes. The Tetrobot/Glussbot project
+helices about the central axes. The Tetrobot/Glussbot\cite{TetrobotBook} project
 uses this regularity of this geometry to make a tentacle-like robot that can move like a slug or mollusc. The Tetrobot concept
 is to use mechanical members, called actuators, which can change their length, connected by special joints which allow many
 members to come to a single point. Such machines can follow purely mathematical models such as the Boerdijk–-Coxeter helix or the Octet Truss.
@@ -106,7 +106,7 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
 
  If we simply constrain all red joints to the origin and all blue joints to a line parallel to the x-axis at the vertix of an equilateral
  triangle descending from the origin, we will have simple equations in Cartesian space. We use the variable B to mean the x coordinate
- of the $blue_0$ node and Y to mean the x-cordnate of the $yellow_0$ node. Since for our purposes we do not need distance but rather relative distances
+ of the $blue_0$ node and Y to mean the x-coordinate of the $yellow_0$ node. Since for our purposes we do not need distance but rather relative distances
  until our last step, we organize these equations as \emph{quadrances}, leaving both sides of the equations squared.
  We further assume the red, yellow and blue members are all unity. The alitude of an equilateral triangle is $\sqrt{3}/2$.
  These equations follow from the distance formula in three space.
@@ -267,20 +267,24 @@ at (B, Y) = (2/3, 1/3)
   Summing together all lengths:
   \begin{align*}
   sum &= orange_e + orange_o + purple_e + purple_e + purple_o + green_e + green_o \\    
-  &= \sqrt{1 + Y^2} + \sqrt{1 + (1-Y)^2} + \sqrt{1 + B^2} + \sqrt{1+ (1-B)^2} +  \sqrt{1 + (B - Y)^2} +  \sqrt{1 + ((1+Y) - B)^2} \\
+  &= \sqrt{1 + Y^2} + \sqrt{1 + (1-Y)^2} + \sqrt{1 + B^2} + \sqrt{1+ (1-B)^2} + \\
+  & \sqrt{1 + (B - Y)^2} +  \sqrt{1 + ((1+Y) - B)^2} \\
   \end{align*} 
 
   Wolfram Alpha, evaluating this numerically, gives the same minima:
-\begin{align*}
-  min\{\sqrt(1 + Y^2) + \sqrt{1 + (1 - Y)^2} + \sqrt{1 + B^2} + \sqrt{1 + (1 - B)^2} + \\
-    \sqrt{1 + (B - Y)^2} + \sqrt{1 + ((1 + Y) - B)^2}\} \approx 6.76783 at (B, Y) \approx (0.666667, 0.333333)
-\end{align*}
+  
+  \begin{tabular}{c}    
+$  min\{\sqrt(1 + Y^2) + \sqrt{1 + (1 - Y)^2} + \sqrt{1 + B^2} + \sqrt{1 + (1 - B)^2} + $\\
+    $  \sqrt{1 + (B - Y)^2} + \sqrt{1 + ((1 + Y) - B)^2}\} $ \\
+    $ \approx 6.76783 \text{at } (B, Y) \approx (0.666667, 0.333333) $
+  \end{tabular}
+
   
 \end{proof}
 
 The equitetrabeam has chirality.
 
-\section{Untwisting the Tetrahelix}
+\section{The Rail Helices}
 
 If you can choose member lengths, you can form a linear combination of the equitetrabream lengths and the completely regular
 lengths of the tetrahelix, thereby choosing the torsion.  If you are designing a spaceframe, this is a static design choice,
@@ -293,11 +297,11 @@ It is a goal of this paper to relate these two approaches to generating a tetrah
 H. S. M. Coxeter constructs the Tetrahelix as a repeated rotation and translation of the tetrahedra, showing the
 rotation is:
 \[
-\theta = \acos(-2/3) 
+\theta = \arccos(-2/3) 
 \]
 and the translation:
 \[
-h_{BC} = 1/\sqrt{10}
+h_{bc} = 1/\sqrt{10}
 \]
 
 
@@ -306,22 +310,22 @@ The angle $\theta$ is the rotation of a \emph{each} tetrahedra.
 That is, a yellow tetrahedron is rotated slightly more than a $1/3$ of a revolution to match the face of the red tetrahedra.
 $3 \theta - 2\pi$ is the apparent roation of $V_3$ relative to $V_0$.
 
-From Robert Gray's site, repeating formula by H.S.M Coxeter:
+From Robert Gray's site, repeating formula by H.S.M. Coxeter:
 \[
 V_n =
 \left [
   \begin{tabular}{c}
-   $ r_{BC} \cos(n \theta $\\
-   $ r_{BC} \sin(n \theta) $\\
-   $ n h_{BC}  $
+   $ r_{bc} \cos(n \theta $\\
+   $ r_{bc} \sin(n \theta) $\\
+   $ n h_{bc}  $
   \end{tabular}
 \right ]  
-\],
+\]
 where:
 \[
-r_{BC} = 3\sqrt{3} / 10, 
+r_{bc} = \frac{3\sqrt{3}}{10} 
 \]
-and where n represents each integer numbered node in succession. That is, in our coloring scheme, $V_0$ is red, and$ V_1$ is yellow,  $V_2$ is blue,
+and where $n$ represents each integer numbered node in succession. That is, in our coloring scheme, $V_0$ is red, and$ V_1$ is yellow,  $V_2$ is blue,
 $V_3$ is red, etc. 
 
 This formula defines a helix, but it is not any of the helices of the Tetrahelix, but rather one that winds three times
@@ -332,9 +336,9 @@ each colored helix. Such a helix can be written:
 H_{BCcolored}(n,c) =
 \left [
   \begin{tabular}{c}
-   $ r_{BC}  \cos((3 \theta - 2 \pi)n + c  \theta $\\
-   $ r_{BC} \sin((3 \theta - 2 \pi)n + c  \theta $\\
-   $ (n + c/3) 3  h_{BC} $
+   $ r_{bc}  \cos((3 \theta - 2 \pi)n + c  \theta $\\
+   $ r_{bc} \sin((3 \theta - 2 \pi)n + c  \theta $\\
+   $ (n + c/3) 3  h_{bc} $
   \end{tabular}
 \right ]
 \]
@@ -346,13 +350,13 @@ values.
 The quantity $ (3 \theta - 2 \pi) \approx 35.43 \degree $, and is the approximate angular shift between $V(n,color)$ and
 $V(n+1,color)$. This quantity appears so often below that we call it the ``rail angle rho'', $\rho = (3 \theta - 2 \pi)$.
 Since:
-\[ \frac{2 \pi}{3 \theta - 2 \pi} \approx 10.1606....
+\[ \frac{2 \pi}{\rho} \approx 10.1606....
 \]
-We can see that there are approximately $10.16$ red, blue or yellow tetrahedra one rail in a single revolution.
+We can see that there are approximately $10.16$ red, blue or yellow tetrahedra on one rail in a single revolution.
 The pitch of the Boerdijk--Coxeter helix of edge length $1$ is the length of three tetrahedra times this number:
 \begin{align*}
-  &= \frac{2 \cdot 3 \pi h}{3 \theta - 2\pi} \\
-  &= \frac{3  \sqrt{\frac{2}{5}}  \pi}{3  \theta - 2 \pi} \\
+  &= \frac{2 \cdot 3 \pi h}{\rho} \\
+  &= \frac{3  \sqrt{\frac{2}{5}}  \pi}{\rho} \\
   &\approx 9.6392... \\
 \end{align*}
 The pitch is less than the number of tetrahedra because the tetrahedra are not lined up perfectly.
@@ -367,12 +371,12 @@ This formulation $V(n,c)$ above is valuable, but obscures the essentially fact t
 of each other. In order to rewrite this expression with an explict rotation of $2\pi/3$, we expand 
 the expression and seek to isolate the term $c2\pi/3$. (This took some searching.)
 \begin{align*}
-  (3 \theta - 2 \pi)n + c \theta  &=  & \text{we aim for 3 in denom} \\
-    (3 \theta - 2 \pi)n + (c/3)  (\theta /3)  &=  & \text{we want $2\pi$ in numerator, so add canceling terms} \\
-  (3 \theta - 2 \pi)n + (c/ 3) (3 \theta - 2 \pi  + 2 \pi) &= & \text{associate} \\
-  (3 \theta - 2 \pi)n + (c/ 3) ((3 \theta - 2 \pi)  + 2 \pi) &= & \text{distribute} \\  
-  (3 \theta - 2 \pi)n + (c / 3) (3 \theta - 2 \pi)  + c 2 \pi /3 &=  \text{collect like factors} \\
-  (3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3  \\
+  \rho n + c \theta  &=   \text{\{we aim for 3 in denom, so we split...\}} \\
+    (3 \theta - 2 \pi)n + (c/3)  (\theta /3)  &=   \text{\{we want $2\pi$ in numerator, so add canceling terms...\}} \\
+  (3 \theta - 2 \pi)n + (c/ 3) (3 \theta - 2 \pi  + 2 \pi) &=  \text{\{associate...\}} \\
+  (3 \theta - 2 \pi)n + (c/ 3) ((3 \theta - 2 \pi)  + 2 \pi) &=  \text{\{distribute...\}} \\  
+  (3 \theta - 2 \pi)n + (c / 3) (3 \theta - 2 \pi)  + c 2 \pi /3 &=  \text{\{collect like factors...\}} \\
+  \rho (n + c/3)  + c 2 \pi /3  \\
 \end{align*}
 Now the the formula on the left is the only one that depends on the scalar $n$. We use this to a create
 a new formulation $H_{symmetric}(n,c) = H_{colored}(n,c)$
@@ -381,8 +385,8 @@ a new formulation $H_{symmetric}(n,c) = H_{colored}(n,c)$
 H_{BCsymmmetric}(n,c) =
 \left [
   \begin{tabular}{c}
-   $ r  \cos((3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3) $\\
-   $ r  \sin((3 \theta - 2 \pi)(n + c/3)  + c 2 \pi /3) $\\
+   $ r  \cos((\rho)(n + c/3)  + c 2 \pi /3) $\\
+   $ r  \sin((\rho)(n + c/3)  + c 2 \pi /3) $\\
    $ (n + c/3) 3  h $
   \end{tabular}
 \right ]
@@ -401,14 +405,14 @@ H_{beam}(n,c) =
 \]
 where $ r_{etb} = 1/\sqrt(3)$, $h_{etb} = 1/3$,
 
-Now basic components of the helix, which are the radius $r$, the rate of rotation $(3 \theta - 2 \pi)(n + c/3)$, and the rate of
+Now basic components of the helix, which are the radius $r$, the rate of rotation $(\rho)(n + c/3)$, and the rate of
 axial growth $ (n + c/3) 3  h $ can all be linearly interpolated with a parameter $\lambda$ between their high values (for the BC helix)
 and low values (for the equitetrabeam):
 
 \begin{align*}
-r_{\lambda}  &= (3 \sqrt(3) / 10 - 1/\sqrt(3)) \lambda +  1/\sqrt(3) \\
-h_{\lambda} &=  (3 / \sqrt(10) - 1) \lambda + 1 \\
-rot_{\lambda} &= (3 \theta - 2 \pi) \lambda  \\
+r_{\lambda}  &=  \lambda (3 \sqrt(3) / 10 - 1/\sqrt(3)) +  1/\sqrt(3) \\
+h_{\lambda} &=   \lambda (3 / \sqrt(10) - 1)+ 1 \\
+rot_{\lambda} &=  \lambda \rho  \\
 \end{align*}
 to create a formula that generates a continuum of tetrahedral structures:
 
@@ -416,8 +420,8 @@ to create a formula that generates a continuum of tetrahedral structures:
 H_{continnum}(n,c,\lambda) =
 \left [
   \begin{tabular}{c}
-   $ r_{\lambda} \cos(rot_{lambda} (n + c/3) + c 2 \pi /3) $\\
-   $ r_{\lambda}  \sin(rot_{lambda} (n + c/3) + c 2 \pi /3) $\\
+   $ r_{\lambda} \cos(rot_{\lambda} (n + c/3) + c 2 \pi /3) $\\
+   $ r_{\lambda}  \sin(rot_{\lambda} (n + c/3) + c 2 \pi /3) $\\
    $ h_{\lambda} (n + c/3) + 0 $
   \end{tabular}
 \right ]
@@ -430,15 +434,19 @@ In the sense of structureal engineering, it would be a relatively strong spacefr
 Furhtermore, this formula allows one to design the pitch (in edge length units) as a function of $\lambda$ of the helix (along one rail)
 where $\lambda \neq 0$:
 \[
-2 \pi  \cdot \frac{((3/\sqrt(10) -1) \lambda +1)}{ (\lambda ( \theta 3 - 2 \pi)}
+p(\lambda) = 2 \pi  \cdot \frac{((3/\sqrt(10) -1) \lambda +1)}{ \lambda  \rho }
 \]
 
 
 \section{Utility for Robotics}
 
-Starting twenty years ago, Sanderson, Hamlin, and others created a style of robotics based on changing the lengths of members
+Trusses and spaceframes remain an important design field in mechanical and structural enginnering\cite{mikulas1985sequentially},
+including deployable and moving trusses\cite{claypool2012readily}.
+
+Starting twenty years ago, Sanderson\cite{sanderson1996modular}, Hamlin,\cite{TetrobotBook}, and others including Lee\cite{lee2002dynamic}
+created a style of robotics based on changing the lengths of members
 joined at the center of a joint, thereby creating a connection to pure geometry. More recently NASA has experimented with
-tensegrities, a different point in the same design spectrum. These fields create a need to explore the notion of
+tensegrities\cite{NTRT}, a different point in the same design spectrum. These fields create a need to explore the notion of
 geometries changing over time, not generally considered directly by pure geometry.
 
 As suggested by Buckminster Fuller, the most convenient geometries to consider are those that have regular member
@@ -471,39 +479,6 @@ fact the motivation for creating the equitetrabream.
      \caption{The Equitetrabream: Fully Untwisted Tetrahelix}
 \end{figure}
 
-
-  Best reference is from Coxeter:
-  
-  http://cms.math.ca/openaccess/cmb/v28/cmb1985v28.0385-0393.pdf
-
-https://arxiv.org/pdf/1302.1174.pdf
-
-Cite this patent:
-
-
-US4557097A
-
-Note this patent seems to have a similar shape, but uses an assymmetric square bottom.
-
-US4633566A
-
-This patent motivates adjustable truss:
-
-US5701713A
-
-Another deployable truss:
-
-US4958474A
-
-Another deployable, non-triangular truss:
-
-https://patents.google.com/patent/US20030041548A1
-
-
-Another such patent:
-
-US4930930A
-
 \section{Contact and Getting Involved}
 
 The Gluss Project \url{http://pubinv.github.io/gluss/}
@@ -516,3 +491,8 @@ To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$
 
 \end{document}
 
+  Best reference is from Coxeter:
+  
+  http://cms.math.ca/openaccess/cmb/v28/cmb1985v28.0385-0393.pdf
+
+https://arxiv.org/pdf/1302.1174.pdf
