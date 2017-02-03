@@ -51,7 +51,7 @@
   It has 3-fold symmetry about  axis, and chirality.  
   A formula for the individual outer helices (and therby vertices) of the BC helix is given and
   unified with the formula for the equitetrabeam to create a continuum of ``untwisted'' BC helices optimal
-  in the same senses mentioned above. This formula allows structures to in the continuum to be
+  in the same senses mentioned above. This formula allows structures in the continuum to be
   designed for pitch, curvature, torsion etc. by choice of $\lambda \in [0,1]$. Utility for truss/spaceframe design and
   robotics are discussed.
 \end{abstract}
@@ -59,14 +59,21 @@
 
 \section{Introduction}
 
-The Boerdijk--Coxeter helix\cite{coxeter1985simplicial} (BC helix), also called the tetrahelix by Buckminster Fuller\cite{fuller1982synergetics}, is a stack of tetrahedra face to face that winds about a straight line. The vertices of the tetrahedra
+The Boerdijk--Coxeter helix\cite{coxeter1985simplicial} (BC helix),
+also called the tetrahelix by Buckminster Fuller\cite{fuller1982synergetics},
+is a face-to-face stack of tetrahedra that winds about a straight axis.
+The vertices of the tetrahedra
 lie upon three
-helices about the central axes. The Tetrobot/Glussbot\cite{TetrobotBook} project
-uses this regularity of this geometry to make a tentacle-like robot that can move like a slug or mollusc. The Tetrobot concept
-is to use mechanical members, called actuators, which can change their length, connected by special joints which allow many
-members to come to a single point. Such machines can follow purely mathematical models such as the Boerdijk–-Coxeter helix or the Octet Truss.
+helices about the central axis.
+The Tetrobot/Glussbot\cite{TetrobotBook} project
+uses the regularity of this geometry to make a tentacle-like robot that can crawl like a slug or mollusc.
+The Tetrobot concept
+is to use mechanical members, called actuators, which can change their length, connected by special joints, called the Song-Kwon-Kim\cite{song2003spherical} or turret joint,
+which allow many
+members to come to a single point.
+Such machines can follow purely mathematical models such as the Boerdijk–-Coxeter helix or the Octet Truss.
 
-However, a tetrahelix does not rest on a plane in a simple way. It is convenient to have it ``untwist'' and form a spaceframe that
+However, a tetrahelix does not rest on a plane in a simple way. It is convenient to be able to ``untwist'' and form a spaceframe that
 has a flat planar surface. By making length changes in a certain way, we can untwist a tetrahelix to form a ``tetrabeam'' which
 is perfectly flat and has, for example, an equilateral triangular profile.
 
@@ -74,17 +81,18 @@ is perfectly flat and has, for example, an equilateral triangular profile.
 
 A tetrahelix has the useful property that every member is precisely the same length. If we relax this, so that the tetrahedra it
 comprises are not perfectly regular, then we can twist and curve the tetrahelix into a variety of shapes. This is useful to
-the mechanical engineer or robotocists because the structure remains an inherently rigid, omni-triangulated space frame, which
+the mechanical engineer or robotocist because the structure remains an inherently rigid, omni-triangulated space frame, which
 may be expected to be at least somewhat mechanically strong.
 
-In particular, we can untwist the perfectly regular tetrahelix to form a ``tetrabeam''. We seek a tetrabeam that is irregular
-(in terms of its tetrahedra) but regular enough in terms of mechanical engineering to be comprehensible and computationally tractable.
-Observe that a regular tetrahelix appears to have three bumpy ``tracks'' which wind about the central axis.  We seek to unwind
-these tracks so each track is a plane.
+In particular, we can untwist by manual design the perfectly regular tetrahelix to form a flat ``tetrabeam''.
+However, we seek an algorithm or formula for a tetrabeam that is irregular
+(in terms of its tetrahedra) but as regular as possible in terms of mechanical engineering to be comprehensible and computationally tractable.
+Observe that a regular tetrahelix appears to have three bumpy ``rails'' which wind about the central axis.  We seek to untwist
+these rails so they form a track is a plane.
 
 In order to do this for an tetrahelix of arbitrary length, we need a nameing convention for each member. We propose a coloring
 scheme in which the joints and members on the outer ``rails'' of the tetrahelix are colored in primary colors red, yellow and blue.
-We propse that the interior members be colored based on the rails they connect using an additive color scheme, or orange, purple, and green,
+We propse that the interior members be colored based on the rails they connect using an subtractive color scheme, or orange, purple, and green,
 if the member connects red to yellow, red to blue, or blue to yellow, respectively.  Furthermore, we call interor members ``even'' if they
 are even numbered starting from the joint at the origin, and ``odd'' if they are odd-numbered.  We have found that nine classes thus
 formed are sufficient to untwist the tetrahelix and for our purposes: $red, yellow, orange_{even}, orange_o, purple_e, purple_o, green_e, green_o$. In the diagram below, the ``odd'' members are draw with a dashed line.
@@ -92,23 +100,24 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
 
  \begin{figure}[H]
      \centering
-     \includegraphics[width=0.9\textwidth]{TetrahelixColoringDiagram.png}
+     \includegraphics[width=0.9\textwidth]{figures/TetrahelixColoringDiagram.png}
      \caption{Coloring of an (untwisted) Tetrabeam}
  \end{figure}
 
- Having observed that the tetrahelix can form a tetrabeam, we need merely compute the length of the member classes.
+ Having observed that the tetrahelix is isomorphic to a tetrabeam, we need merely compute the length of the member classes.
 
- Although one could choose any beam width and beam height in principle, and a structural engineer would like choose a ``deep'' beam that had
+ Although one could choose any beam width and beam height in principle, and a structural engineer would likely choose a ``deep'' beam that had
  a height greater than its width, our primary motivation is support the Tetrobot, which uses members that all have the same maximum and
  minimum length. It therefore is sensible to consider a ``tetrabeam'' with the cross-sectional profile of an equilateral triangle.
  Furthermore, acting as robotics engineers we seek to have all members to be similar in length, because this allows us the greatest
  flexibility in making the tetrabeam crawl, or walk, or curl, topics outside the scope of this paper.
 
  If we simply constrain all red joints to the origin and all blue joints to a line parallel to the x-axis at the vertix of an equilateral
- triangle descending from the origin, we will have simple equations in Cartesian space. We use the variable B to mean the x coordinate
- of the $blue_0$ node and Y to mean the x-coordinate of the $yellow_0$ node. Since for our purposes we do not need distance but rather relative distances
+ triangle descending from the origin, we will have simple equations in Cartesian space. We use the variable $B$ to mean the x coordinate
+ of the $blue_0$ node and $Y$ to mean the x-coordinate of the $yellow_0$ node. Since for our purposes we do not need distance but
+ rather relative distances
  until our last step, we organize these equations as \emph{quadrances}, leaving both sides of the equations squared.
- We further assume the red, yellow and blue members are all unity. The alitude of an equilateral triangle is $\sqrt{3}/2$.
+ We further assume the red, yellow and blue members are all of unit length. The alitude of an equilateral triangle is $\sqrt{3}/2$.
  These equations follow from the distance formula in three space.
  \begin{align*}
    D^2 &= (\Delta z)^2 + (\Delta y)^2 + (\Delta x)^2 \\
@@ -120,7 +129,7 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
  green_o^2 &= ((1+Y) - B)^2 + 1^2 + 0^2 & &= 1 + ((1+Y) - B)^2 \\ 
 \end{align*}
 
- We then ask the question: what are useful values for B and Y, from which we will have constrained and computed the lengths of all
+ We then ask the question: what are useful values for $B$ and $Y$, from which we will have constrained and computed the lengths of all
  members.
 
  \section{Choosing the parameters}
