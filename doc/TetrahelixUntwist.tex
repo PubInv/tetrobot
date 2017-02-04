@@ -43,16 +43,16 @@
 
 \begin{abstract}
   The Boerdijk--Coxeter helix (BC helix) is a face-to-face stack of regular tetrahedra whose outer vertices lie on helices.
-  By using irregular tetrahedra, one can transform a BC helix, or tetrahelix, into a spaceframe that is not twisted, forming a novel object, a
+  By using irregular tetrahedra, one can transform a BC helix, or tetrahelix, into a space frame that is not twisted, forming a novel object, a
   ``tetrabeam''.
   In the case of an equilateral profile, an analytic set of member lengths is provided which are shown to be optimal in minimize
-  maximum lenghth difference, total member length, and sum of squared member lengths.
+  maximum length difference, total member length, and sum of squared member lengths.
   This ``equitetrabeam'' is formed with only three member lengths ( two of $\sqrt{13/9}$, three are $\sqrt{10/9}$, and one of $1$.)
   It has 3-fold symmetry about  axis, and chirality.  
-  A formula for the individual outer helices (and therby vertices) of the BC helix is given and
+  A formula for the individual outer helices (and thereby vertices) of the BC helix is given and
   unified with the formula for the equitetrabeam to create a continuum of ``untwisted'' BC helices optimal
   in the same senses mentioned above. This formula allows structures in the continuum to be
-  designed for pitch, curvature, torsion etc. by choice of $\lambda \in [0,1]$. Utility for truss/spaceframe design and
+  designed for pitch, curvature, torsion etc. by choice of $\lambda \in [0,1]$. Utility for truss/space frame design and
   robotics are discussed.
 \end{abstract}
 
@@ -73,7 +73,7 @@ which allow many
 members to come to a single point.
 Such machines can follow purely mathematical models such as the Boerdijk–-Coxeter helix or the Octet Truss.
 
-However, a tetrahelix does not rest on a plane in a simple way. It is convenient to be able to ``untwist'' and form a spaceframe that
+However, a tetrahelix does not rest on a plane in a simple way. It is convenient to be able to ``untwist'' and form a space frame that
 has a flat planar surface. By making length changes in a certain way, we can untwist a tetrahelix to form a ``tetrabeam'' which
 is perfectly flat and has, for example, an equilateral triangular profile.
 
@@ -90,10 +90,10 @@ However, we seek an algorithm or formula for a tetrabeam that is irregular
 Observe that a regular tetrahelix appears to have three bumpy ``rails'' which wind about the central axis.  We seek to untwist
 these rails so they form a track is a plane.
 
-In order to do this for an tetrahelix of arbitrary length, we need a nameing convention for each member. We propose a coloring
+In order to do this for an tetrahelix of arbitrary length, we need a naming convention for each member. We propose a coloring
 scheme in which the joints and members on the outer ``rails'' of the tetrahelix are colored in primary colors red, yellow and blue.
-We propse that the interior members be colored based on the rails they connect using an subtractive color scheme, or orange, purple, and green,
-if the member connects red to yellow, red to blue, or blue to yellow, respectively.  Furthermore, we call interor members ``even'' if they
+We propose that the interior members be colored based on the rails they connect using an subtractive color scheme, or orange, purple, and green,
+if the member connects red to yellow, red to blue, or blue to yellow, respectively.  Furthermore, we call interior members ``even'' if they
 are even numbered starting from the joint at the origin, and ``odd'' if they are odd-numbered.  We have found that nine classes thus
 formed are sufficient to untwist the tetrahelix and for our purposes: $red, yellow, orange_{even}, orange_o, purple_e, purple_o, green_e, green_o$. In the diagram below, the ``odd'' members are draw with a dashed line.
 
@@ -112,12 +112,12 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
  Furthermore, acting as robotics engineers we seek to have all members to be similar in length, because this allows us the greatest
  flexibility in making the tetrabeam crawl, or walk, or curl, topics outside the scope of this paper.
 
- If we simply constrain all red joints to the origin and all blue joints to a line parallel to the x-axis at the vertix of an equilateral
+ If we simply constrain all red joints to the origin and all blue joints to a line parallel to the x-axis at the vertex of an equilateral
  triangle descending from the origin, we will have simple equations in Cartesian space. We use the variable $B$ to mean the x coordinate
  of the $blue_0$ node and $Y$ to mean the x-coordinate of the $yellow_0$ node. Since for our purposes we do not need distance but
  rather relative distances
  until our last step, we organize these equations as \emph{quadrances}, leaving both sides of the equations squared.
- We further assume the red, yellow and blue members are all of unit length. The alitude of an equilateral triangle is $\sqrt{3}/2$.
+ We further assume the red, yellow and blue members are all of unit length. The altitude of an equilateral triangle is $\sqrt{3}/2$.
  These equations follow from the distance formula in three space.
  \begin{align*}
    D^2 &= (\Delta z)^2 + (\Delta y)^2 + (\Delta x)^2 \\
@@ -134,7 +134,7 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
 
  \section{Choosing the parameters}
 
- Choices of $Y$ and $B$ correspond to slideing the yellow and blue rail relative to the red rail. However, we seek to choose them such that all
+ Choices of $Y$ and $B$ correspond to sliding the yellow and blue rail relative to the red rail. However, we seek to choose them such that all
  classes of members have similar lengths. In particular, we want to minimize the difference between the shortest and longest.
 
  It particular we have no interest in solutions in which these rails swing past the $red_1$, or swing behind $red_0$, so we
@@ -145,13 +145,13 @@ formed are sufficient to untwist the tetrahelix and for our purposes: $red, yell
  length is minimized when $Y = 1/3$ and $B = 2/3$.
 
  \begin{theorem}
-A Tetrabeam of mininimum maximum difference between edge lengths is formed when $Y = 1/3$ and $B = 2/3$.
+A Tetrabeam of minimum maximum difference between edge lengths is formed when $Y = 1/3$ and $B = 2/3$.
 \end{theorem}
 
  \begin{proof}
    First we show that asserting $Y + B = 1$ does not worsen our solution.
 
-   Assume $Y'' = Y' + k, B'' = B' + k$, where $k > 0$. Algebraically, subsituting $Y'', B''$ into the equations for the $green$
+   Assume $Y'' = Y' + k, B'' = B' + k$, where $k > 0$. Algebraically, substituting $Y'', B''$ into the equations for the $green$
    classes above does not change them. Geometrically, swinging  the yellow or blue rail by the same amount does not change the
    shape of the green triangles. Therefore we may choose the sum $ Y+B $ to be whatever we want without increasing the length
    of $green_e$ or $green_o$.
@@ -160,7 +160,7 @@ A Tetrabeam of mininimum maximum difference between edge lengths is formed when 
    if it were we could shorten the longest member $purple_e$ by lowering both $Y$ and $B$. Therefore $orange_e < orange_o$.
    Similarly $purple_o < purple_e$. So $orange_e$ and $purple_o$ cannot be the longest members of the four.
 
-   Of the four remaining member lengths, suppose that $orange_o$ or $purple_e$ is one of the longest. Whichever it is can ben be shortened
+   Of the four remaining member lengths, suppose that $orange_o$ or $purple_e$ is one of the longest. Whichever it is can be be shortened
    until it is equal to the other, or:
  \begin{align*}
  orange_o^2  &= 1 + (1-Y)^2 & &=  purple_e^2  &= 1 + B^2\\
@@ -176,9 +176,9 @@ A Tetrabeam of mininimum maximum difference between edge lengths is formed when 
  (Note: Although these classes are the same for the purpose of the Equitetrabeam, for other purposes of robotics
  they may not be. We therefore retain our color naming scheme.)
 
- We now need only choose $Y$ so as to miniize these two classes against the $green$ class.
+ We now need only choose $Y$ so as to minimize these two classes against the $green$ class.
 
-   Assume that $Y \leq 1/2$. Then $B \geq 1/2$. Substituing $1 - Y$ for $B$ in our equations:
+   Assume that $Y \leq 1/2$. Then $B \geq 1/2$. Substituting $1 - Y$ for $B$ in our equations:
  \begin{align*}
    orange_e^2 &= 1 + Y^2 \\
  orange_o^2 &= 1 + (1-Y)^2 \\
@@ -249,7 +249,7 @@ are.
 
 \begin{theorem}
   The Equitetrabeam is also optimal under the metric of the sum of the squares of all members
-  for an equilateral tetrabream isomorphic to the Boerdijk--Coxeter helix.
+  for an equilateral tetrabeam isomorphic to the Boerdijk--Coxeter helix.
   \end{theorem}
 
 \begin{proof}
@@ -296,12 +296,12 @@ The equitetrabeam has chirality.
 \section{The Rail Helices}
 
 If you can choose member lengths, you can form a linear combination of the equitetrabream lengths and the completely regular
-lengths of the tetrahelix, thereby choosing the torsion.  If you are designing a spaceframe, this is a static design choice,
+lengths of the tetrahelix, thereby choosing the torsion.  If you are designing a space frame, this is a static design choice,
 in a robot, it is a dynamic choice that can be used to twist the robot and/or exert torsion on the environment.
 
 Ideally we would have a simple formula for defining the nodes based on any torsion we choose.
-Unfortunately, it is not obvious that a linear combination of lengths produces a simple formular.
-It is a goal of this paper to relate these two approaches to generating a tetrahelix continnum.
+Unfortunately, it is not obvious that a linear combination of lengths produces a simple formula.
+It is a goal of this paper to relate these two approaches to generating a tetrahelix continuum.
 
 H. S. M. Coxeter constructs the Tetrahelix as a repeated rotation and translation of the tetrahedra, showing the
 rotation is:
@@ -317,7 +317,7 @@ h_{bc} = 1/\sqrt{10}
 $\theta$ is approximately $131.8103149$ degrees.
 The angle $\theta$ is the rotation of a \emph{each} tetrahedra.
 That is, a yellow tetrahedron is rotated slightly more than a $1/3$ of a revolution to match the face of the red tetrahedra.
-$3 \theta - 2\pi$ is the apparent roation of $V_3$ relative to $V_0$.
+$3 \theta - 2\pi$ is the apparent rotation of $V_3$ relative to $V_0$.
 
 From Robert Gray's site, repeating formula by H.S.M. Coxeter:
 \[
@@ -374,21 +374,23 @@ The pitch is less than the number of tetrahedra because the tetrahedra are not l
 
 We observe that it by thinking of the straight lines of the Equitetrabeam as a degenerate helix of zero curvature,
 it should be possible to define a smoothly varying continuum between the Boerdijk--Coxeter helix and the Equitetrabeam and every
-curvature and torsion betwen the two.
+curvature and torsion between the two.
 
-This formulation $V(n,c)$ above is valuable, but obscures the essentially fact that the red, yellow, and blue helices are 120 degree rotations
-of each other. In order to rewrite this expression with an explict rotation of $2\pi/3$, we expand 
-the expression and seek to isolate the term $c2\pi/3$. (This took some searching.)
+This formulation $V(n,c)$ above is valuable, but obscures the essentially fact that the red, yellow, and blue helices distributed
+about the central $z$ axis $120\degree$ from each other.
+In order to rewrite this expression with an explicit rotation of $2\pi/3$, we expand 
+the expression and seek to isolate the term $c2\pi/3$.
 \begin{align*}
-  \rho n + c \theta  &=   \text{\{we aim for 3 in denom, so we split...\}} \\
+  \rho n + c \theta  &=   \text{\{we aim for 3 in denominator, so we split...\}} \\
     (3 \theta - 2 \pi)n + (c/3)  (\theta /3)  &=   \text{\{we want $2\pi$ in numerator, so add canceling terms...\}} \\
   (3 \theta - 2 \pi)n + (c/ 3) (3 \theta - 2 \pi  + 2 \pi) &=  \text{\{associate...\}} \\
   (3 \theta - 2 \pi)n + (c/ 3) ((3 \theta - 2 \pi)  + 2 \pi) &=  \text{\{distribute...\}} \\  
-  (3 \theta - 2 \pi)n + (c / 3) (3 \theta - 2 \pi)  + c 2 \pi /3 &=  \text{\{collect like factors...\}} \\
+  (3 \theta - 2 \pi)n + (c / 3) (3 \theta - 2 \pi)  + c 2 \pi /3 &=  \text{\{definition of $\rho$...\}} \\
+  \rho n + (c / 3) \rho  + c 2 \pi /3 &=  \text{\{collect like factors...\}} \\  
   \rho (n + c/3)  + c 2 \pi /3  \\
 \end{align*}
 Now the the formula on the left is the only one that depends on the scalar $n$. We use this to a create
-a new formulation $H_{symmetric}(n,c) = H_{colored}(n,c)$
+a new formulation $H_{BCsymmetric}(n,c) = H_{colored}(n,c)$
 
 \[
 H_{BCsymmmetric}(n,c) =
@@ -403,7 +405,7 @@ H_{BCsymmmetric}(n,c) =
 
 We seek to unify this with degenerate helix formula for the equitetrabeam:
 \[
-H_{beam}(n,c) =
+H_{etb}(n,c) =
 \left [
   \begin{tabular}{c}
    $ r_{etb}  \cos( 0 \cdot (n + c/3)  + c 2 \pi /3) $\\
@@ -414,19 +416,19 @@ H_{beam}(n,c) =
 \]
 where $ r_{etb} = 1/\sqrt(3)$, $h_{etb} = 1/3$,
 
-Now basic components of the helix, which are the radius $r$, the rate of rotation $(\rho)(n + c/3)$, and the rate of
+Now basic components of the helix, which are the radius $r$, the rate of rotation $\rho(n + c/3)$, and the rate of
 axial growth $ (n + c/3) 3  h $ can all be linearly interpolated with a parameter $\lambda$ between their high values (for the BC helix)
 and low values (for the equitetrabeam):
 
 \begin{align*}
 r_{\lambda}  &=  \lambda (3 \sqrt(3) / 10 - 1/\sqrt(3)) +  1/\sqrt(3) \\
 h_{\lambda} &=   \lambda (3 / \sqrt(10) - 1)+ 1 \\
-rot_{\lambda} &=  \lambda \rho  \\
+rot_{\lambda} &=  \lambda \rho  + 0\\
 \end{align*}
 to create a formula that generates a continuum of tetrahedral structures:
 
 \[
-H_{continnum}(n,c,\lambda) =
+H_{continuum}(n,c,\lambda) =
 \left [
   \begin{tabular}{c}
    $ r_{\lambda} \cos(rot_{\lambda} (n + c/3) + c 2 \pi /3) $\\
@@ -435,21 +437,25 @@ H_{continnum}(n,c,\lambda) =
   \end{tabular}
 \right ]
 \]
-A value of $\lambda = 0$ generates the Equitetrabeam, and $\lambda = 1$ generates the Boerdijk--Coxeter helix, and every
-value $\lambda \in [0,1]$ generates an attractive structure which if physcially realized is an inherently rigid structure
+A value of $\lambda = 0$ generates the equitetrabeam, and $\lambda = 1$ generates the Boerdijk--Coxeter helix, and every
+value $\lambda \in [0,1]$ generates an attractive structure which if physically realized is an inherently rigid structure
 with member lengths of no greater disparity than $21\%$.
-In the sense of structureal engineering, it would be a relatively strong spaceframe.
+In the sense of structural engineering, it would be a relatively strong space frame.
 
-Furhtermore, this formula allows one to design the pitch (in edge length units) as a function of $\lambda$ of the helix (along one rail)
+Furthermore, this formula allows one to design the pitch (in edge length units) as a function of $\lambda$ of the helix (along one rail)
 where $\lambda \neq 0$:
 \[
 p(\lambda) = 2 \pi  \cdot \frac{((3/\sqrt(10) -1) \lambda +1)}{ \lambda  \rho }
 \]
 
+\begin{conjecture}
+  The tetrahelices generated by $H_{continum}$ are optimal in terms of minimum maximum member length, minimum total member length, and minimum
+  sum of squared lengths for $\lambda \in [0,1]$.
+\end{conjecture}
 
 \section{Utility for Robotics}
 
-Trusses and spaceframes remain an important design field in mechanical and structural enginnering\cite{mikulas1985sequentially},
+Trusses and space frames remain an important design field in mechanical and structural engineering\cite{mikulas1985sequentially},
 including deployable and moving trusses\cite{claypool2012readily}.
 
 Starting twenty years ago, Sanderson\cite{sanderson1996modular}, Hamlin,\cite{TetrobotBook}, and others including Lee\cite{lee2002dynamic}
@@ -459,10 +465,10 @@ tensegrities\cite{NTRT}, a different point in the same design spectrum. These fi
 geometries changing over time, not generally considered directly by pure geometry.
 
 As suggested by Buckminster Fuller, the most convenient geometries to consider are those that have regular member
-lengths, in order to facilitate the inexpensive manufacture and construction of the robot.  In a plane, the octest truss
+lengths, in order to facilitate the inexpensive manufacture and construction of the robot.  In a plane, the octet truss
 is such a geometry, but in a line, the Boerdijk--Coxeter helix is a regular structure.
 
-However, a robot must move, and so it is interesting to consider the transmuations of these geometries, which was in
+However, a robot must move, and so it is interesting to consider the transmutations of these geometries, which was in
 fact the motivation for creating the equitetrabream.
 
 \begin{theorem}
@@ -504,4 +510,6 @@ To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$
   
   http://cms.math.ca/openaccess/cmb/v28/cmb1985v28.0385-0393.pdf
 
-https://arxiv.org/pdf/1302.1174.pdf
+  https://arxiv.org/pdf/1302.1174.pdf
+
+  TODO: 
