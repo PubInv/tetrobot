@@ -48,7 +48,7 @@
   BC helix of designable pitch or curvature, effectively ``untwisting'' the BC helix. We show that in the sense of minimal maximum
   difference in edge length, every tetrahelix has vertices equally spaced along the axis and at most three distinct edge lengths.
   In the case of a full untwisting to zero curvature, we describe a novel object, the
-  ``equitetrabeam'' formed with member lengths ( two of $\sqrt{13/9}$, three are $\sqrt{10/9}$, and one of $1$.)
+  \emph{equitetrabeam}.
   It has 3-fold symmetry about  axis, and chirality.  This tetrabeam and controllably twisted tetrahelices are
   interesting for structural engineering because they are inherently rigid space frames and trusses.
   A formula for the cartesian coordinates of the individual nodes of outer helices of the BC helix is given and
@@ -140,7 +140,7 @@ are visually apparent, that is, those three which are closely approximated by th
 It is convenient to have a formula that gives us the nodes of just
 each colored helix.
 \[
-H_{BCcolored}(n,c) = V_(3n +c)
+H_{BCcolored}(n,c) = V(3n +c)
 \]
 where $c \in \{0,1,2\}$ specifies which of the rails is being computed.
 
@@ -191,7 +191,10 @@ The pitch of the Boerdijk--Coxeter helix of edge length $1$ is the length of thr
 The pitch is less than the number of tetrahedra because the tetrahedra are not lined up perfectly.
 It is a famous and interesting result that the pitch is irrational, a BC helix never has two tetrahedra
 at precisely the same orientation around the $z$-axis. However, this is inconvenient to designers, who
-might prefer a rational pitch, and we later provide a means of obtaining that more general tetrahelices.
+might prefer a rational pitch. For example, a slight irregularity that led to a pitch of precisely 10 tetrahedra
+in one revolution would allow an architect to design a column that a basis and a capital in the same relation to the tetrahedra
+they touch.
+We later provide a means of obtaining that more general tetrahelices.
 
 A BC helix has the useful property that every member is precisely the same length. If we relax this, so that the tetrahedra it
 comprises are not perfectly regular, then we can twist and curve the tetrahelix into a variety of shapes. This is useful to
@@ -225,11 +228,11 @@ In the diagram below, the ``odd'' members are draw with a dashed line.
   $V_3$ is red, etc.
 
 \begin{theorem}
-  Suppose that all edges are on a cylinder of radious $1/\sqrt(3)$ and that $R,B,Y$ are on lines $120\degree$ from each other.
+  Suppose that all edges are on a cylinder and that $R,B,Y$ are on lines $120\degree$ from each other.
   Then at minimax positioning occurs when at least 3 non-rail edge classes are the longest length and equivalent.
  \end{theorem}
 \begin{proof}
-  Suppose that all edges are on a cylinder of radious $1/\sqrt(3)$ and that $R,B,Y$ are on lines $120\degree$ from each other. Observe
+  Suppose that all edges are on a cylinder and that $R,B,Y$ are on lines $120\degree$ from each other. Observe
   that the distance between any two nodes of different color is at least $1$, and between the same colors (``on the same rail'') exactly $1$ if closest.
 
   If there is a unique longest distance, it touches two rails. Moving those rails closer together infinitesimally decreases the longest length and
@@ -262,9 +265,10 @@ In the diagram below, the ``odd'' members are draw with a dashed line.
 
 \begin{proof}
 The edge opposite of the rail edge is a mid-length edge because between any two rails the edges alteranate mid-length and long.
-  \end{proof}
+\end{proof}
 
 \begin{corollary}
+  \label{eventhirds}
   Any minimax optimal tetrahelix has its colored edges spaced at 1/3 the height of
   a tetrahedra along the z-axis, where the height is the z-distance of the rail edge.
   \end{corollary}
@@ -277,21 +281,24 @@ The edge opposite of the rail edge is a mid-length edge because between any two 
   so that the $z$-distance between each node is the same. So $O=G=P=h/3$.
 \end{proof}
 
+Note that based on Theorems \ref{tetrahelixoptimality} and \ref{eventhirds}, we are justified in classifying edge lengths as \emph{rail},\emph{mid-length}, or
+\emph{long}. The mid-length edges are the edges between closest on the $z$-axis, and the long edges are those that hop over a vertex.
 
-Therefore every optimal tetrahelix has vertices lying on helices expressible in the form:
+Every optimal tetrahelix has vertices lying on helices expressible in the form:
 \[
 V_{optimal}(n,c) =
 \left [
   \begin{tabular}{c}
    $ r \cos(n \alpha +  c 2 \pi /3)$\\
    $ r \sin(n \alpha +  c 2 \pi /3) $\\
-   $ \frac{h(n +c / 3)}{3}   $
+   $ \frac{d(n +c / 3)}{3}   $
   \end{tabular}
 \right ]
 \]
-where we have not yet investigated in the general case the relationships beteween $\alpha$, $r$, and $h$ in this formulation.
+where we have not yet investigated in the general case the relationships beteween $\alpha$, $r$, and $d$ in this formulation.
 However, we understand that when $\alpha = 0$, the helices are degenerate, having curvature of $0$, and
 we have the equitetrabeam.
+
 
 
 
@@ -328,7 +335,7 @@ H_{BCsymmmetric}(n,c) =
   \begin{tabular}{c}
    $ r  \cos(\rho_{bc} \kappa  + c 2 \pi /3) $\\
    $ r  \sin(\rho_{bc} \kappa  + c 2 \pi /3) $\\
-   $ \kappa 3  h $
+   $ \kappa 3  d $
   \end{tabular}
   \right ],
 \text{where:}
@@ -346,7 +353,7 @@ H_{etb}(n,c) =
   \begin{tabular}{c}
    $ r_{etb}  \cos( 0 \cdot \kappa  + c 2 \pi /3) $\\
    $ r_{etb}  \sin( 0 \cdot \kappa  + c 2 \pi /3) $\\
-   $ \kappa h_{etb} $
+   $ \kappa d_{etb} $
   \end{tabular}
 \right ],
 \text{where:}
@@ -356,7 +363,7 @@ H_{etb}(n,c) =
    $ \theta = \arccos(-2/3) $
   \end{tabular}      
 \]
-where $ r_{etb} = 1/\sqrt(3)$, $h_{etb} = 1/3$,
+where $ r_{etb} = 1/\sqrt(3)$, $d_{etb} = 1/3$,
 
 Now basic components of the helix, which are the radius $r$, the rate of rotation, and the rate of
 axial growth can all be linearly interpolated with a parameter $\lambda$ between their high values (for the BC helix)
@@ -364,7 +371,7 @@ and low values (for the equitetrabeam):
 
 \begin{align*}
 r_{\lambda}  &=  \lambda (3 \sqrt(3) / 10 - 1/\sqrt(3)) +  1/\sqrt(3) \\
-h_{\lambda} &=   \lambda (3 / \sqrt(10) - 1)+ 1 \\
+d_{\lambda} &=   \lambda (3 / \sqrt(10) - 1)+ 1 \\
 \phi_{\lambda} &=  \lambda \rho_{bc}  + 0\\
 \end{align*}
 to create a formula that generates a continuum of tetrahedral structures:
@@ -375,7 +382,7 @@ H_{continuum}(n,c,\lambda) =
   \begin{tabular}{c}
    $ r_{\lambda} \cos(\phi_{\lambda} \kappa + c 2 \pi /3) $\\
    $ r_{\lambda}  \sin(\phi_{\lambda} \kappa + c 2 \pi /3) $\\
-   $ h_{\lambda} \kappa $
+   $ d_{\lambda} \kappa $
   \end{tabular}
   \right ],
 \text{where:}
@@ -424,12 +431,12 @@ Please refer back to Figure \ref{railanglefig}.
  These quantities are related by the expression:
 
 \begin{align*}
-  1^2 &= h^2 + (2 r \sin{ \rho / 2})^2 \\
-  1 &= h^2 + 4 r^2 (\sin{ \rho / 2})^2 
+  1^2 &= d^2 + (2 r \sin{ \rho / 2})^2 \\
+  1 &= d^2 + 4 r^2 (\sin{ \rho / 2})^2 
 \end{align*}
 
 Checking the important special case of the BC helix, we find that this equation
-indeed holds true (treathing ``h'' in this equation as $3 h_{bc}$ as defined by
+indeed holds true (treathing $d$ in this equation as $3 h_{bc}$ as defined by
 Gray and Coxeter, where they are using it for the axial height from one node to
 the next of a different color, but we use it to mean distance for the same color.
 
@@ -438,7 +445,7 @@ tetraheda in a full revolution of the helix.
 
 In choosing $\rho$, one greatly constrains $r$ and $h$, but does not completely
 determine both of them together. In the formulation below we assume that
-the choice of $h_{\rho}$ is more convenient than choosing the radius,
+the choice of $d_{\rho}$ is more convenient than choosing the radius,
 but that is somewhat arbitrary.
 
 
@@ -449,18 +456,20 @@ H_{general}(n,c,\rho,h_{\rho}) =
   \begin{tabular}{c}
    $ r_{\rho} \cos(\frac{\rho \kappa}{2\pi} + c 2 \pi /3) $\\
    $ r_{\rho}  \sin(\frac{\rho \kappa}{2\pi} + c 2 \pi /3) $\\
-   $ h_{\rho} \rho $
+   $ d_{\rho} \kappa $
   \end{tabular}
   \right ],
 \text{where:}
 \begin{tabular}{c}
-  $   1 = h_{\rho}^2 + 4 r_{\rho}^2 (\sin{ \rho / 2})^2 $ \\
+  $   1 = d_{\rho}^2 + 4 r_{\rho}^2 (\sin{ \rho / 2})^2 $ \\
     $\kappa = n + c/3$ \\
   \end{tabular}      
 \]
 
-$H_{general}$ generalizes $H_{continuum}$, but forces the user to select an $h_{\rho}$
+$H_{general}$ generalizes $H_{continuum}$, but forces the user to select an $d_{\rho}$
 which has a sensible radius, so it may be less convenient.
+
+Note that when $\rho = 0$ then $h_{\rho} = 1$, but $r_{\rho}$ is not determined.
 
 \begin{theorem}
   \label{generalformulaoptimal}
@@ -471,7 +480,17 @@ which has a sensible radius, so it may be less convenient.
 
 \begin{proof}
   This requires poof.
-  \end{proof}
+\end{proof}
+
+By Theoerm \ref{eventhirds}, we can compute the (at most) three edge-lengths of an optimal
+tetrahelix by (where $d$ is the cartesian distance function):
+\begin{align*}
+  \text{rail} &= d(H_{general}(n,c,\rho,h_{\rho}),H_{general}(n+1,c,\rho,h_{\rho})) = 1 \\
+  \text{mid-length} &= d(H_{general}(n,c,\rho,h_{\rho}),H_{general}(n,c+1,\rho,h_{\rho}))  \\
+  \text{long} &= d(H_{general}(n,c,\rho,h_{\rho}),H_{general}(n,c+2,\rho,h_{\rho}))  \\  
+\end{align*}
+Where are invarinat for all $n$ and $c$.
+
 
 \section{The Equitetrabeam}
 
@@ -562,13 +581,23 @@ To assist, contact \href{mailto:read.robert@gmail.com}{$<$read.robert@gmail.com$
 
 \end{document}
 
-  Best reference is from Coxeter:
-  
-  http://cms.math.ca/openaccess/cmb/v28/cmb1985v28.0385-0393.pdf
+TODO:
 
-  https://arxiv.org/pdf/1302.1174.pdf
+Review and continue editing, being careful to introduce concepts in the correct order.
 
-  TODO:
+The most important thing to do here is to start a github project that includes javascript
+to copute this stuff; the second most important thing is to use Three.js to create a
+nice visual representation of all of this without getting the physics engine involved.
+
+Check formula to make sure lengths are what we previously created for the Equitetrabeam.
+
+First, plug values into Equitetrabeam.
+
+Check distances.
+
+Also, update diageam.
+
+
 
   Investigate Lambda outsidde the range [0,1].  Does -lambda reverse the chirality?
   Does lambda > 1 increase twist nicely?
