@@ -451,7 +451,7 @@ function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
 
-function ccw_tetrahelix_vertex(n,edge_length) {
+function tetrahelix_vertex(chi,n,edge_length) {
     // TODO: memoize these functions.
     var r = (3 * Math.sqrt(3) / 10) * edge_length;
     var h = (1/Math.sqrt(10)) *edge_length;
@@ -462,15 +462,19 @@ function ccw_tetrahelix_vertex(n,edge_length) {
     // formulation.  This comes from H.S.M. Coxeter by way of Robert W. Gray
     var theta = Math.acos(-2/3);
     // I want to make sure "B and C" land on the ground first!    
-    var twist = 45*(Math.PI / 180.0);
-    var third = 120*(Math.PI / 180.0);
-    console.log("color third");
-    console.log((n % 3) * third);
+    var twist = 260*(Math.PI / 180.0);
     console.log("twist");
     console.log(twist);
     console.log("inner");
     console.log(n*theta+twist);
-    return new THREE.Vector3( r * Math.cos(n*theta+twist),  r * Math.sin(n*theta+twist), n*h );
+    return new THREE.Vector3( r * Math.cos(n*theta+twist),  chi*r * Math.sin(n*theta+twist), n*h );
+}
+
+function ccw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(1,n,edge_length);
+}
+function cw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(-1,n,edge_length);    
 }
 
 var reds = [];
@@ -1154,10 +1158,41 @@ function equitetrabeam() {
     var red = 1.0;
     var yellow = 1.0;
     var blue = 1.0;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+    var green_even = one_hop;
+    var green_odd = one_hop;
+
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  one_hop;
+    var purple_even = one_hop;
+
+    var orange_even = two_hop;
+    var purple_odd =  two_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+
+
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+//    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
+
+function equitetrabeam_x() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
     // var orange_even = 1.05946024;
     // var orange_odd = 	1.192667598;
     // var purple_even = 	1.192667598;
     // var purple_odd = 1.05946024;
+    var two_hop = 2/Math.sqrt(3);
     var green_even = Math.sqrt(10/9);
     var green_odd = Math.sqrt(13/9);
 
@@ -1792,7 +1827,7 @@ var AM = function() {
     
     this.MOUSE_FIRES = false;
 
-    this.INITIAL_HEIGHT = 0.1;
+    this.INITIAL_HEIGHT = 0.2;
 
 
    this.NUMBER_OF_TETRAHEDRA = 7;
@@ -2789,7 +2824,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     var colors = [ "red", "yellow", "blue" ];
 
     for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
+	var v = cw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
 	v = v.add(pvec);
 
 	var material = new THREE.MeshPhongMaterial( { color: colors[i % 3] } );    
