@@ -853,15 +853,15 @@ function set_interp_constraints(am0,am1,frac) {
 	    links.push({a: a, b: b, k: key, body: body.body });
 	}
     }
-    console.log("XXXXXX");
+//    console.log("XXXXXX");
     update_constraints(links,link => {
 	var a = link.a;
 	var b = link.b;
 	var key = link.k;
 	var e = actuator_to_length(interp(am0[key],am1[key],frac));
 	var aname = find_actuator(a.name,b.name);
-	console.log(get_class_of_actuator(aname));
-	console.log(e/am.MIN_EDGE_LENGTH);
+//	console.log(get_class_of_actuator(aname));
+//	console.log(e/am.MIN_EDGE_LENGTH);
 	return e;
     });
 
@@ -1073,6 +1073,24 @@ function test_execute_1() {
     var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
 		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
     execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+// create a glog representing an application of a partial pose to the current
+// state.
+function apply_delta_pose(pp) {
+
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    for (var key in actmodel) {
+	var bs = find_bodies_from_actuator(key);
+	var bname = bs[0]+" "+bs[1];
+	if (pp[bname]) {
+	    console.log("found key:",key,pp[bname]);
+	    actmodel[key] = actmodel[key] + pp[bname];
+	    actmodel[key] = Math.min(Math.max(actmodel[key],0),1023);
+	}
+    }
+    return actmodel;
 }
 
 function fraction_from_length(l) {
@@ -2993,6 +3011,98 @@ function rectify(id) {
     set_constraints(actmodel);
 }
 
+/* Here begins my attempt to compute the correct motion for an isolated node
+based on a vector.
+
+In all probability this will require me to define the "direction" of the 
+robot as a vector that more or less goes from the centroid of the rear 
+triangle to the centroid of the front triangle.
+
+My basic strategy is to find all connected nodes and use the dot product
+to find the change in length. 
+
+*/
+
+function dotp(a,b) {
+	var n = 0, lim = Math.min(a.length,b.length);
+	for (var i = 0; i < lim; i++) n += a[i] * b[i];
+	return n;
+ }
+
+
+/* return the partial pose of nodes connected to nd that accomplishes
+the isolated movement defined by v.
+*/
+
+function find_connected_members(robot,nd) {
+    var members = [];
+    robot.robot_members.forEach(function (c) {
+	if ((c.a.name == nd.name) ||
+	    (c.b.name == nd.name)) {
+	    members.push(c);
+	}
+    });
+    return members;
+}
+
+
+
+
+
+function compute_partial_pose(robot,nd,v) {
+    // First, find all connected nodes...this is brute force, later
+    // we can improve efficiency...
+    var mems = find_connected_members(robot,nd);
+
+    // For each connected node, compute the dot product with v and
+    // use that to determine the appropriate length.
+    var ndp = nd.getWorldTransform().getOrigin();	    
+    var current = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());
+    var hypothetical = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());    
+    hypothetical.addVectors(hypothetical,v);
+    console.log(hypothetical,ndp,v);
+    var pp = {};
+    for(var i = 0; i < mems.length; i++) {
+	var mem = mems[i];
+	var nm = mem.body.name;
+	var other = (nd.name == mem.a.name) ? mem.b : mem.a;
+	var otherv = other.getWorldTransform().getOrigin();
+	var other3 = new THREE.Vector3(otherv.x(),otherv.y(),otherv.z());
+	// this needs to be a vector subtraction.
+	var hd = other3.distanceTo(hypothetical);
+	var cd = other3.distanceTo(current);
+	var h_act = parseInt(actuator_to_length.invert(hd).toFixed(0));
+	var c_act = parseInt(actuator_to_length.invert(cd).toFixed(0));		
+	var delta = h_act - c_act;
+	pp[nm] = delta;
+    }
+    return pp;
+}
+
+var v = new Ammo.btVector3(1,1,1).op_add(new Ammo.btVector3(2,2,2));
+
+var nda = am.robot.robot_members[0].a;
+var ndb = am.robot.robot_members[1].b;
+var ndav = nda.getWorldTransform().getOrigin();
+var ndbv = ndb.getWorldTransform().getOrigin();
+var va = new THREE.Vector3(ndav.x(),ndav.y(),ndav.z());
+var vb = new THREE.Vector3(ndbv.x(),ndbv.y(),ndbv.z());
+va.subVectors(va,vb);
+va.multiplyScalar(0.2);
+var va_down = new THREE.Vector3(0,-1/4,0);
+var va_up = new THREE.Vector3(0,1/4,0);
+var va_east = new THREE.Vector3(-1/4,0,0);
+var va_west = new THREE.Vector3(1/4,0,0);
+
+var pp_a_down = compute_partial_pose(am.robot,nda,va_down);
+var pp_a_up = compute_partial_pose(am.robot,nda,va_up);
+var pp_a_east = compute_partial_pose(am.robot,nda,va_east);
+var pp_a_west = compute_partial_pose(am.robot,nda,va_west);
+
+var m_down = apply_delta_pose(pp_a_down);
+var m_up = apply_delta_pose(pp_a_up);
+var m_east = apply_delta_pose(pp_a_east);
+var m_west = apply_delta_pose(pp_a_west);
 
         </script>
 </html>
