@@ -9,8 +9,9 @@
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
 (setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
+(setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
 
-(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC)))
+(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
 (setq BAUD_RATE 19200)
 (setq 5TETGLUSSBOT "5TetGlussBot")
 
@@ -36,6 +37,12 @@
 		     (C3 (C 3))
 		     (C4 (C 4))
 		     (C5 (C 5))
+		     (D0 (D 0))
+		     (D1 (D 1))
+		     (D2 (D 2))
+		     (D3 (D 3))
+		     (D4 (D 4))
+		     (D5 (D 5))
 		     ))
 
 (setq LEFT-RIGHT-SYMMETRY
@@ -773,11 +780,8 @@
 	 (num-drivers (get-num-live-drivers CONTROLLER-PORTS))
 	 (sym (car args))
 	 (then (if sym (get sym 'then-function) nil)))
-    (print "processing:")
-    (print sym)
     (incf (get sym 'latch-value))
     ;; This part of the function should be in the callback from the driver, with sym passed in.
-    (print "QQQQ")
     (print (or (get sym 'num-controllers) num-drivers))
     ;; In reality the latch-value limit here should be the number of live actuators....
     (if (>= (get sym 'latch-value) (or (get sym 'num-controllers) num-drivers))
@@ -2504,12 +2508,13 @@ Return the results of all forms as a list."
   )
 
 (defvar glusscon-timer nil)
-(defvar glusscon-url "http://192.168.1.244")
+(defvar glusscon-url "http://192.168.1.207")
+;; (defvar glusscon-url "http://10.11.17.228")
+;; (defvar glusscon-raspi-url "http://10.11.17.243")
 
 (defun convert-to-json (str)
-  (let ((n (string-match "<html>*" str)))
-    (print n)
-    (substring str (+ 7 n) nil)
+  (let ((n (string-match "{" str)))
+    (substring str n nil)
     )
   )
 
@@ -2578,6 +2583,7 @@ A5: 377,
   )
 
 
+
 (defun glusscon-query (url)
   (let ((url-request-method "GET"))
    (condition-case err
@@ -2596,12 +2602,10 @@ A5: 377,
 			(setq numanswered (+ 1 numanswered))
 			(let* ((str 
 				(with-current-buffer (current-buffer)
-				  (print "XXX")
-				  (print (buffer-string))
 				  (buffer-string)))
 			       (json (convert-to-json str)))
 			  ;;		      (print "JSON")
-			  ;;		      (print json)
+			  		      (print json)
 			  (move-from-json json))))))
     (error
      ;; Display the usual message for this error.
@@ -2613,3 +2617,12 @@ A5: 377,
 
 
 
+;; tan: A0
+;; red : D5
+;; orange: D4
+;; yellow: D3
+;; green: D2
+;; purple: +5v
+;; gray: gnd
+
+;;
