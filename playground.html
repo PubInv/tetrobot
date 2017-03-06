@@ -78,6 +78,9 @@
 	    <button type="button" onclick="relax()">
 	      Relax
 	    </button>
+	    <button type="button" onclick="circle_head()">
+	      Circle Head
+	    </button>
 	    <!-- These are currently not workin....
 		 <button type="button" onclick="flat()">
 		   Flat Pose
@@ -836,7 +839,7 @@ function find_link_body(a,b,members) {
     }
 }
 function set_interp_constraints(am0,am1,frac) {
-    remove_non_eternal_constraints();
+
     
     var links = [];
     for (var key in am0) {
@@ -853,7 +856,9 @@ function set_interp_constraints(am0,am1,frac) {
 	    links.push({a: a, b: b, k: key, body: body.body });
 	}
     }
-//    console.log("XXXXXX");
+    //    console.log("XXXXXX");
+
+    remove_non_eternal_constraints();    
     update_constraints(links,link => {
 	var a = link.a;
 	var b = link.b;
@@ -1078,19 +1083,23 @@ function test_execute_1() {
 // create a glog representing an application of a partial pose to the current
 // state.
 function apply_delta_pose(pp) {
-
     var pmodel = extract_physical_node_model(am.robot);
     var actmodel = model_to_actuator_space(pmodel,am.robot);
-    for (var key in actmodel) {
+    apply_delta_pose_x(pp,actmodel);
+}
+function apply_delta_pose_x(pp,base_model) {
+    var new_model = Object.create(base_model);
+    for (var key in new_model) {
 	var bs = find_bodies_from_actuator(key);
 	var bname = bs[0]+" "+bs[1];
 	if (pp[bname]) {
 	    console.log("found key:",key,pp[bname]);
-	    actmodel[key] = actmodel[key] + pp[bname];
-	    actmodel[key] = Math.min(Math.max(actmodel[key],0),1023);
+	    new_model[key] = base_model[key] + pp[bname];
+	    new_model[key] = Math.min(Math.max(new_model[key],0),1023);
 	}
     }
-    return actmodel;
+    console.log(new_model);
+    return new_model;
 }
 
 function fraction_from_length(l) {
@@ -1336,11 +1345,18 @@ function update_standard_poses() {
 
 function execute_gait() {
     var gait = $("#gait").val();
+    execute_gait_glog(gait);
+/*    var pose_names = gait.trim().split(" ");
+    var initial = get_first_executable(am.standard_ctx,pose_names[0]);
+    execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+*/
+}
+
+function execute_gait_glog(gait) {
     var pose_names = gait.trim().split(" ");
     var initial = get_first_executable(am.standard_ctx,pose_names[0]);
     execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
 }
-
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
 function interpolate_model(m1,m2,frac) {
     console.assert(m1.length == m2.length,m1);
@@ -3079,30 +3095,40 @@ function compute_partial_pose(robot,nd,v) {
     return pp;
 }
 
-var v = new Ammo.btVector3(1,1,1).op_add(new Ammo.btVector3(2,2,2));
+var circle_starting_config = null;
+function circle_head() {
+    var v = new Ammo.btVector3(1,1,1).op_add(new Ammo.btVector3(2,2,2));
 
-var nda = am.robot.robot_members[0].a;
-var ndb = am.robot.robot_members[1].b;
-var ndav = nda.getWorldTransform().getOrigin();
-var ndbv = ndb.getWorldTransform().getOrigin();
-var va = new THREE.Vector3(ndav.x(),ndav.y(),ndav.z());
-var vb = new THREE.Vector3(ndbv.x(),ndbv.y(),ndbv.z());
-va.subVectors(va,vb);
-va.multiplyScalar(0.2);
-var va_down = new THREE.Vector3(0,-1/4,0);
-var va_up = new THREE.Vector3(0,1/4,0);
-var va_east = new THREE.Vector3(-1/4,0,0);
-var va_west = new THREE.Vector3(1/4,0,0);
+    var nda = am.robot.robot_members[0].a;
+    var ndb = am.robot.robot_members[1].b;
+    var ndav = nda.getWorldTransform().getOrigin();
+    var ndbv = ndb.getWorldTransform().getOrigin();
+    var va = new THREE.Vector3(ndav.x(),ndav.y(),ndav.z());
+    var vb = new THREE.Vector3(ndbv.x(),ndbv.y(),ndbv.z());
+    va.subVectors(va,vb);
+    va.multiplyScalar(0.2);
+    var va_down = new THREE.Vector3(0,-1/6,0);
+    var va_up = new THREE.Vector3(0,1/6,0);
+    var va_east = new THREE.Vector3(-1/6,0,0);
+    var va_west = new THREE.Vector3(1/6,0,0);
 
-var pp_a_down = compute_partial_pose(am.robot,nda,va_down);
-var pp_a_up = compute_partial_pose(am.robot,nda,va_up);
-var pp_a_east = compute_partial_pose(am.robot,nda,va_east);
-var pp_a_west = compute_partial_pose(am.robot,nda,va_west);
+    var pp_a_down = compute_partial_pose(am.robot,nda,va_down);
+    var pp_a_up = compute_partial_pose(am.robot,nda,va_up);
+    var pp_a_east = compute_partial_pose(am.robot,nda,va_east);
+    var pp_a_west = compute_partial_pose(am.robot,nda,va_west);
 
-var m_down = apply_delta_pose(pp_a_down);
-var m_up = apply_delta_pose(pp_a_up);
-var m_east = apply_delta_pose(pp_a_east);
-var m_west = apply_delta_pose(pp_a_west);
+    if (!circle_starting_config) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+	circle_starting_config = actmodel;
+    }
+    var m_down = apply_delta_pose_x(pp_a_down,circle_starting_config);
+    var m_up = apply_delta_pose_x(pp_a_up,circle_starting_config);
+    var m_east = apply_delta_pose_x(pp_a_east,circle_starting_config);
+    var m_west = apply_delta_pose_x(pp_a_west,circle_starting_config);
+    var glog = [m_down,m_up,m_east,m_east,m_west,m_west];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);    
+}
 
         </script>
 </html>
