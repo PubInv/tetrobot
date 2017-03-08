@@ -2582,6 +2582,52 @@ A5: 377,
   (cancel-timer glusscon-timer)
   )
 
+(defvar official_model nil)
+(defvar MAX_DIFFERENCE_TRIGGER 20)
+
+
+(defun max_difference (m1 m2)
+  ;; Return the largest difference in m1 and m2
+  (let ((max 0))
+    (mapcar #'(lambda (apair)
+		(let* ((v2 (cadr (assoc (car apair) m2)))
+		       (v1 (or (cadr apair) 0))
+		       (d (abs (- v1 v2))))
+		       (setq max (if (> d max)
+				     (setq max d)
+				   max))))
+	    m1)
+    max))
+
+(defun test_max_difference ()
+  (let ((m1 `((A0 973) (A1 936) (A2 636) (A3 595) (A4 400) (A5 472)))
+	(m2 `((A0 973) (A1 936) (A2 636) (A3 595) (A4 413) (A5 472))))
+    (let ((d (max_difference m1 m2)))
+      (assert (equal d 13)))))
+
+(defun test_max_difference_missing ()
+  (let ((m1 `((A2 636) (A3 595) (A4 400) (A5 472)))
+	(m2 `((A0 973) (A1 936) (A2 636) (A3 595) (A4 413) (A5 472))))
+    (let ((d (max_difference m1 m2)))
+      (assert (equal d 13)))))
+
+(defun compare_current_json (json)
+  (let* ((jp (json-parse json))
+	 (d (if official_model
+		(max_difference jp official_model)
+	      2000)))
+    (print "d =")
+    (print d)
+    (if (> d MAX_DIFFERENCE_TRIGGER)
+	(progn
+	  (setq official_model jp)
+	  t
+	  )
+      nil
+	)
+    )
+  )
+
 
 
 (defun glusscon-query (url)
@@ -2603,10 +2649,12 @@ A5: 377,
 			(let* ((str 
 				(with-current-buffer (current-buffer)
 				  (buffer-string)))
-			       (json (convert-to-json str)))
-			  ;;		      (print "JSON")
-			  		      (print json)
-			  (move-from-json json))))))
+			       (json (convert-to-json str))
+			       (changed (compare_current_json json)))
+			  (print json)
+			  (print changed)
+			  (if changed
+			      (move-from-json json)))))))
     (error
      ;; Display the usual message for this error.
      (print "AAAA error in url-retrieve")
