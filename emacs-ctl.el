@@ -2511,6 +2511,8 @@ Return the results of all forms as a list."
 (defvar glusscon-url "http://192.168.1.207")
 ;; (defvar glusscon-url "http://10.11.17.228")
 ;; (defvar glusscon-raspi-url "http://10.11.17.243")
+;; sxsw
+(setq glusscon-url "http://172.16.55.27")
 
 (defun convert-to-json (str)
   (let ((n (string-match "{" str)))
@@ -2674,3 +2676,26 @@ A5: 377,
 ;; gray: gnd
 
 ;;
+
+;; (big)
+;; (small)
+;; (relax)
+;; (cancel-glusscon-timer)
+;; (establish-timer-for-glusscon-probe 2)
+;; (setq glusscon-url "http://172.16.18.202")
+
+(defvar demo-timer nil)
+(defun establish-timer-for-demos (period-seconds)
+  (let* ((thunk #'(lambda ()
+		    (fdance '((big) (small) (relax)))
+		    ))
+
+	 (timer (run-at-time t period-seconds
+			     thunk)))
+	 (print "QQQQQQQQQQQQQQQQ")    
+    (setq demo-timer timer)))
+
+    
+(defun cancel-demo-timer ()
+  (cancel-timer demo-timer)
+  )
