@@ -1,3 +1,5 @@
+#include <TaskScheduler.h>
+
 #include "S-Expr.h"
 #include "Arduino.h"
 #include <stdlib.h>
@@ -5,6 +7,7 @@
 #include <math.h>
 #include <assert.h>
 #include "FirgAct.h"
+
 
 
 
@@ -288,33 +291,51 @@ void find_responsive(Stream* debug) {
 }
 
 
-void move_vector(Stream* debug,int n,int *vec) {
-  const int tolerance = 50; // the maximum number of clicks in the "digital voltage space" of 0 - 1023 that we accept
+ const int tolerance = 50; // the maximum number of clicks in the "digital voltage space" of 0 - 1023 that we accept
   const float STUCK_DISTANCE = 1.0; // 3-Dimensional distance in the "digital voltage space" that we must move to not be "stuck"
   const int DELAY_TIME = 30; // Time to wait before making a move again
   const int MAX_STUCK = 4; // number of iterations to apply force before we give up as "stuck".
   const int MAX_TIME_MS = 4000;
   const int MAX_TURNS = MAX_TIME_MS / DELAY_TIME;
+
+// I hate global parameters, but the task scheduler callbacks don't let me create thunks...
+
+struct MVP {
+    int *c_val;
+    int *v;
+    int *dir;
   
-  int cval[n];
-  int v[n];
-  int dir[n];
-  
-  bool in_position = false;
-  int stuck_cnt = 0;
-  int total_turns = 0;
+    bool in_position = false;
+    int stuck_cnt = 0;
+    int total_turns = 0;
+};
+
+MVP mvps;
+
+void move_vector(Stream* debug,int n,int *vec) {
+ 
+  mvps.in_position = false;
+  mvps.stuck_cnt = 0;
+  mvps.total_turns = 0;
+  delete(mvps.c_val);
+  mvps.c_val = new int[n];
+  delete(mvps.v);
+  mvps.v = new int[n];
+  delete(mvps.dir);
+  mvps.dir = new int[n];
+
      
-  while ((!in_position) && (stuck_cnt < MAX_STUCK) && (total_turns < MAX_TURNS)) {  
-    total_turns++;
-    log_comment_i(DEBUG,debug,total_turns);
+  while ((!mvps.in_position) && (mvps.stuck_cnt < MAX_STUCK) && (mvps.total_turns < MAX_TURNS)) {  
+    mvps.total_turns++;
+    log_comment_i(DEBUG,debug,mvps.total_turns);
     // Figure out which directions to move....
-    sensePositionVector(n,cval);
+    sensePositionVector(n,mvps.c_val);
     int max_diff = -1;
     int d[n];
     for(int i = 0; i < n; i++) {
       if (act[i].responsive == 1) { // here we don't try to look for those that are unresponsive!
-	d[i] = vec[i] - cval[i];
-	dir[i] = sign(d[i]);
+	d[i] = vec[i] - mvps.c_val[i];
+	mvps.dir[i] = sign(d[i]);
 	if (abs(d[i]) > max_diff)
 	  max_diff = abs(d[i]);
       }
@@ -328,7 +349,7 @@ void move_vector(Stream* debug,int n,int *vec) {
       float speed_ratio = (float) abs(d[i]) / (float) max_diff;
       //      log_comment(DEBUG,debug,"activating");
       if (act[i].responsive == 1) { // don't move the unresponsive ones!
-	activate_actuators(i,dir[i], (int) (speed_ratio * CRUISE_SPEED));
+	activate_actuators(i,mvps.dir[i], (int) (speed_ratio * CRUISE_SPEED));
       } else {
 	log_comment(DEBUG,debug,"unresponsive:");
 	log_comment_i(DEBUG,debug,i);
@@ -337,29 +358,30 @@ void move_vector(Stream* debug,int n,int *vec) {
 
     log_comment(DEBUG,debug,"bbb");
     // Wait a little bit for they physical move....
+    // We need to split the function here and set the t1 callback to handle this...
     delay(DELAY_TIME); 
      
     for(int i = 0; i < n; i++) {
-      v[i] = cval[i];     
+      mvps.v[i] = mvps.c_val[i];     
     }
-    sensePositionVector(n,cval);
+    sensePositionVector(n,mvps.c_val);
      
     log_comment(DEBUG,debug,"sense done");
 
      
-    // if we didn't move at all, increase stuck_cnt, so we don't
+    // if we didn't move at all, increase mvps.stuck_cnt, so we don't
     // permanently spin our motors with no progress
-    if (dist_actuators(n,v,cval) < STUCK_DISTANCE) {
-      stuck_cnt++;
+    if (dist_actuators(n,mvps.v,mvps.c_val) < STUCK_DISTANCE) {
+      mvps.stuck_cnt++;
       log_comment(DEBUG,debug,"stuck!");
     } else {
-      //     stuck_cnt = 0;
+      //     mvps.stuck_cnt = 0;
     } 
      
-    in_position = true;
+    mvps.in_position = true;
     for(int i = 0; i < n; i++) {
       if (act[i].responsive == 1) { // don't move the unresponsive ones!
-	int computed = abs(cval[i] - vec[i]);
+	int computed = abs(mvps.c_val[i] - vec[i]);
 	if (computed < tolerance) {
 	  deactivate_actuator(i);   
 	} else {
@@ -368,17 +390,17 @@ void move_vector(Stream* debug,int n,int *vec) {
 	  s = s + i + " " + computed;
 	  log_comment(DEBUG,debug,s);		
 	  //	log_comment(DEBUG,debug,computed);	
-	  in_position = false;
+	  mvps.in_position = false;
 	}
       }
     }
     log_comment(DEBUG,debug,"end loop");
   } 
-  if (total_turns >= MAX_TURNS) {
+  if (mvps.total_turns >= MAX_TURNS) {
     log_comment(WARN,debug,"MOVE TIMED OUT!");
   }
 
-  if (stuck_cnt >= MAX_STUCK) {
+  if (mvps.stuck_cnt >= MAX_STUCK) {
     log_comment(WARN,debug,"GOT STUCK!");
   }
   log_comment(DEBUG,debug,"about to deactivate");
@@ -628,15 +650,43 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
   
 }
 
+String EMPTY_STRING = "";
+
+String gparam_for_sexpr_callback_str = EMPTY_STRING;
+Stream* gparam_for_sexpr_callback_debug;
+
 void main_controller(Stream* debug,String str) {
   interpret_function_as_sepxr(debug,str);
 }
 
 
+
 int r_cnt = 0;
-void loop()
-{
-  r_cnt++;
+
+void input_check_callback();
+void main_controller_callback();
+
+Task t0(10,TASK_FOREVER, &input_check_callback);
+
+Task t1(10,TASK_FOREVER,&main_controller_callback);
+
+Scheduler runner;
+
+void main_controller_callback() {
+//  Serial.println("AAA");
+//   log_comment(INFORM,gparam_for_sexpr_callback_debug,"AAA"); 
+//  log_comment_i(INFORM,gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str.length()); 
+  if (gparam_for_sexpr_callback_str.length() != 0) {
+    interpret_function_as_sepxr(gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str);
+    gparam_for_sexpr_callback_str = EMPTY_STRING;
+  } else {
+
+  }
+}
+
+// This isn't really much of a task ... this is more a test of functionality...
+void input_check_callback() {
+    r_cnt++;
   if(bluetooth.available()>0)  // If the bluetooth sent any characters
     {
       int x = bluetooth.available();
@@ -646,6 +696,13 @@ void loop()
       log_comment(INFORM,&bluetooth,str);
     
       // Send any characters the bluetooth prints to the serial monitor
+      gparam_for_sexpr_callback_debug = &bluetooth;
+
+      // The act of making this non-null activates our task that should run the main loop...
+      gparam_for_sexpr_callback_str = str;
+
+ //     runner.addTask(t1);
+ //     t1.enable();
       main_controller(&bluetooth,str);
     }
   if(Serial.available()>0)  // If stuff was typed in the serial monitor
@@ -653,7 +710,33 @@ void loop()
       // Send any characters the Serial monitor prints to the bluetooth
       String s =  Serial.readStringUntil('\n');
       bluetooth.println(s);
+       Serial.println("Serial port read");
+      Serial.println(s);
     }
+}
+
+
+void loop()
+{
+  runner.execute();
+//  r_cnt++;
+//  if(bluetooth.available()>0)  // If the bluetooth sent any characters
+//    {
+//      int x = bluetooth.available();
+//      Serial.println("x = ");
+//      Serial.println(x);
+//      String str = bluetooth.readStringUntil('\n');
+//      log_comment(INFORM,&bluetooth,str);
+//    
+//      // Send any characters the bluetooth prints to the serial monitor
+//      main_controller(&bluetooth,str);
+//    }
+//  if(Serial.available()>0)  // If stuff was typed in the serial monitor
+//    {
+//      // Send any characters the Serial monitor prints to the bluetooth
+//      String s =  Serial.readStringUntil('\n');
+//      bluetooth.println(s);
+//    }
 }
 void SetUpActuator(int i,actuator* a);
 
@@ -701,6 +784,14 @@ void setup()
   Serial.println("Setup done!");
   //  find_responsive(&Serial);
   // Now lets just put something into place to allow us to remark them unresponsive...
+
+  // Now we will try to setup the tasks....
+  gparam_for_sexpr_callback_debug = &bluetooth;
+  runner.init();
+  runner.addTask(t0);
+  t0.enable();
+  runner.addTask(t1);
+  t1.enable();
   
 }
 

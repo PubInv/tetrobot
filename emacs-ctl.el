@@ -7,11 +7,12 @@
 (require 'url-queue)
       
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
-(setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
-(setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
-(setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
+;; (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
+;; (setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
+;; (setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
 
-(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
+;; (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
+(setq CONTROLLER-PORTS (list (cons 'A TETA)))
 (setq BAUD_RATE 19200)
 (setq 5TETGLUSSBOT "5TetGlussBot")
 
