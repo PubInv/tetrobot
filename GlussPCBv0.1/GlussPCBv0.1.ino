@@ -41,12 +41,14 @@ SoftwareSerial bluetooth(bluetoothRx, bluetoothTx);
 // Note:  This requires special syntax, must be precise!
 
 // This doesn't seem to work....sadly. Not sure if to fast or some other problem
-// const int BLUETOOTH_BAUD_RATE = 38400;
-// const String BLUETOOTH_BAUD_RATE_STRING = "38.4";
+ const int BLUETOOTH_BAUD_RATE = 19200;
+ const String BLUETOOTH_BAUD_RATE_STRING = "19.2";
 
 // Note: These work....
-const int BLUETOOTH_BAUD_RATE = 19200;
-const String BLUETOOTH_BAUD_RATE_STRING = "19.2";
+// const int BLUETOOTH_BAUD_RATE = 19200;
+// const String BLUETOOTH_BAUD_RATE_STRING = "19.2";
+//const long BLUETOOTH_BAUD_RATE = 115200;
+//const String BLUETOOTH_BAUD_RATE_STRING = "115K";
   
 const int DEBUG = 5;
 const int INFORM = 4;
@@ -54,7 +56,7 @@ const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = DEBUG;
+int DEBUG_LEVEL = INFORM;
 
 int num_responsive = 0;
 
@@ -116,7 +118,7 @@ void sensePositionVector(int n,int v[]);
 // Note: We could construct and print an S-Expression here
 // instead, but I see little value in that, and at presnt
 // my sexpr library doesn't support the "dot" syntax.
-void report_status(Stream* stream) {
+void report_status(Stream* stream,String Current_Call_Id) {
     int cval[NUM_ACTUATORS];
     if (command_failure != "") {
       String err = "COMMAND_ERROR: " + command_failure;
@@ -148,8 +150,8 @@ void report_status(Stream* stream) {
     stream->print("))");
     stream->println();
     int ram = freeRam();
-    log_comment(PANIC,stream,"Free Mem");
-    log_comment_i(PANIC,stream,ram);
+  //  log_comment(PANIC,stream,"Free Mem");
+  //  log_comment_i(PANIC,stream,ram);
 }
 
 
@@ -290,6 +292,24 @@ void find_responsive(Stream* debug) {
   }
 }
 
+String EMPTY_STRING = "";
+
+String gparam_for_sexpr_callback_str = EMPTY_STRING;
+Stream* gparam_for_sexpr_callback_debug;
+
+
+int r_cnt = 0;
+
+void input_check_callback();
+void main_controller_callback();
+void premove_processing();
+
+Task t0(1,TASK_FOREVER, &input_check_callback);
+
+Task t1(1,TASK_FOREVER,&main_controller_callback);
+
+Task t2(1,TASK_FOREVER,&premove_processing);
+
 
  const int tolerance = 50; // the maximum number of clicks in the "digital voltage space" of 0 - 1023 that we accept
   const float STUCK_DISTANCE = 1.0; // 3-Dimensional distance in the "digital voltage space" that we must move to not be "stuck"
@@ -308,11 +328,116 @@ struct MVP {
     bool in_position = false;
     int stuck_cnt = 0;
     int total_turns = 0;
+    int *vec;
+    int n;
+    String Current_Call_Id;
 };
 
 MVP mvps;
 
-void move_vector(Stream* debug,int n,int *vec) {
+void premove_processing() {
+  log_comment(DEBUG,gparam_for_sexpr_callback_debug,"PREMOVE XXX");
+      
+  if ((!mvps.in_position) && (mvps.stuck_cnt < MAX_STUCK) && (mvps.total_turns < MAX_TURNS)) {  
+    mvps.total_turns++;
+    log_comment_i(DEBUG,gparam_for_sexpr_callback_debug,mvps.total_turns);
+    // Figure out which directions to move....
+    sensePositionVector(mvps.n,mvps.c_val);
+    int max_diff = -1;
+    int d[mvps.n];
+    for(int i = 0; i < mvps.n; i++) {
+      if (act[i].responsive == 1) { // here we don't try to look for those that are unresponsive!
+        d[i] = mvps.vec[i] - mvps.c_val[i];
+        mvps.dir[i] = sign(d[i]);
+        if (abs(d[i]) > max_diff)
+          max_diff = abs(d[i]);
+        }
+    }
+
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"aaa");
+    log_comment_i(DEBUG,gparam_for_sexpr_callback_debug,max_diff);
+    for(int i = 0; i < mvps.n; i++) {  
+      // This should probably adjust speed for those that 
+      // need to move less  
+      float speed_ratio = (float) abs(d[i]) / (float) max_diff;
+      //      log_comment(DEBUG,debug,"activating");
+      if (act[i].responsive == 1) { // don't move the unresponsive ones!
+          activate_actuators(i,mvps.dir[i], (int) (speed_ratio * CRUISE_SPEED));
+      } else {
+          log_comment(DEBUG,gparam_for_sexpr_callback_debug,"unresponsive:");
+          log_comment_i(DEBUG,gparam_for_sexpr_callback_debug,i);
+      }
+    }
+
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"bbb");
+    // Wait a little bit for they physical move....
+    // We need to split the function here and set the t1 callback to handle this...
+    t2.delay(DELAY_TIME); 
+    t2.setCallback(&postmove_processing);
+  } else {
+     if (mvps.total_turns >= MAX_TURNS) {
+      log_comment(WARN,gparam_for_sexpr_callback_debug,"MOVE TIMED OUT!");
+     }
+
+    if (mvps.stuck_cnt >= MAX_STUCK) {
+      log_comment(WARN,gparam_for_sexpr_callback_debug,"GOT STUCK!");
+    }
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"about to deactivate");
+    for(int i = 0; i < mvps.n; i++) {
+      deactivate_actuator(i);
+    }
+    log_comment(INFORM,gparam_for_sexpr_callback_debug,"Move done!");
+    t2.setCallback(&premove_processing);
+    t2.disable();
+    report_status(gparam_for_sexpr_callback_debug,mvps.Current_Call_Id);
+  }
+}
+
+void postmove_processing() {
+  if (!t2.isEnabled()) {
+     for(int i = 0; i < mvps.n; i++) {
+      deactivate_actuator(i);
+    }
+    return;
+  }
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"POSTMOVE XXX");
+    for(int i = 0; i < mvps.n; i++) {
+      mvps.v[i] = mvps.c_val[i];     
+    }
+    sensePositionVector(mvps.n,mvps.c_val);
+     
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"sense done");
+    log_comment_i(DEBUG,gparam_for_sexpr_callback_debug,mvps.n);
+     
+    // if we didn't move at all, increase mvps.stuck_cnt, so we don't
+    // permanently spin our motors with no progress
+    if (dist_actuators(mvps.n,mvps.v,mvps.c_val) < STUCK_DISTANCE) {
+      mvps.stuck_cnt++;
+      log_comment(DEBUG,gparam_for_sexpr_callback_debug,"stuck!");
+    } else {
+      //     mvps.stuck_cnt = 0;
+    } 
+     
+    mvps.in_position = true;
+    for(int i = 0; i < mvps.n; i++) {
+      if (act[i].responsive == 1) { // don't move the unresponsive ones!
+        int computed = abs(mvps.c_val[i] - mvps.vec[i]);
+        if (computed < tolerance) {
+          deactivate_actuator(i);   
+        } else {
+          log_comment(DEBUG,gparam_for_sexpr_callback_debug,"Out of tolerance");
+          String s = "";
+          s = s + i + " " + computed;
+          log_comment(DEBUG,gparam_for_sexpr_callback_debug,s);   
+    //  log_comment(DEBUG,debug,computed);  
+          mvps.in_position = false;
+        }
+      }
+    }
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"end loop");  
+    t2.setCallback(&premove_processing);
+}
+void move_vector(Stream* debug,int n,int *vec,String Current_Call_Id) {
  
   mvps.in_position = false;
   mvps.stuck_cnt = 0;
@@ -323,91 +448,17 @@ void move_vector(Stream* debug,int n,int *vec) {
   mvps.v = new int[n];
   delete(mvps.dir);
   mvps.dir = new int[n];
+  delete(mvps.vec);
+  mvps.vec = new int[n];
+  mvps.n = n;
+  mvps.Current_Call_Id = Current_Call_Id;
+  for(int i = 0; i < n; i++) { mvps.vec[i] = vec[i];}
 
-     
-  while ((!mvps.in_position) && (mvps.stuck_cnt < MAX_STUCK) && (mvps.total_turns < MAX_TURNS)) {  
-    mvps.total_turns++;
-    log_comment_i(DEBUG,debug,mvps.total_turns);
-    // Figure out which directions to move....
-    sensePositionVector(n,mvps.c_val);
-    int max_diff = -1;
-    int d[n];
-    for(int i = 0; i < n; i++) {
-      if (act[i].responsive == 1) { // here we don't try to look for those that are unresponsive!
-	d[i] = vec[i] - mvps.c_val[i];
-	mvps.dir[i] = sign(d[i]);
-	if (abs(d[i]) > max_diff)
-	  max_diff = abs(d[i]);
-      }
-    }
+    log_comment(DEBUG,gparam_for_sexpr_callback_debug,"MOVE VECTOR");
 
-    log_comment(DEBUG,debug,"aaa");
-    log_comment_i(DEBUG,debug,max_diff);
-    for(int i = 0; i < n; i++) {  
-      // This should probably adjust speed for those that 
-      // need to move less  
-      float speed_ratio = (float) abs(d[i]) / (float) max_diff;
-      //      log_comment(DEBUG,debug,"activating");
-      if (act[i].responsive == 1) { // don't move the unresponsive ones!
-	activate_actuators(i,mvps.dir[i], (int) (speed_ratio * CRUISE_SPEED));
-      } else {
-	log_comment(DEBUG,debug,"unresponsive:");
-	log_comment_i(DEBUG,debug,i);
-      }
-    }
+  t2.setCallback(&premove_processing);
+  t2.enable();
 
-    log_comment(DEBUG,debug,"bbb");
-    // Wait a little bit for they physical move....
-    // We need to split the function here and set the t1 callback to handle this...
-    delay(DELAY_TIME); 
-     
-    for(int i = 0; i < n; i++) {
-      mvps.v[i] = mvps.c_val[i];     
-    }
-    sensePositionVector(n,mvps.c_val);
-     
-    log_comment(DEBUG,debug,"sense done");
-
-     
-    // if we didn't move at all, increase mvps.stuck_cnt, so we don't
-    // permanently spin our motors with no progress
-    if (dist_actuators(n,mvps.v,mvps.c_val) < STUCK_DISTANCE) {
-      mvps.stuck_cnt++;
-      log_comment(DEBUG,debug,"stuck!");
-    } else {
-      //     mvps.stuck_cnt = 0;
-    } 
-     
-    mvps.in_position = true;
-    for(int i = 0; i < n; i++) {
-      if (act[i].responsive == 1) { // don't move the unresponsive ones!
-	int computed = abs(mvps.c_val[i] - vec[i]);
-	if (computed < tolerance) {
-	  deactivate_actuator(i);   
-	} else {
-	  log_comment(DEBUG,debug,"Out of tolerance");
-	  String s = "";
-	  s = s + i + " " + computed;
-	  log_comment(DEBUG,debug,s);		
-	  //	log_comment(DEBUG,debug,computed);	
-	  mvps.in_position = false;
-	}
-      }
-    }
-    log_comment(DEBUG,debug,"end loop");
-  } 
-  if (mvps.total_turns >= MAX_TURNS) {
-    log_comment(WARN,debug,"MOVE TIMED OUT!");
-  }
-
-  if (mvps.stuck_cnt >= MAX_STUCK) {
-    log_comment(WARN,debug,"GOT STUCK!");
-  }
-  log_comment(DEBUG,debug,"about to deactivate");
-  for(int i = 0; i < n; i++) {
-    deactivate_actuator(i);
-  }
-  log_comment(INFORM,debug,"Move done!");
 }
 
 void send_all_to(Stream* debug,int val) {
@@ -416,7 +467,7 @@ void send_all_to(Stream* debug,int val) {
   for(int i = 0; i < NUM_ACTUATORS; i++) {
     vec[i] = val;
   }
-  move_vector(debug,NUM_ACTUATORS,vec);
+  move_vector(debug,NUM_ACTUATORS,vec,Current_Call_Id);
 }
 
 void relax(Stream* debug) {
@@ -448,10 +499,12 @@ void OutputVectorSerial(int n,int v[]) {
   OutputVector(&Serial,n,v);
 }
 
-void OutputVectorAsComment(Stream* stream,int n,int v[]) {
-  stream->print(";; ");
-  OutputVector(stream,n,v);
-  stream->println();
+void OutputVectorAsComment(int level,Stream* stream,int n,int v[]) {
+   if (level <= DEBUG_LEVEL) {
+     stream->print(";; ");
+     OutputVector(stream,n,v);
+     stream->println();
+   }
 }
 
 
@@ -472,6 +525,7 @@ There are various functions which exist purely for testing:
 "small" - contract as much as possible
 "relax" - relax (to middle position) as much as possible
 "big" - expand as much as possible
+"halt" - stop any current move immediately
 
 "(m a0 a1 a2 a3 a4 a5)" -- Move to these positions.
 
@@ -518,8 +572,8 @@ int nth_number(String str,int n) {
 
 void interpret_function_as_sepxr(Stream *debug,String str) {
 
-  log_comment(DEBUG,debug,"interpreting:");
-  log_comment(DEBUG,debug,str);
+  log_comment(WARN,debug,"interpreting:");
+  log_comment(WARN,debug,str);
   // Note that parse needs a "char const *" that should not be changed.
   int len = str.length();
 
@@ -558,8 +612,8 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     call_symbol = value_s(nth(first,1));
     // now call_sym
     Current_Call_Id = call_symbol;
-    log_comment(WARN,debug,"Setting Currrent_call_ID");
-    log_comment(WARN,debug,Current_Call_Id);
+    log_comment(INFORM,debug,"Setting Currrent_call_ID");
+    log_comment(INFORM,debug,Current_Call_Id);
   } else if (first->tp == STRING_T) {
     fun = value_s(first);
     Current_Call_Id = "";
@@ -570,11 +624,11 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     command_failure = str;
   }
 
-  log_comment(PANIC,debug,"fun from s-Expression =");
-  log_comment(PANIC,debug,fun);
+  log_comment(INFORM,debug,"fun from s-Expression =");
+  log_comment(INFORM,debug,fun);
   if (fun.equals("get-status")) {
     log_comment(INFORM,debug,"About to get status");
-    report_status(debug);
+    report_status(debug,Current_Call_Id);
     log_comment(INFORM,debug,"Done with status.");
   } else if (fun.equals("relax")) {
     relax(debug);
@@ -585,9 +639,20 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
    } else if (fun.equals("small")) {
     contract(debug);
     log_comment(INFORM,debug,"done with Contract.");
+  } else if (fun.equals("halt")) {
+    if (t2.isEnabled()) {
+      t2.disable();
+      for(int i = 0; i < mvps.n; i++) {
+        deactivate_actuator(i);
+      }
+      report_status(debug,mvps.Current_Call_Id);
+    }
+    log_comment(INFORM,debug,"done with halt.");
+    report_status(debug,Current_Call_Id);
   } else if (fun.equals("responsive")) {
     find_responsive(debug);
     log_comment(INFORM,debug,"done with Calculate.");
+    report_status(debug,Current_Call_Id);
    } else if (fun.equals("debug-level")) {
     sexpr* args = s->cdr;
     sexpr* sub = nth(args,0);
@@ -596,24 +661,25 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     DEBUG_LEVEL = level;   
     log_comment(PANIC,debug,"done-with debug-level, set to:");
     log_comment_i(PANIC,debug,level);
+    report_status(debug,Current_Call_Id);
    } else if (fun.equals("m")) {
     int ps[NUM_ACTUATORS];
     for(int i = 0; i <  NUM_ACTUATORS; i++) {
       ps[i] = value_i(nth(s,(i+1)));
     }
     // Now we invoke the "m" function, or movement....
-    move_vector(debug,NUM_ACTUATORS,ps);
+    move_vector(debug,NUM_ACTUATORS,ps,Current_Call_Id);
   } else if (fun.equals("p")) {
 
     // First, fill out the position vector...
     int ps[NUM_ACTUATORS];
     sensePositionVector(NUM_ACTUATORS,ps);
     log_comment(INFORM,debug,"Here are the position that we sense:");
-    OutputVectorAsComment(debug,NUM_ACTUATORS,ps);
+    OutputVectorAsComment(INFORM,debug,NUM_ACTUATORS,ps);
 
     // now read each sublist to change the positions....
     String full = print_as_String(s);
-    log_comment(PANIC,debug,full);
+    log_comment(INFORM,debug,full);
 
     sexpr* args = s->cdr;
     int len = s_length(args);
@@ -623,7 +689,7 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
        int vi = value_i(nth(sub,1));
       ps[ji] = vi;
      }
-    move_vector(debug,NUM_ACTUATORS,ps);
+    move_vector(debug,NUM_ACTUATORS,ps,Current_Call_Id);
   } else if (fun.equals("set-activation")) {
     // a zero values means make inactive, a non-zero means active
     // now read each sublist to change the positions....
@@ -642,33 +708,19 @@ void interpret_function_as_sepxr(Stream *debug,String str) {
     log_comment(PANIC,debug,"Don't know how to handle:");
     log_comment(PANIC,debug,str);
     command_failure = str;
+    report_status(debug,Current_Call_Id);
   }
   del(s);
   // We still want to report status here no matter what happens
   // so the controller knows that we are done.
-  report_status(debug);
-  
+
 }
 
-String EMPTY_STRING = "";
-
-String gparam_for_sexpr_callback_str = EMPTY_STRING;
-Stream* gparam_for_sexpr_callback_debug;
 
 void main_controller(Stream* debug,String str) {
   interpret_function_as_sepxr(debug,str);
 }
 
-
-
-int r_cnt = 0;
-
-void input_check_callback();
-void main_controller_callback();
-
-Task t0(10,TASK_FOREVER, &input_check_callback);
-
-Task t1(10,TASK_FOREVER,&main_controller_callback);
 
 Scheduler runner;
 
@@ -693,7 +745,7 @@ void input_check_callback() {
       Serial.println("x = ");
       Serial.println(x);
       String str = bluetooth.readStringUntil('\n');
-      log_comment(INFORM,&bluetooth,str);
+      log_comment(DEBUG,&bluetooth,str);
     
       // Send any characters the bluetooth prints to the serial monitor
       gparam_for_sexpr_callback_debug = &bluetooth;
@@ -701,9 +753,9 @@ void input_check_callback() {
       // The act of making this non-null activates our task that should run the main loop...
       gparam_for_sexpr_callback_str = str;
 
- //     runner.addTask(t1);
- //     t1.enable();
-      main_controller(&bluetooth,str);
+//      runner.addTask(t1);
+//     t1.enable();
+//      main_controller(&bluetooth,str);
     }
   if(Serial.available()>0)  // If stuff was typed in the serial monitor
     {
@@ -747,7 +799,8 @@ void setup()
   Serial.println("Serial port ready!");
   
 
-  bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
+  bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bp
+  
   bluetooth.print("$");  // Print three times individually
   bluetooth.print("$");
   bluetooth.print("$");  // Enter command mode
@@ -792,7 +845,8 @@ void setup()
   t0.enable();
   runner.addTask(t1);
   t1.enable();
-  
+  runner.addTask(t2);
+  t2.disable();
 }
 
 void SetUpActuator(int i,actuator* a) {

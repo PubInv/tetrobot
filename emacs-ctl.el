@@ -7,13 +7,16 @@
 (require 'url-queue)
       
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
-;; (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
-;; (setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
-;; (setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
+(setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
+(setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
+(setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
 
-;; (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
-(setq CONTROLLER-PORTS (list (cons 'A TETA)))
+(setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
+;; (setq CONTROLLER-PORTS (list (cons 'A TETA) (cons 'B TETB)))
+;; (setq BAUD_RATE 19200)
 (setq BAUD_RATE 19200)
+
+
 (setq 5TETGLUSSBOT "5TetGlussBot")
 
 ;; This could be done automatically, but the benefit of that is small untill we have
@@ -193,6 +196,9 @@
   (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(relax) msym)))
 
+(defun halt (&optional sym)
+  (let ((msym (get-symbol-for-com-use sym)))
+    (send-all '(halt) msym)))
 
 ;; Movement poses -- a distinction should be made between a complete pose
 ;; and a partial pose. Note one could even go so far as to design
@@ -2509,7 +2515,7 @@ Return the results of all forms as a list."
   )
 
 (defvar glusscon-timer nil)
-(defvar glusscon-url "http://192.168.1.207")
+(defvar glusscon-url "http://192.168.1.143")
 ;; (defvar glusscon-url "http://10.11.17.228")
 ;; (defvar glusscon-raspi-url "http://10.11.17.243")
 
@@ -2617,8 +2623,8 @@ A5: 377,
 	 (d (if official_model
 		(max_difference jp official_model)
 	      2000)))
-    (print "d =")
-    (print d)
+;;    (print "d =")
+;;    (print d)
     (if (> d MAX_DIFFERENCE_TRIGGER)
 	(progn
 	  (setq official_model jp)
@@ -2636,10 +2642,10 @@ A5: 377,
    (condition-case err
     (url-queue-retrieve url
 		  (lambda (status)
-		    (print "STATUS = ")
-		    (print status)
-		    (print numprobes)
-		    (print numanswered)
+;;		    (print "STATUS = ")
+;;		    (print status)
+;;		    (print numprobes)
+;;		    (print numanswered)
 		    (if (equal (car status) :error)
 			(progn
 			  (print "SOMETHING WRONG WITH CONNECTION!")
@@ -2652,10 +2658,12 @@ A5: 377,
 				  (buffer-string)))
 			       (json (convert-to-json str))
 			       (changed (compare_current_json json)))
-			  (print json)
-			  (print changed)
-			  (if changed
-			      (move-from-json json)))))))
+			  (progn
+			    (if changed
+				(print json)
+			      (print "unchanged"))
+			    (if changed
+				(move-from-json json))))))))
     (error
      ;; Display the usual message for this error.
      (print "AAAA error in url-retrieve")
