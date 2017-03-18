@@ -56,7 +56,7 @@ const int WARN = 3;
 const int ERROR = 2;
 const int PANIC = 1;
 
-int DEBUG_LEVEL = INFORM;
+int DEBUG_LEVEL = WARN;
 
 int num_responsive = 0;
 
@@ -336,6 +336,7 @@ struct MVP {
 MVP mvps;
 
 void premove_processing() {
+  unsigned long StartTime = millis();
   log_comment(DEBUG,gparam_for_sexpr_callback_debug,"PREMOVE XXX");
       
   if ((!mvps.in_position) && (mvps.stuck_cnt < MAX_STUCK) && (mvps.total_turns < MAX_TURNS)) {  
@@ -372,6 +373,8 @@ void premove_processing() {
     log_comment(DEBUG,gparam_for_sexpr_callback_debug,"bbb");
     // Wait a little bit for they physical move....
     // We need to split the function here and set the t1 callback to handle this...
+      unsigned long EndTime = millis();
+ //     log_comment_i(WARN,gparam_for_sexpr_callback_debug,EndTime - StartTime); 
     t2.delay(DELAY_TIME); 
     t2.setCallback(&postmove_processing);
   } else {
@@ -572,8 +575,8 @@ int nth_number(String str,int n) {
 
 void interpret_function_as_sepxr(Stream *debug,String str) {
 
-  log_comment(WARN,debug,"interpreting:");
-  log_comment(WARN,debug,str);
+  log_comment(INFORM,debug,"interpreting:");
+  log_comment(INFORM,debug,str);
   // Note that parse needs a "char const *" that should not be changed.
   int len = str.length();
 
@@ -737,26 +740,90 @@ void main_controller_callback() {
 }
 
 // This isn't really much of a task ... this is more a test of functionality...
+unsigned long lastTime;
+char temp_buffer[1024];
+char ring_buffer[1024];
+int ring_init = 0;
+int ring_finl = 0;
+int ring_len = 0;
 void input_check_callback() {
+    unsigned long StartTime = millis();
+  //  log_comment_i(WARN,&bluetooth,lastTime - StartTime);
+    lastTime = StartTime;
+    
+
     r_cnt++;
+    const int MIN_STR_LEN = 13;
   if(bluetooth.available()>0)  // If the bluetooth sent any characters
     {
       int x = bluetooth.available();
-      Serial.println("x = ");
-      Serial.println(x);
-      String str = bluetooth.readStringUntil('\n');
-      log_comment(DEBUG,&bluetooth,str);
+  //    Serial.println("x = ");
+  //    Serial.println(x);
+
+        unsigned long StartTime = millis();
+      bluetooth.setTimeout(50);
+      int n = bluetooth.readBytes(temp_buffer,1024);
+           unsigned long EndTime = millis();
+    //  Serial.println(n);
+      bool eoln_found = false;
+      int line_len;
+      if (n + ring_len >= 1024) {
+        log_comment(PANIC,&bluetooth,"BUFFER OVERFLOW");
+        Serial.print("BUFFER OVERFLOW");
+      }
+      for(int i = 0; i < n; i++) {
+        char c = temp_buffer[i];
+        
+         ring_buffer[(i+ring_init) % 1024] = c;
+      }
+      ring_finl = (ring_init+n) % 1024;
+      ring_len += n;
+ 
+    //  Serial.println("XXXX");
+    //  Serial.println(EndTime-StartTime);
+    }
+  int line_len = 0;
+  for(int i = 0; i < ring_len && line_len == 0; i++) {
+      char c = ring_buffer[(i+ring_init) %1024];
+      if (c == '\n') {
+           line_len = i;
+      }
+  }
+  // At htis point line_len is content + 1 for the eoln...
+  if (line_len != 0)
+   // Serial.println(line_len);
+// a positive line_len means we have found a line to process..
+   if (line_len > 0) {
+      char str_buff[line_len+1];
+       for(int i = 0; i < line_len; i ++) {
+          str_buff[i] = ring_buffer[(i+ring_init) % 1024];
+        }
+        str_buff[line_len] = '\0';
+        ring_init += (line_len);
+        ring_init = ring_init % 1024;
+        ring_len -= (line_len);
+        // If we have found the end of line, we want to copy things out of the 
+        // ring buffer and into the temp_buffer to create a String object...
+   
+      String str = String(str_buff);
+      str.trim();
+    //  Serial.println("spud");
+    //  Serial.println(str_buff);
+    //  Serial.println(str);
+        // YIKES!!! THIS TAKES 1 second!
+  //    String str = bluetooth.readStringUntil('\n');
+        
+    //  log_comment(PANIC,&bluetooth,str);
     
       // Send any characters the bluetooth prints to the serial monitor
       gparam_for_sexpr_callback_debug = &bluetooth;
 
       // The act of making this non-null activates our task that should run the main loop...
       gparam_for_sexpr_callback_str = str;
-
+   }
 //      runner.addTask(t1);
 //     t1.enable();
-//      main_controller(&bluetooth,str);
-    }
+//      main_controller(&bluetooth,str);    }
   if(Serial.available()>0)  // If stuff was typed in the serial monitor
     {
       // Send any characters the Serial monitor prints to the bluetooth

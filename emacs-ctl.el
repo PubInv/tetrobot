@@ -12,11 +12,7 @@
 (setq TETD "/dev/cu.RNBT-7996-RNI-SPP")
 
 (setq CONTROLLER-PORTS (list (cons 'A TETA)  (cons 'B TETB) (cons 'C TETC) (cons 'D TETD)))
-;; (setq CONTROLLER-PORTS (list (cons 'A TETA) (cons 'B TETB)))
-;; (setq BAUD_RATE 19200)
 (setq BAUD_RATE 19200)
-
-
 (setq 5TETGLUSSBOT "5TetGlussBot")
 
 ;; This could be done automatically, but the benefit of that is small untill we have
@@ -70,7 +66,7 @@
 			   (cons (list (car com) sym) (cdr com))))
 	   )
       (let (
-	    (command-str (format "%s" com-with-sym)))
+	    (command-str (format "%s\n" com-with-sym)))
 	(print (format "about to call with str: %s" command-str))
 	(process-send-string process command-str))
 	)
@@ -199,6 +195,11 @@
 (defun halt (&optional sym)
   (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(halt) msym)))
+
+(defun iotest (&optional sym)
+  (let ((msym (get-symbol-for-com-use sym)))
+    (send-all '(abcdefghijklmnopqrstuvwxyabcdefghijklmnopqrstuvwxy) msym)))
+
 
 ;; Movement poses -- a distinction should be made between a complete pose
 ;; and a partial pose. Note one could even go so far as to design
@@ -1710,9 +1711,15 @@ Return the results of all forms as a list."
 
 (defun move-from-json (j)
   (let ((pose   (mapcar (lambda (e) (list (car e) (cadr e)))
-			(json-parse j))))
+			(json-parse j)))
+	   (sym (get-symbol-for-com-use))
+		  )
+    (put sym 'then-function 
+	 `(lambda ()
+	    (setq wtime2 (current-time))))
+    (setq wtime1 (current-time))
     (print pose)
-    (p pose  nil)
+    (p pose  sym)
     )
   )
 
@@ -2518,6 +2525,8 @@ Return the results of all forms as a list."
 (defvar glusscon-url "http://192.168.1.143")
 ;; (defvar glusscon-url "http://10.11.17.228")
 ;; (defvar glusscon-raspi-url "http://10.11.17.243")
+;; sxsw
+(setq glusscon-url "http://192.168.1.143")
 
 (defun convert-to-json (str)
   (let ((n (string-match "{" str)))
@@ -2623,8 +2632,8 @@ A5: 377,
 	 (d (if official_model
 		(max_difference jp official_model)
 	      2000)))
-;;    (print "d =")
-;;    (print d)
+    (print "d =")
+    (print d)
     (if (> d MAX_DIFFERENCE_TRIGGER)
 	(progn
 	  (setq official_model jp)
@@ -2635,6 +2644,9 @@ A5: 377,
     )
   )
 
+(defvar wtime0 nil)
+(defvar wtime1 nil)
+(defvar wtime2 nil)
 
 
 (defun glusscon-query (url)
@@ -2642,10 +2654,10 @@ A5: 377,
    (condition-case err
     (url-queue-retrieve url
 		  (lambda (status)
-;;		    (print "STATUS = ")
-;;		    (print status)
-;;		    (print numprobes)
-;;		    (print numanswered)
+		    (print "STATUS = ")
+		    (print status)
+		    (print numprobes)
+		    (print numanswered)
 		    (if (equal (car status) :error)
 			(progn
 			  (print "SOMETHING WRONG WITH CONNECTION!")
@@ -2658,12 +2670,12 @@ A5: 377,
 				  (buffer-string)))
 			       (json (convert-to-json str))
 			       (changed (compare_current_json json)))
-			  (progn
-			    (if changed
-				(print json)
-			      (print "unchanged"))
-			    (if changed
-				(move-from-json json))))))))
+			  (print json)
+			  (print changed)
+			  (if changed
+			      (progn
+				(setq wtime0 (current-time))
+			      (move-from-json json))))))))
     (error
      ;; Display the usual message for this error.
      (print "AAAA error in url-retrieve")
@@ -2683,3 +2695,26 @@ A5: 377,
 ;; gray: gnd
 
 ;;
+
+;; (big)
+;; (small)
+;; (relax)
+;; (cancel-glusscon-timer)
+;; (establish-timer-for-glusscon-probe 2)
+;; (setq glusscon-url "http://172.16.18.202")
+
+(defvar demo-timer nil)
+(defun establish-timer-for-demos (period-seconds)
+  (let* ((thunk #'(lambda ()
+		    (fdance '((big) (small) (relax)))
+		    ))
+
+	 (timer (run-at-time t period-seconds
+			     thunk)))
+	 (print "QQQQQQQQQQQQQQQQ")    
+    (setq demo-timer timer)))
+
+    
+(defun cancel-demo-timer ()
+  (cancel-timer demo-timer)
+  )
