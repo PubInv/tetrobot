@@ -1718,7 +1718,7 @@ Return the results of all forms as a list."
 	 `(lambda ()
 	    (setq wtime2 (current-time))))
     (setq wtime1 (current-time))
-    (print pose)
+;;    (print pose)
     (p pose  sym)
     )
   )
@@ -2575,6 +2575,7 @@ A5: 377,
 ;; First of all, prove that I can cancel a timer correctly.
 (defvar numprobes 0)
 (defvar numanswered 0)
+;; 0.25 seconds seems to work best with my current Arduino code.
 (defun establish-timer-for-glusscon-probe (period-seconds)
   (setq numprobes 0)
   (setq numanswered 0)  
@@ -2632,8 +2633,6 @@ A5: 377,
 	 (d (if official_model
 		(max_difference jp official_model)
 	      2000)))
-    (print "d =")
-    (print d)
     (if (> d MAX_DIFFERENCE_TRIGGER)
 	(progn
 	  (setq official_model jp)
@@ -2654,10 +2653,10 @@ A5: 377,
    (condition-case err
     (url-queue-retrieve url
 		  (lambda (status)
-		    (print "STATUS = ")
-		    (print status)
-		    (print numprobes)
-		    (print numanswered)
+;;		    (print "STATUS = ")
+;;		    (print status)
+;;		    (print numprobes)
+;;		    (print numanswered)
 		    (if (equal (car status) :error)
 			(progn
 			  (print "SOMETHING WRONG WITH CONNECTION!")
@@ -2670,8 +2669,8 @@ A5: 377,
 				  (buffer-string)))
 			       (json (convert-to-json str))
 			       (changed (compare_current_json json)))
-			  (print json)
-			  (print changed)
+;;			  (print json)
+;;			  (print changed)
 			  (if changed
 			      (progn
 				(setq wtime0 (current-time))

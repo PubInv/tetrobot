@@ -301,12 +301,12 @@ Stream* gparam_for_sexpr_callback_debug;
 int r_cnt = 0;
 
 void input_check_callback();
-void main_controller_callback();
+// void main_controller_callback();
 void premove_processing();
 
 Task t0(1,TASK_FOREVER, &input_check_callback);
 
-Task t1(1,TASK_FOREVER,&main_controller_callback);
+// Task t1(1,TASK_FOREVER,&main_controller_callback);
 
 Task t2(1,TASK_FOREVER,&premove_processing);
 
@@ -727,17 +727,14 @@ void main_controller(Stream* debug,String str) {
 
 Scheduler runner;
 
-void main_controller_callback() {
-//  Serial.println("AAA");
-//   log_comment(INFORM,gparam_for_sexpr_callback_debug,"AAA"); 
-//  log_comment_i(INFORM,gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str.length()); 
-  if (gparam_for_sexpr_callback_str.length() != 0) {
-    interpret_function_as_sepxr(gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str);
-    gparam_for_sexpr_callback_str = EMPTY_STRING;
-  } else {
-
-  }
-}
+//void main_controller_callback() {
+//  if (gparam_for_sexpr_callback_str.length() != 0) {
+//    interpret_function_as_sepxr(gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str);
+//    gparam_for_sexpr_callback_str = EMPTY_STRING;
+//  } else {
+//
+//  }
+//}
 
 // This isn't really much of a task ... this is more a test of functionality...
 unsigned long lastTime;
@@ -749,11 +746,9 @@ int ring_len = 0;
 void input_check_callback() {
     unsigned long StartTime = millis();
   //  log_comment_i(WARN,&bluetooth,lastTime - StartTime);
-    lastTime = StartTime;
-    
+    lastTime = StartTime;  
 
     r_cnt++;
-    const int MIN_STR_LEN = 13;
   if(bluetooth.available()>0)  // If the bluetooth sent any characters
     {
       int x = bluetooth.available();
@@ -761,7 +756,7 @@ void input_check_callback() {
   //    Serial.println(x);
 
         unsigned long StartTime = millis();
-      bluetooth.setTimeout(50);
+      bluetooth.setTimeout(10);
       int n = bluetooth.readBytes(temp_buffer,1024);
            unsigned long EndTime = millis();
     //  Serial.println(n);
@@ -790,7 +785,7 @@ void input_check_callback() {
       }
   }
   // At htis point line_len is content + 1 for the eoln...
-  if (line_len != 0)
+  // if (line_len != 0)
    // Serial.println(line_len);
 // a positive line_len means we have found a line to process..
    if (line_len > 0) {
@@ -807,19 +802,18 @@ void input_check_callback() {
    
       String str = String(str_buff);
       str.trim();
-    //  Serial.println("spud");
-    //  Serial.println(str_buff);
-    //  Serial.println(str);
-        // YIKES!!! THIS TAKES 1 second!
-  //    String str = bluetooth.readStringUntil('\n');
-        
-    //  log_comment(PANIC,&bluetooth,str);
     
       // Send any characters the bluetooth prints to the serial monitor
       gparam_for_sexpr_callback_debug = &bluetooth;
 
       // The act of making this non-null activates our task that should run the main loop...
       gparam_for_sexpr_callback_str = str;
+      if (gparam_for_sexpr_callback_str.length() != 0) {
+         interpret_function_as_sepxr(gparam_for_sexpr_callback_debug,gparam_for_sexpr_callback_str);
+         gparam_for_sexpr_callback_str = EMPTY_STRING;
+    } else {
+
+    }
    }
 //      runner.addTask(t1);
 //     t1.enable();
@@ -838,24 +832,6 @@ void input_check_callback() {
 void loop()
 {
   runner.execute();
-//  r_cnt++;
-//  if(bluetooth.available()>0)  // If the bluetooth sent any characters
-//    {
-//      int x = bluetooth.available();
-//      Serial.println("x = ");
-//      Serial.println(x);
-//      String str = bluetooth.readStringUntil('\n');
-//      log_comment(INFORM,&bluetooth,str);
-//    
-//      // Send any characters the bluetooth prints to the serial monitor
-//      main_controller(&bluetooth,str);
-//    }
-//  if(Serial.available()>0)  // If stuff was typed in the serial monitor
-//    {
-//      // Send any characters the Serial monitor prints to the bluetooth
-//      String s =  Serial.readStringUntil('\n');
-//      bluetooth.println(s);
-//    }
 }
 void SetUpActuator(int i,actuator* a);
 
@@ -910,8 +886,8 @@ void setup()
   runner.init();
   runner.addTask(t0);
   t0.enable();
-  runner.addTask(t1);
-  t1.enable();
+  //runner.addTask(t1);
+ // t1.enable();
   runner.addTask(t2);
   t2.disable();
 }
