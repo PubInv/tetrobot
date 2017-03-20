@@ -66,7 +66,7 @@
 			   (cons (list (car com) sym) (cdr com))))
 	   )
       (let (
-	    (command-str (format "%s" com-with-sym)))
+	    (command-str (format "%s\n" com-with-sym)))
 	(print (format "about to call with str: %s" command-str))
 	(process-send-string process command-str))
 	)
@@ -191,6 +191,14 @@
 (defun relax (&optional sym)
   (let ((msym (get-symbol-for-com-use sym)))
     (send-all '(relax) msym)))
+
+(defun halt (&optional sym)
+  (let ((msym (get-symbol-for-com-use sym)))
+    (send-all '(halt) msym)))
+
+(defun iotest (&optional sym)
+  (let ((msym (get-symbol-for-com-use sym)))
+    (send-all '(abcdefghijklmnopqrstuvwxyabcdefghijklmnopqrstuvwxy) msym)))
 
 
 ;; Movement poses -- a distinction should be made between a complete pose
@@ -1703,9 +1711,15 @@ Return the results of all forms as a list."
 
 (defun move-from-json (j)
   (let ((pose   (mapcar (lambda (e) (list (car e) (cadr e)))
-			(json-parse j))))
-    (print pose)
-    (p pose  nil)
+			(json-parse j)))
+	   (sym (get-symbol-for-com-use))
+		  )
+    (put sym 'then-function 
+	 `(lambda ()
+	    (setq wtime2 (current-time))))
+    (setq wtime1 (current-time))
+;;    (print pose)
+    (p pose  sym)
     )
   )
 
@@ -2508,11 +2522,13 @@ Return the results of all forms as a list."
   )
 
 (defvar glusscon-timer nil)
-(defvar glusscon-url "http://192.168.1.207")
+(defvar glusscon-url "http://192.168.1.143")
 ;; (defvar glusscon-url "http://10.11.17.228")
 ;; (defvar glusscon-raspi-url "http://10.11.17.243")
 ;; sxsw
-(setq glusscon-url "http://172.16.55.27")
+
+(setq glusscon-url "http://192.168.1.143")
+
 
 (defun convert-to-json (str)
   (let ((n (string-match "{" str)))
@@ -2561,6 +2577,7 @@ A5: 377,
 ;; First of all, prove that I can cancel a timer correctly.
 (defvar numprobes 0)
 (defvar numanswered 0)
+;; 0.25 seconds seems to work best with my current Arduino code.
 (defun establish-timer-for-glusscon-probe (period-seconds)
   (setq numprobes 0)
   (setq numanswered 0)  
@@ -2618,8 +2635,6 @@ A5: 377,
 	 (d (if official_model
 		(max_difference jp official_model)
 	      2000)))
-    (print "d =")
-    (print d)
     (if (> d MAX_DIFFERENCE_TRIGGER)
 	(progn
 	  (setq official_model jp)
@@ -2630,6 +2645,9 @@ A5: 377,
     )
   )
 
+(defvar wtime0 nil)
+(defvar wtime1 nil)
+(defvar wtime2 nil)
 
 
 (defun glusscon-query (url)
@@ -2637,10 +2655,10 @@ A5: 377,
    (condition-case err
     (url-queue-retrieve url
 		  (lambda (status)
-		    (print "STATUS = ")
-		    (print status)
-		    (print numprobes)
-		    (print numanswered)
+;;		    (print "STATUS = ")
+;;		    (print status)
+;;		    (print numprobes)
+;;		    (print numanswered)
 		    (if (equal (car status) :error)
 			(progn
 			  (print "SOMETHING WRONG WITH CONNECTION!")
@@ -2653,10 +2671,12 @@ A5: 377,
 				  (buffer-string)))
 			       (json (convert-to-json str))
 			       (changed (compare_current_json json)))
-			  (print json)
-			  (print changed)
+;;			  (print json)
+;;			  (print changed)
 			  (if changed
-			      (move-from-json json)))))))
+			      (progn
+				(setq wtime0 (current-time))
+			      (move-from-json json))))))))
     (error
      ;; Display the usual message for this error.
      (print "AAAA error in url-retrieve")
