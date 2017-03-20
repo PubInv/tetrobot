@@ -2526,7 +2526,9 @@ Return the results of all forms as a list."
 ;; (defvar glusscon-url "http://10.11.17.228")
 ;; (defvar glusscon-raspi-url "http://10.11.17.243")
 ;; sxsw
+
 (setq glusscon-url "http://192.168.1.143")
+
 
 (defun convert-to-json (str)
   (let ((n (string-match "{" str)))
