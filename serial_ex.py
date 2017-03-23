@@ -6,8 +6,9 @@ import select
 
 # configure the serial connections (the parameters differs on the device you are connecting to)
 ser = serial.Serial(
-    port='/dev/cu.2TETBOT-RNI-SPP',
+#    port='/dev/cu.2TETBOT-RNI-SPP',
 #    port='/dev/cu.RNBT-D411-RNI-SPP',
+    port='/dev/cu.RNBT-DCCE-RNI-SPP',
     baudrate=19200,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
