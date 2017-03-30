@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # -*- mode: gitignore; -*-
 *~
 \#*\#
@@ -10,3 +11,9 @@ tramp
 
 _site/*
 */.DS_Store
+=======
+*.0
+*.elf
+*.gcode
+GlussPCBv0.1/build-mega-atmega2560
+>>>>>>> e671044411ba4c1b4e785f83eea82da4f7165125
