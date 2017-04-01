@@ -69,6 +69,9 @@
 	    <button type="button" onclick="equitetrabeam()">
 	      Equitetrabeam
 	    </button>
+	    <button type="button" onclick="equitetrabeam_adjusted()">
+	      Equitetrabeam Adjusted
+	    </button>
 	    <button type="button" onclick="tetrabeam()">
 	      Tetrabeam
 	    </button>
@@ -1175,7 +1178,83 @@ function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple
     return glog;
 }
 
+function generate_glog_adjusted(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
+{
+    // TODO: This needs to be a parameter, or we need to use the difference
+    // between the maximum and minimum of the 9 input parameters.
+    //    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
+    var mean_len = am.MEAN_EDGE_LENGTH;
+    var r = 1000 * fraction_from_length(mean_len * red);
+    var y = 1000 * fraction_from_length(mean_len * yellow);
+    var b = 1000 * fraction_from_length(mean_len * blue);    
+
+    var oe = 1000 * fraction_from_length(mean_len * orange_even);
+    var oo = 1000 * fraction_from_length(mean_len * orange_odd);
+    var pe = 1000 * fraction_from_length(mean_len * purple_even);    
+    var po = 1000 * fraction_from_length(mean_len * purple_odd);
+
+    var ge = 1000 * fraction_from_length(mean_len * green_even);
+    var go = 1000 * fraction_from_length(mean_len * green_odd);
+
+    // This is done by hand, but in the future we should do this by number, so as
+    // to be completely independent of the number of tetrahedra
+    var glog = [{"A0": pe*1.3,
+		 "A1": oe,
+		 "A2": r,
+		 "A3": ge,
+		 "A4": po*1.05,
+		 "A5": oo,
+		 "B0": y,
+		 "B1": go,
+		 "B2": pe,
+		 "B3": b,
+		 "B4": oe,
+		 "B5": ge,
+		 "C0": r,
+		 "C1": po,
+		 "C2": oo,
+		 "C3": y,
+		 "C4": go,
+		 "C5": pe*1.05,
+		 "D0": b,
+		 "D1": oe,
+		 "D2": ge,
+		 "D3": r,
+		 "D4": po,
+		 "D5": oo
+		}
+	       ];
+    return glog;
+}
+
 function equitetrabeam_glog() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+
+    // WARNING: This looks wrong to me!!!
+    var green_even = one_hop;
+    var green_odd = two_hop;
+
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  one_hop;
+    var purple_even = one_hop;
+
+    var orange_even = two_hop;
+    var purple_odd =  two_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
+}
+function equitetrabeam_glog_adjusted() {
     var red = 1.0;
     var yellow = 1.0;
     var blue = 1.0;
@@ -1197,15 +1276,46 @@ function equitetrabeam_glog() {
     // These numbers work better but that doesn't explain what I can be computing wrong!!!
     // Possibly my number from my spreadsheet are somehow wrong!
 
-    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    var glog = generate_glog_adjusted(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
     return glog;
 }
 
+function equitetrabeam_adjusted() {
+    var glog = equitetrabeam_glog_adjusted();
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+//    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
 function equitetrabeam() {
     var glog = equitetrabeam_glog();
     execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
     // WARNING: This is a very slow untwisting used for demo purposes
 //    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
+
+function curl_up() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+    var green_even = one_hop;
+    var green_odd = one_hop;
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  one_hop;
+    var purple_even = one_hop;
+
+    var orange_even = two_hop;
+    var purple_odd =  two_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
 }
 
 function equitetrabeam_x() {
@@ -1878,12 +1988,12 @@ var AM = function() {
     // These are in meters, measured joint-center to joint-center
     this.BASIC_BODY_MASS = 1.0; // This is kilograms.
     this.MEMBER_MASS = 1.0;
-    this.MAX_EDGE_LENGTH = 0.470;
-    this.MIN_EDGE_LENGTH = 0.330;
+    this.MAX_EDGE_LENGTH = 0.420;
+    this.MIN_EDGE_LENGTH = 0.290;
     this.MEAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.03; // This is the current turret joint ball.
 
-    this.JOINT_MASS = 1;
+    this.JOINT_MASS = 1.0;
 
     this.robot = {
 	robot_joints: [],
