@@ -373,7 +373,7 @@ function clear_text() {
 var sprite_controls = new function () {
     this.size = 50;
     this.sprite = 0;
-    this.transparent = true;
+    this.transparent = false;
     this.opacity = 0.6;
     this.colorize = 0xffffff;
     this.textcolor = "yellow";
@@ -385,7 +385,7 @@ var sprite_controls = new function () {
         })
     };
 
-    this.draw_and_create = function (sprite,x,y,message) {
+    this.draw_and_create = function (sprite,x,y,message,color,opacity) {
 	var fontsize = 128;
 	var ctx, texture,
 	    spriteMaterial, 
@@ -394,12 +394,17 @@ var sprite_controls = new function () {
 	ctx.font = fontsize + "px Arial";
 
 	// setting canvas width/height before ctx draw, else canvas is empty
-	canvas.width = ctx.measureText(message).width;
-	canvas.height = fontsize * 2; // fontsize * 1.5
+	// canvas.width = ctx.measureText(message).width;
+	// canvas.height = fontsize * 2; // fontsize * 1.5
 
+	// I have no idea why making these large makes the sprite smaller!!!
+	canvas.width = ctx.measureText(message).width;
+	canvas.height = fontsize*2; // fontsize * 1.5
+
+	
 	// after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
 	ctx.font = fontsize + "px Arial";        
-	ctx.fillStyle = this.textcolor;        
+	ctx.fillStyle = color || this.textcolor;        
 	ctx.fillText(message, 0, fontsize);
 
 	texture = new THREE.Texture(canvas);
@@ -407,7 +412,7 @@ var sprite_controls = new function () {
 	texture.needsUpdate = true;
 
 	var spriteMaterial = new THREE.SpriteMaterial({
-	    opacity: this.opacity,
+	    opacity: opacity || this.opacity,
 	    color: this.colorize,
 	    transparent: this.transparent,
 	    map : texture});
@@ -432,18 +437,23 @@ var sprite_controls = new function () {
 
 
 function get_member_color(gui,len) {
-    if (len < am.MIN_EDGE_LENGTH)
+    if (len < am.MIN_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
 	return d3.rgb("black");
-    else if (len > am.MAX_EDGE_LENGTH)
-	return d3.rgb("black");
-    else {
-	var p = (len - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
+    } else if (len > am.MAX_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
+	return d3.rgb("red");
+    } else {
 	return d3.rgb(gui.color_scale(len));
     }
 }
 
 
-
+/*
 function render(gui) {
     gui.renderer.render(gui.scene, gui.camera);
     gui.renderer.render(gui.grid_scene, gui.camera);
@@ -451,6 +461,7 @@ function render(gui) {
     // This is for the sprites....
     gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
 }
+*/
 
 
 function remove_non_eternal_constraints() {
@@ -625,6 +636,7 @@ function testApplyBulletTransformInverse() {
     
 }
 
+
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
     var constrainedBody = body;
@@ -679,7 +691,7 @@ function addMouseConstraint(gui,x,y,z,body) {
 
 
 // This functions moves the transparent joint body to a new postion in space
-
+// We need to remove globals from this.
 function moveJointToPoint(gui,x,y,z) {
     var is_obstacle = (gui.selectedBody.structureKind == "obstacle");
     var act_natural = ((gui.FORCE_REGIME == "ALLOW") ||
@@ -728,15 +740,15 @@ function moveJointToPoint(gui,x,y,z) {
 	//	var act_settings = model_to_actuator_space(pose,am.robot);
 	
 	// TODO: change most_recent_constraints -> most recent model
-	console.log("constraints:");
-	console.log(gui.most_recent_constraints);
+//	console.log("constraints:");
+//	console.log(gui.most_recent_constraints);
 	var act_settings =
 	    actuator_space_model_func(gui.robot,
 				      gui.selectedBody,
 				      gui.jointBody,
 				      gui.most_recent_constraints);
-	console.log("settings:");
-	console.log(act_settings);
+//	console.log("settings:");
+//	console.log(act_settings);
 	// now move to the new pose.
 	set_interp_constraints(act_settings,act_settings,1.0);
     }
@@ -1134,7 +1146,7 @@ function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple
     // TODO: This needs to be a parameter, or we need to use the difference
     // between the maximum and minimum of the 9 input parameters.
     //    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
-    var mean_len = am.MEAN_EDGE_LENGTH;
+    var mean_len = am.MAX_EDGE_LENGTH/orange_even;
     var r = 1000 * fraction_from_length(mean_len * red);
     var y = 1000 * fraction_from_length(mean_len * yellow);
     var b = 1000 * fraction_from_length(mean_len * blue);    
@@ -1654,6 +1666,7 @@ function update_constraints(links,f) {
 	var mbq = memBody.getWorldTransform().getRotation();
         quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
 
+	
 	var mesh = create_actuator(d,pos,quat,b_a,b_z);
 	var new_memBody = mesh["ammo_obj"];
 	new_memBody.constraints = [];
@@ -1979,7 +1992,7 @@ var AM = function() {
 
     // I don't understand this...need to fully understand.
     this.MARKER_MASS = 0;
-    this.Y_GRAVITY_FORCE = -9.8;
+    this.Y_GRAVITY_FORCE = -9.8 / 100;
     this.MARKER_RADIUS = 0.009;
     
     this.MEMBER_FRACTION = 20;
@@ -2014,7 +2027,7 @@ var AM = function() {
     this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
 
     this.color_scale = d3.scale.quantile().domain([this.MIN_EDGE_LENGTH, this.MAX_EDGE_LENGTH])
-	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
+	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow']);
     this.color_material_palette = {};
 
     this.url_for_robot = "http://127.0.0.1:9000";
@@ -2221,22 +2234,32 @@ function onMouseDown(e){
 	    if(idx !== -1) {
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
-		var zero = new Ammo.btVector3(0, 0, 0 );
-		am.manipulatedObject.setMassProps(0.0,zero);
-		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
-		// Now we want to change color to show locked...
-		// TODO: This is a global...
-		am.meshes[idx].material.color.setHex( 0x000000 );
-		am.lockedGroups.handlocked.push(obj);
+		am.manipulatedObject.mesh = am.meshes[idx];
+		
+		var index_locked = am.lockedGroups.handlocked.indexOf(obj);
+		if (index_locked < 0) {
+		    am.lockedGroups.handlocked.push(obj);
+		    // ATTACH ORIGINAL COLOR TO THE OBJECT, NOT THE MESH --- I"M LOSING IT HERE.
+		    am.manipulatedObject.original_color = am.meshes[idx].material.color.getHex();
+		    var zero = new Ammo.btVector3(0, 0, 0 );
+		    am.manipulatedObject.setMassProps(0.0,zero);
+		    addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		    // Now we want to change color to show locked...
+		    // TODO: This is a global...
+		    am.meshes[idx].material.color.setHex( 0x000000 );
+		} else {
+		    am.lockedGroups.handlocked.splice(index_locked,1);
+		    am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+		}
 	    }
 	} else {
 	    //            constraintDown = true;
             // Set marker on contact point
             setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
 	    // what we really want to do here is to change the color, but stash the old color first to restore...
-	    am.meshes[idx].material.original_color = am.meshes[idx].material.color.getHex();
+	    var original_color = am.meshes[idx].material.color.getHex();
+	    am.meshes[idx].material.original_color = original_color;
 	    am.meshes[idx].material.color.setHex( 0xFF00FF );
-
 
             // Set the movement plane
             setScreenPerpCenter(pos,am);
@@ -2245,6 +2268,10 @@ function onMouseDown(e){
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
 		am.manipulatedObject.mesh = am.meshes[idx];
+		// This is roughly the same as being handlocked
+		if (original_color != 0) {
+		    am.manipulatedObject.original_color = original_color;
+		}
 		// We may have to restore the mass...would be better if we knew...
 		var mass = ((obj.structureKind == "joint") ? am.JOINT_MASS :
 			    ((obj.structureKind == "member") ? am.MEMBER_MASS : am.OBSTACLE_MASS));
@@ -2280,9 +2307,14 @@ function onMouseUp(e) {
 				     -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
     
-    mouse3D.unproject( am.camera );
+  //  mouse3D.unproject( am.camera );
+     mouse3D.unproject( am.camera );
+    mouse3D.sub(am.camera.position);
+    mouse3D.project( am.camera );
+
 
     var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+    
     if(pos){
         setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
         moveJointToPoint(am,pos.x,pos.y,pos.z);
@@ -2290,10 +2322,35 @@ function onMouseUp(e) {
     // remove the marker
     removeClickMarker(am);
 
-    if (am.manipulatedObject) {
-	am.manipulatedObject.setGravity(am.FULL_GRAVITY);
-	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.mesh.material.original_color);	
+      var entity = findNearestIntersectingObject(am,e.clientX,e.clientY,am.camera,am.meshes);
+    var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
+    
+    if (!(pos &&
+	(
+	    (entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
+	)
+	 )) {
+	return;
     }
+
+    if (!e.shiftKey) {
+	if (am.manipulatedObject) {
+	    am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+	    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+//	    if (index > -1) {
+		am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // } else {
+	    // 	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // }
+	}
+    }
+
+  
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
@@ -2301,30 +2358,55 @@ function onMouseUp(e) {
     // Restore joint masses....
     // Actually, this is really wrong, we need to keep track of the nodes that are truly locked
     // in place as compared to those that we have locked for convenience.
+
+
+
     for(var i = 0; i < am.lockedGroups.temporary.length; i++) {
     	var joint = am.lockedGroups.temporary[i];
     	var zero = new Ammo.btVector3(0, 0, 0 );
-    	joint.setMassProps(am.JOINT_MASS,zero);
+	if (am.lockedGroups.handlocked.indexOf(joint) < 0)
+    	    joint.setMassProps(am.JOINT_MASS,zero);
     }
     am.lockedGroups.temporary = [];
-    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
-    if (index > -1) {
-	 am.lockedGroups.handlocked.splice(index, 1);
+
+    if (!e.shiftKey) {
+	var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+	if (index > -1) {
+	    am.lockedGroups.handlocked.splice(index, 1);
+	    if (am.manipulatedObject.structureKind == "joint") {
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(am.JOINT_MASS,zero);	
+	    }
+	}
+
+
     }
 
+    // if (e.shiftKey) {
+
+    // 	for(var i = 0; i < am.lockedGroups.handlocked.length; i++) {
+    // 	    var joint = am.lockedGroups.handlocked[i];
+    // 	    if (joint.name != am.manipulatedObject) {
+    // 		var zero = new Ammo.btVector3(0, 0, 0 );
+    // 		joint.setMassProps(0.0,zero);
+    // 	    }
+    // 	}
+    // }
+
+    	if (am.gplane.visible == true) {
+	    am.gplane.visible = false;
+	    // We need to re-establish the controls because I don't have
+	    // any good way of exiting the active state...
+	    am.controls.dispose();
+	    establish_controls(am);
+	}
+    
     if (am.movedButNotSent) {
 	send_to_robot_url();
 	am.movedButNotSent = false;
     }
-    
-    if (am.gplane.visible == true) {
-	am.gplane.visible = false;
-	// We need to re-establish the controls because I don't have
-	// any good way of exiting the active state...
-	am.controls.dispose();
-	establish_controls(am);
-    }
-
+    am.manipulateObject = null;
+    console.log("handlocked",am.lockedGroups.handlocked.length);
 }
 
 
@@ -2797,9 +2879,24 @@ function animate() {
     render();
 }
 
+function update_member_colors() {
+    am.robot.robot_members.forEach( mem => {
+	var d = member_length(mem.a,mem.b);
+	var idx = am.bodies.indexOf(mem.body);
+	var mesh = am.meshes[idx];
+	var color = get_member_color(am,d);
+	mesh.material.color = color;
+	mesh.material.needsUpdate = true;
+    }
+    );
+}
 function render() {
     var deltaTime = am.clock.getDelta();
     updatePhysics( deltaTime );
+    // Let's update the colors to make sure they are correct due to changes in physics...
+    // This is mainly needed because we "snap" to new constraints...
+    update_member_colors();
+    
     processClick();
     am.controls.update( deltaTime );
 
@@ -2878,8 +2975,38 @@ function updatePhysics( deltaTime ) {
 	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
 	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
 	// WARNING: This was removed only to get a good screen shot.
-	if (objPhys.name) 
-	    objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
+	if (objPhys.name) {
+	    if (objPhys.structureKind == "member") {
+		var a = objPhys.endpoints[0];
+		var b = objPhys.endpoints[1];
+		var d = member_length(a,b);
+
+		var act = find_actuator(a.name,b.name);
+//		console.log(act);
+		for(var j = am.robot.robot_members.length -1; j >= 0; j--) {
+		    if (am.robot.robot_members[j].body.name == objPhys.name) {
+//			console.log(am.robot.robot_members[x].body);
+		    }
+		}
+
+		
+		var l = actuator_to_length.invert(d) / 10.23;
+		var di = parseInt(l.toFixed(0));
+
+//		var color = get_member_color(am,d);
+		var color = ((di < 0) || (di > 100)) ? "yellow" : "white";		
+		if ((di < 0) || (di > 100)) {
+//		    console.log(di);
+		}
+//		if (objPhys.name == "A D")
+//		    console.log("SP",di,color);
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,
+								 ""+objPhys.name +": "+di,color,1.0);
+	    } else {
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);		
+	    }
+
+	}
     }
 
 }
@@ -2896,6 +3023,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
     var len = d+ -am.JOINT_RADIUS*2;
 
     var color = get_member_color(am,d);
+    
     var tcolor = new THREE.Color(color.r,color.g,color.b);
     var cmat = memo_color_mat(tcolor);
     var mesh =  createParalellepiped(
@@ -3105,7 +3233,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		am.physicsWorld.addConstraint(con, true);
 		b["non-rolling-constraint"] = con;
 		}
-	    var s = 0.04;
+	    var s = 0.02;
 	    if (!b_a["non-rolling-constraint"]) {
 		create_non_roll_body(b_a,s);
 	    }
@@ -3502,5 +3630,233 @@ function walk_forward() {
 	   
 }
 
-        </script>
+function member_length(a,b) {
+    var ao = a.getWorldTransform().getOrigin();
+    var bo = b.getWorldTransform().getOrigin();
+    var d = ao.distance(bo);
+    return d;
+}
+
+function print_distances() {
+    am.robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	var d = member_length(a,b);
+	var x = actuator_to_length.invert(d)/10.23;
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di)
+    });
+}
+
+function constraint_violations(debug,nd) {
+    var violation = 0;
+    am.robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	// We are only looking for local violations touching nd!
+	if ((a.name == nd.name) || (b.name == nd.name)) {
+	    var d = member_length(a,b);
+	    var x = actuator_to_length.invert(d)/10.23;
+	    var di = parseInt(x.toFixed(0));
+	    if (debug) {
+		console.log(di);
+	    }
+            if (di < 0) {
+		violation -= di;
+		
+            }
+	    if (di > 100) {
+		violation += di;
+	    }
+	}
+    });
+    if (debug) {
+	console.log("violation:",violation);
+    }
+    return violation;
+}
+
+function print_masses() {
+    am.robot.robot_joints.forEach(function (j) {
+	j.set
+	var x = actuator_to_length.invert(d)/10.23
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di)
+    });
+}
+
+// An experimental function to "ooch" one node in a
+// specific direction until a constraint is hit, such as
+// "moving the rearmost foot forward until a constraint is hit".
+// vector is the direction to move relative to the robot direction vector,
+// not space, where the head is considered to be in the positive x direction.
+// There is a lot of quick and dirty programming in this function that should be
+// rewritten.
+// Currently I'm attempting to stop when we go from
+// no violations to a violation.  This is a global condition
+// which is probably not what we want.
+function ooch(nd,v,step,max) {
+    var axis = new THREE.Vector3(1,0,0);
+    var heading = robot_heading(am.robot);
+    axis.normalize();
+    heading.normalize();
+    var q = new THREE.Quaternion();
+    q.setFromUnitVectors ( axis, heading );
+    console.log("before rotate",v);
+    v.applyQuaternion(q);
+    console.log("after rotate",v);
+    var initpos = nd.getWorldTransform().getOrigin();
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+
+    var ox = initpos.x();
+    var oy = initpos.y();
+    var oz = initpos.z();
+    var steps = 0;
+    // This should really be parametrized by the nd we are moving,
+    // and we probably don't really need to rely on the physics engine here,
+    // it is just distances---in fact, we could probably produce a constant-time
+    // algorithm for it!!! (but another day...)
+    var n = constraint_violations(false,nd);
+    var cv = n;
+    while(cv <= n && (steps < max)) {
+	var d = ((steps+1)*step);
+	nx = ox + v.x*d;
+	ny = oy + v.y*d;
+	nz = oz + v.z*d;
+	{
+            var curpos = nd.getWorldTransform().getOrigin();
+	}
+	am.selectedBody = nd;
+	am.jointBody = nd;	
+	//	moveJointToPoint(am,nx,ny,nz);
+	var n_o = new Ammo.btVector3(nx,ny,nz);
+	startTransform.setOrigin(n_o);
+
+    // This is wrong...we ned to move x,y,z plus the inverse ...
+    // or let the constraint handle!
+	nd.setWorldTransform(startTransform);
+
+	{
+            var curpos = nd.getWorldTransform().getOrigin();
+	}
+	cv = constraint_violations(false,nd);
+	if (cv <= n) {
+	    steps++;
+	} else {
+	    // we're putting it back!
+	    var d = ((steps)*step);
+	    nx = ox + v.x*d;
+	    ny = oy + v.y*d;
+	    nz = oz + v.z*d;
+	    am.selectedBody = nd;
+	    am.jointBody = nd;
+	    var n_o = new Ammo.btVector3(nx,ny,nz);
+	    startTransform.setOrigin(n_o);
+	}
+    }
+    var act_settings =
+	actuator_space_model_func(am.robot,
+				  nd,
+				  nd,
+				  am.most_recent_constraints);
+    // set_interp_constraints(act_settings,act_settings,1.0);
+    console.log("steps:",steps);
+    console.log("act_settings:",act_settings);
+  
+    return [steps,act_settings];
+}
+// 
+// I need to Figure out if I should do a line-fit of the robot
+// or if there is some simpler way to do it.
+// This is the best explanation for how to use svd:
+// https://www.ltu.se/cms_fs/1.51590!/svd-fitting.pdf
+// We can probably use this:
+// https://www.npmjs.com/package/node-svd
+//
+function robot_heading(robot) {
+    // WARNING: this is a quick-and-dirty hack.
+    // The proper way is probably a line-fitting using least squares on node points.
+    var h = robot.robot_joints[0].getWorldTransform().getOrigin();
+    var t = robot.robot_joints.slice(-1)[0].getWorldTransform().getOrigin();
+    return new THREE.Vector3(h.x()-t.x(),h.y()-t.y(),h.z()-t.z());
+}
+
+
+function test_ooch(x,y,z) {
+    // Now, x,y,and z are in "robot coordinates", that is, relative
+    // to the robot_heading.  So to move in to the simulation volume
+    // I need to rotate by the difference between that and the heading.
+
+    var forward = new THREE.Vector3(x,y,z);
+
+    var step = 0.01; // take one centimeter steps at a time.
+    var nd = am.robot.robot_joints[0];
+    var pp = nd.getWorldTransform().getOrigin();
+    var prevpos_v = new Ammo.btVector3(pp.x(), pp.y(), pp.z());
+    var prev_violations = constraint_violations(false,nd);
+    
+    var steps_taken = ooch(nd,forward,step,30);
+    console.log(steps_taken,steps_taken);
+    
+    // Now test that all constraints are satisfied...
+    var cur_violations = constraint_violations(false,nd);
+    console.assert(prev_violations >= cur_violations,prev_violations,cur_violations);
+
+    // Now test that the foot has moved d from where it was...
+    var curpos = nd.getWorldTransform().getOrigin();
+    var moved = prevpos_v.distance(curpos);
+    console.assert(moved > 0.01,moved);
+    console.log(steps_taken[0]*step,moved);
+}
+function test_new_gait_idea0(x,y)
+{
+    var stages = bump(["C","E","B"],x,y);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
+}
+
+function test_new_gait_idea1(x,y)
+{
+    var stages = bump(["H","I","C"],x,y);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
+}
+
+function test_new_gait_idea2(x,y)
+{
+    var stages = bump(["A","D","G","J"],x,y);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
+}
+
+function bump(nd_names,x,y) {
+    var forward = new THREE.Vector3(x,y,0);
+    var step = 0.005;
+
+    var nds = nd_names.map(n => get_body_by_name(n));
+    console.log(nds);
+    var stages = nds.map(nd =>
+			 {
+			 var forward = new THREE.Vector3(x,y,0);
+			   return  ooch(nd,forward,step,60)[1];
+			 });
+    console.log(stages);
+    return stages;
+}
+
+function funky_gait() {
+    var x = 1.0;
+    var y = 0.0;
+    var stages = [];
+    var eqg = equitetrabeam_glog();
+    stages[0] = bump(["C","E","B"],x,y);
+    stages[1] = eqg;
+    stages[2] = bump(["H","I","C"],x,y);
+    stages[3] = eqg;    
+    stages[4] = bump(["A","D","G","J"],x,y);
+    stages[5] = eqg;
+    console.log(stages);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);        
+}
+
+
+</script>
 </html>
