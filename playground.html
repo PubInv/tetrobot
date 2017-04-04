@@ -2087,6 +2087,82 @@ AM.prototype.remove_robot = function() {
     this.robot.robot_members = [];
 }
 
+// This copies the robot into an "abstract robot"
+// using Bullet Rigid objects in the same places and the
+// same linkage structure, but not connected to any
+// simulated world and ignoring all issues such as mass,
+// color, thickness, etc.  It is effectively a purely
+// geometric version of the same robot.
+AM.prototype.get_abstract_robot = function(r) {
+    // These shouldn't matter --- I'm just using them to
+    // create an object to have a uniform geometry.
+    var rad = 0.01;
+    var m = 0.0;
+    var robot = { robot_joints: [],
+		  robot_members: []
+		};
+    // first we will copy all of the joints...
+    r.robot_joints.forEach(j => {
+	// TODO: This code was taken from CreateSphere -- should be unified,
+	// but sadly that code is mixing the Three.js concepts in...
+	// In reality we should cleanly separate the abastract and physical
+	// robot models, so I am not goint to unify this code yet.
+	var o = j.getWorldTransform().getOrigin();
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+	pos.set( o.x(), o.y(), o.z());
+        quat.set( 0, 0, 0, 1 );
+	
+	var colShape        = new Ammo.btSphereShape(rad),
+            startTransform  = new Ammo.btTransform();
+
+    // Don't know if this is needed!
+	colShape.setMargin( am.margin );
+	startTransform.setIdentity();
+
+	var mass          = m,
+            isDynamic     = (mass !== 0),
+            localInertia  = new Ammo.btVector3(0, 0, 0);
+	
+	if (isDynamic)
+	    colShape.calculateLocalInertia(mass,localInertia);
+	
+	startTransform.setOrigin(pos);
+    
+    var myMotionState = new Ammo.btDefaultMotionState(startTransform),
+        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia);
+
+    // Possibly it would make more sense to call this createRigidobdy herere...
+	//	var body          = new Ammo.btRigidBody(rbInfo);
+	// TODO: remove all of this THREE.js dependence.
+	var material = new THREE.MeshPhongMaterial(  );    
+	var ball = new THREE.Mesh( new THREE.SphereGeometry( rad, 18, 16 ), material );
+	var body = createRigidBody(ball,colShape,mass,pos,quat);
+
+	body.name = j.name;
+	j.structureKind = j.structureKind;
+	robot.robot_joints.push(body);
+    }
+			  );
+
+
+    r.robot_members.forEach(m => {
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+
+	var b_z = m.a;
+	var b_a = m.b;
+	var body = { name: m.name,
+		     structure_kind: m.structure_kind }; 
+	var link = { a: b_a, b: b_z, body: body};	    
+	robot.robot_members.push(link);
+	
+    });
+
+    // then we copy all of the members....
+    return robot;
+}
+
 var am = new AM();
 
 // - Main code -
@@ -2735,6 +2811,9 @@ function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
     shape.setMargin( am.margin );
 
     var body = createRigidBody( threeObject, shape, mass, pos, quat );
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,threeObject);
+    
 
     body.setDamping(0.9,0.9);
 
@@ -2774,7 +2853,12 @@ function createSphere(m,r,pos,quat,material) {
     ball.castShadow = true;
     ball.receiveShadow = true;
 
+    // HACK: Why am I redefining this variable?
     var body = createRigidBody(ball,colShape,mass,c,quat);
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,ball);
+    
+
 
     body.setFriction( 0.99 );
     
@@ -2818,10 +2902,6 @@ function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     }
 
-    am.physicsWorld.addRigidBody( body );
-    
-    am.push_body_mesh_pair(body,threeObject);
-    
     return body;
 }
 
@@ -3648,9 +3728,9 @@ function print_distances() {
     });
 }
 
-function constraint_violations(debug,nd) {
+function constraint_violations(debug,nd,robot) {
     var violation = 0;
-    am.robot.robot_members.forEach(function (m) {
+    robot.robot_members.forEach(function (m) {
 	var a = m.a;
 	var b = m.b;
 	// We are only looking for local violations touching nd!
@@ -3658,9 +3738,9 @@ function constraint_violations(debug,nd) {
 	    var d = member_length(a,b);
 	    var x = actuator_to_length.invert(d)/10.23;
 	    var di = parseInt(x.toFixed(0));
-	    if (debug) {
-		console.log(di);
-	    }
+//	    if (debug) {
+//		console.log(di);
+//	    }
             if (di < 0) {
 		violation -= di;
 		
@@ -3678,7 +3758,6 @@ function constraint_violations(debug,nd) {
 
 function print_masses() {
     am.robot.robot_joints.forEach(function (j) {
-	j.set
 	var x = actuator_to_length.invert(d)/10.23
 	var di = parseInt(x.toFixed(0));
 	console.log(a.name,b.name,d,di)
@@ -3695,9 +3774,9 @@ function print_masses() {
 // Currently I'm attempting to stop when we go from
 // no violations to a violation.  This is a global condition
 // which is probably not what we want.
-function ooch(nd,v,step,max) {
+function ooch(robot,act,nd,v,step,max) {
     var axis = new THREE.Vector3(1,0,0);
-    var heading = robot_heading(am.robot);
+    var heading = robot_heading(robot);
     axis.normalize();
     heading.normalize();
     var q = new THREE.Quaternion();
@@ -3717,7 +3796,7 @@ function ooch(nd,v,step,max) {
     // and we probably don't really need to rely on the physics engine here,
     // it is just distances---in fact, we could probably produce a constant-time
     // algorithm for it!!! (but another day...)
-    var n = constraint_violations(false,nd);
+    var n = constraint_violations(true,nd,robot);
     var cv = n;
     while(cv <= n && (steps < max)) {
 	var d = ((steps+1)*step);
@@ -3727,20 +3806,21 @@ function ooch(nd,v,step,max) {
 	{
             var curpos = nd.getWorldTransform().getOrigin();
 	}
-	am.selectedBody = nd;
-	am.jointBody = nd;	
+//	am.selectedBody = nd;
+//	am.jointBody = nd;	
 	//	moveJointToPoint(am,nx,ny,nz);
 	var n_o = new Ammo.btVector3(nx,ny,nz);
 	startTransform.setOrigin(n_o);
-
+//	am.jointBody = nd;
+//	am.selectedBody = nd;
+//	moveJointToPoint(am,nx,ny,nz);
     // This is wrong...we ned to move x,y,z plus the inverse ...
     // or let the constraint handle!
 	nd.setWorldTransform(startTransform);
-
 	{
             var curpos = nd.getWorldTransform().getOrigin();
 	}
-	cv = constraint_violations(false,nd);
+	cv = constraint_violations(true,nd,robot);
 	if (cv <= n) {
 	    steps++;
 	} else {
@@ -3749,17 +3829,22 @@ function ooch(nd,v,step,max) {
 	    nx = ox + v.x*d;
 	    ny = oy + v.y*d;
 	    nz = oz + v.z*d;
-	    am.selectedBody = nd;
-	    am.jointBody = nd;
+//	    am.selectedBody = nd;
+//	    am.jointBody = nd;
 	    var n_o = new Ammo.btVector3(nx,ny,nz);
 	    startTransform.setOrigin(n_o);
+	    nd.setWorldTransform(startTransform);	    
+//	    am.jointBody = nd;
+//	    am.selectedBody = nd;
+//	    moveJointToPoint(am,nx,ny,nz);
 	}
     }
     var act_settings =
-	actuator_space_model_func(am.robot,
+	actuator_space_model_func(robot,
 				  nd,
 				  nd,
-				  am.most_recent_constraints);
+				  // This is a serious weakness, I need to investigate this.
+				  act);
     // set_interp_constraints(act_settings,act_settings,1.0);
     console.log("steps:",steps);
     console.log("act_settings:",act_settings);
@@ -3783,80 +3868,96 @@ function robot_heading(robot) {
 }
 
 
-function test_ooch(x,y,z) {
-    // Now, x,y,and z are in "robot coordinates", that is, relative
-    // to the robot_heading.  So to move in to the simulation volume
-    // I need to rotate by the difference between that and the heading.
 
-    var forward = new THREE.Vector3(x,y,z);
-
-    var step = 0.01; // take one centimeter steps at a time.
-    var nd = am.robot.robot_joints[0];
-    var pp = nd.getWorldTransform().getOrigin();
-    var prevpos_v = new Ammo.btVector3(pp.x(), pp.y(), pp.z());
-    var prev_violations = constraint_violations(false,nd);
-    
-    var steps_taken = ooch(nd,forward,step,30);
-    console.log(steps_taken,steps_taken);
-    
-    // Now test that all constraints are satisfied...
-    var cur_violations = constraint_violations(false,nd);
-    console.assert(prev_violations >= cur_violations,prev_violations,cur_violations);
-
-    // Now test that the foot has moved d from where it was...
-    var curpos = nd.getWorldTransform().getOrigin();
-    var moved = prevpos_v.distance(curpos);
-    console.assert(moved > 0.01,moved);
-    console.log(steps_taken[0]*step,moved);
-}
-function test_new_gait_idea0(x,y)
-{
-    var stages = bump(["C","E","B"],x,y);
-    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
-}
-
-function test_new_gait_idea1(x,y)
-{
-    var stages = bump(["H","I","C"],x,y);
-    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
-}
-
-function test_new_gait_idea2(x,y)
-{
-    var stages = bump(["A","D","G","J"],x,y);
-    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);    
-}
-
-function bump(nd_names,x,y) {
+function bump(robot,nd_names,x,y) {
     var forward = new THREE.Vector3(x,y,0);
     var step = 0.005;
 
     var nds = nd_names.map(n => get_body_by_name(n));
-    console.log(nds);
     var stages = nds.map(nd =>
 			 {
-			 var forward = new THREE.Vector3(x,y,0);
-			   return  ooch(nd,forward,step,60)[1];
+			     var forward = new THREE.Vector3(x,y,0);
+			     var act = build_act_model_from_robot(robot)
+			     return  ooch(robot,act,nd,forward,step,60)[1];
 			 });
-    console.log(stages);
     return stages;
 }
 
-function funky_gait() {
+// Idea: Now that I have separated this, why not make it completely abstract?
+// We will coopy the robot, keeping its geometry and structure, and
+// keep it embedded in the Z-positive semi-volume, but we will
+// not attach it to the Bullet Physics world, which is needed for
+// obstacle, friction, and gravity simulation, but is not needed for
+// this kind of robot planning.
+// In order to do this, I have to:
+// 1) Copy the robot
+// 2) make sure all functions are properly parametrized so that they
+// operate on the correct robot.
+// This is an attempt to development a truly working gait.
+function funky_gait1() {
+
+    var robot = am.get_abstract_robot(am.robot);
+//    robot = am.robot;
+    // We will try moving two feet at a time, making
+    // Three fundamental moves. The basic idea here is
+    // to lift yellow(n) and the same time you are lifting blue(n+phase).
+    var ybphase = 1;
+    // We're goint to try this in two stages:
+    // First we move each up up and forward until it bumps.
+    // Then we will move it down and forward.
+    // Then we will lean forward as much as possible and repeat.
+
+    // These are the red ones..
+    var lean_forward = bump(robot,[alphabetic_name(red(0)),
+			     alphabetic_name(red(1)),
+			     alphabetic_name(red(2)),
+			     alphabetic_name(red(3))],
+			    1,
+			    0);
     var x = 1.0;
     var y = 0.0;
     var stages = [];
+    var cnt = 0;
     var eqg = equitetrabeam_glog();
-    stages[0] = bump(["C","E","B"],x,y);
-    stages[1] = eqg;
-    stages[2] = bump(["H","I","C"],x,y);
-    stages[3] = eqg;    
-    stages[4] = bump(["A","D","G","J"],x,y);
-    stages[5] = eqg;
-    console.log(stages);
+    stages[cnt++] = eqg;
+    // This is the number of feet on the ground. In theory
+    // it could be computed from the number of nodes.
+    var nf = 3;
+    //    for(var s = 0; s < nf; s++) {
+    for(var s = 0; s < 3; s++) {    
+	var yel = s % nf;
+	var blu = (s+ybphase) % nf;
+	var yn = alphabetic_name(yellow(yel));
+	var bn = alphabetic_name(blue(blu));
+	stages[cnt++] = bump(robot,[yn,bn],0,1);
+	stages[cnt++] = bump(robot,[yn,bn],1,0);
+	stages[cnt++] = bump(robot,[yn,bn],0,-1);
+	stages[cnt++] = lean_forward;
+    }
+    stages[cnt++] = eqg;    
+    console.log("stages",stages);
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);        
 }
 
+function test_abstract_robot() {
+    var robot0 = am.get_abstract_robot(am.robot);
+    var robot1 = am.get_abstract_robot(robot0);
+    var cv = constraint_violations(true,robot0.robot_joints[0],robot0);    
+    var cv1 = constraint_violations(true,robot1.robot_joints[0],robot1);
+    console.assert(cv == cv1,cv,cv1);
+}
 
+function build_act_model_from_robot(r) {
+    var ma = {};
+    r.robot_members.forEach(m => {
+	var d = member_length(m.a,m.b);
+	var x = actuator_to_length.invert(d);
+	var di = parseInt(x.toFixed(0));
+	var act = find_actuator(m.a.name,m.b.name);
+	ma[act] = di;
+    });
+    return ma;
+}
+    
 </script>
 </html>
