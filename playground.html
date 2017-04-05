@@ -785,9 +785,9 @@ function render_actuator_model(form) {
 }
 
 // TODO: This can be better.
-function get_body_by_name(name) {
+function get_body_by_name(robot,name) {
     var retval;
-    am.robot.robot_joints.forEach(function (bx) {
+    robot.robot_joints.forEach(function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    if (bx.name == name) {
 		retval = bx;
@@ -837,8 +837,8 @@ function set_interp_constraints(am0,am1,frac) {
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
 	    var link  = find_bodies_from_actuator(key);
-            var a = get_body_by_name(link[0]);
-            var b = get_body_by_name(link[1]);
+            var a = get_body_by_name(am.robot,link[0]);
+            var b = get_body_by_name(am.robot,link[1]);
 /*	    var oa = a.getWorldTransform().getOrigin();
 	    var ob = b.getWorldTransform().getOrigin();
 	    var d = oa.distance(ob);
@@ -1141,12 +1141,12 @@ function get_class_of_actuator(act) {
     if ("D5" == act) { return "oo";}
 }
 
-function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
+function generate_glog(long_length_meters,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
 {
     // TODO: This needs to be a parameter, or we need to use the difference
     // between the maximum and minimum of the 9 input parameters.
     //    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
-    var mean_len = am.MAX_EDGE_LENGTH/orange_even;
+    var mean_len = long_length_meters/orange_even;
     var r = 1000 * fraction_from_length(mean_len * red);
     var y = 1000 * fraction_from_length(mean_len * yellow);
     var b = 1000 * fraction_from_length(mean_len * blue);    
@@ -1189,7 +1189,7 @@ function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple
 	       ];
     return glog;
 }
-
+/*
 function generate_glog_adjusted(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
 {
     // TODO: This needs to be a parameter, or we need to use the difference
@@ -1238,7 +1238,7 @@ function generate_glog_adjusted(red,yellow,blue,orange_even,orange_odd,purple_ev
 	       ];
     return glog;
 }
-
+*/
 function equitetrabeam_glog() {
     var red = 1.0;
     var yellow = 1.0;
@@ -1263,9 +1263,10 @@ function equitetrabeam_glog() {
     // These numbers work better but that doesn't explain what I can be computing wrong!!!
     // Possibly my number from my spreadsheet are somehow wrong!
 
-    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    var glog = generate_glog(am.MEAN_EDGE_LENGTH,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
     return glog;
 }
+/*
 function equitetrabeam_glog_adjusted() {
     var red = 1.0;
     var yellow = 1.0;
@@ -1298,6 +1299,7 @@ function equitetrabeam_adjusted() {
     // WARNING: This is a very slow untwisting used for demo purposes
 //    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
 }
+*/
 function equitetrabeam() {
     var glog = equitetrabeam_glog();
     execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
@@ -1687,7 +1689,10 @@ function update_constraints(links,f) {
 	}
 
 	var s = d/2;
-	var fudge = 0.95;
+	// This probably needs to be made standardized.  It is very
+	// tricky to model tension.  This tends to create compression if fundge is 0.95, which
+	// manifest itself in weird ways.
+	var fudge = 1.0;
 	s = s * fudge;
 	var CFMvalue = am.CONSTRAINTS ? am.myCFMvalue :  am.myCFMvalue /10;
 	var ERPvalue = am.CONSTRAINTS ? am.myERPvalue :  am.myERPvalue /10;	
@@ -2093,11 +2098,44 @@ AM.prototype.remove_robot = function() {
 // simulated world and ignoring all issues such as mass,
 // color, thickness, etc.  It is effectively a purely
 // geometric version of the same robot.
+
+// Because I am separating an abstract robot from
+// a phyiscal robot, I'm going to create getters and setters
+// for the worldTransforms of the nodes which is type -dependent.
+// Both of them take and receive THREE.Vector3 types
+// because those are convenient and neutral.
+
+
+// Note: A JavaScript master would probably be able to do
+// this extensitions to the prototypes. I may return to that once it works.
+function get_wt(nd) {
+    if (nd instanceof Ammo.btRigidBody) {
+	j.getWorldTransform().getOrigin();
+	var pos = new THREE.Vector3();
+	pos.set( o.x(), o.y(), o.z());
+	return pos;
+    } else {
+	return nd.abstract_pos;
+    }
+}
+
+function set_wt(nd,v) {
+    if (nd instanceof Ammo.btRigidBody) {
+	var startTransform = new Ammo.btTransform();
+	startTransform.setIdentity();
+	startTransform.setOrigin(v);
+	nd.setWorldTransform(startTransform);
+    } else {
+	nd.abstract_pos = v;
+    }
+}
+
+
 AM.prototype.get_abstract_robot = function(r) {
     // These shouldn't matter --- I'm just using them to
     // create an object to have a uniform geometry.
     var rad = 0.01;
-    var m = 0.0;
+    var m = 0.1;
     var robot = { robot_joints: [],
 		  robot_members: []
 		};
@@ -2137,10 +2175,9 @@ AM.prototype.get_abstract_robot = function(r) {
 	// TODO: remove all of this THREE.js dependence.
 	var material = new THREE.MeshPhongMaterial(  );    
 	var ball = new THREE.Mesh( new THREE.SphereGeometry( rad, 18, 16 ), material );
-	var body = createRigidBody(ball,colShape,mass,pos,quat);
-
+	var body = createRigidBody(ball,colShape,mass,pos,quat,false);
 	body.name = j.name;
-	j.structureKind = j.structureKind;
+	body.structureKind = j.structureKind;
 	robot.robot_joints.push(body);
     }
 			  );
@@ -2150,8 +2187,8 @@ AM.prototype.get_abstract_robot = function(r) {
 	var pos = new THREE.Vector3();
 	var quat = new THREE.Quaternion();
 
-	var b_z = m.a;
-	var b_a = m.b;
+	var b_a = r.robot_joints.find( j => j.name == m.a.name);
+	var b_z = r.robot_joints.find( j => j.name == m.b.name);
 	var body = { name: m.name,
 		     structure_kind: m.structure_kind }; 
 	var link = { a: b_a, b: b_z, body: body};	    
@@ -2810,7 +2847,7 @@ function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
     var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
     shape.setMargin( am.margin );
 
-    var body = createRigidBody( threeObject, shape, mass, pos, quat );
+    var body = createRigidBody( threeObject, shape, mass, pos, quat,true );
     am.physicsWorld.addRigidBody( body );
     am.push_body_mesh_pair(body,threeObject);
     
@@ -2854,7 +2891,7 @@ function createSphere(m,r,pos,quat,material) {
     ball.receiveShadow = true;
 
     // HACK: Why am I redefining this variable?
-    var body = createRigidBody(ball,colShape,mass,c,quat);
+    var body = createRigidBody(ball,colShape,mass,c,quat,true);
     am.physicsWorld.addRigidBody( body );
     am.push_body_mesh_pair(body,ball);
     
@@ -2871,7 +2908,7 @@ function createSphere(m,r,pos,quat,material) {
     return ball;
 }
 
-function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
+function createRigidBody( threeObject, physicsShape, mass, pos, quat,add ) {
 
     threeObject.position.copy( pos );
     threeObject.quaternion.copy( quat );
@@ -2892,15 +2929,16 @@ function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.userData.physicsBody = body;
 
+    if (add) {
     am.scene.add( threeObject );
     if ( mass > 0 ) {
-
 	am.rigidBodies.push( threeObject );
 
-	// Disable deactivation
-	body.setActivationState( 4 );
-
+	}
     }
+    // We need this even if we are not actually adding this object...
+    // Disable deactivation
+    body.setActivationState( 4 );
 
     return body;
 }
@@ -2926,7 +2964,7 @@ function processClick() {
 	am.pos.copy( am.raycaster.ray.direction );
 	am.pos.add( am.raycaster.ray.origin );
 	am.quat.set( 0, 0, 0, 1 );
-	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat );
+	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat,true );
 	ballBody.setFriction( 0.5 );
 
 	ballBody.setDamping(0.9,0.9);
@@ -3738,12 +3776,11 @@ function constraint_violations(debug,nd,robot) {
 	    var d = member_length(a,b);
 	    var x = actuator_to_length.invert(d)/10.23;
 	    var di = parseInt(x.toFixed(0));
-//	    if (debug) {
-//		console.log(di);
-//	    }
+	    if (debug) {
+		console.log(di);
+	    }
             if (di < 0) {
-		violation -= di;
-		
+		violation += Math.abs(di);
             }
 	    if (di > 100) {
 		violation += di;
@@ -3803,23 +3840,14 @@ function ooch(robot,act,nd,v,step,max) {
 	nx = ox + v.x*d;
 	ny = oy + v.y*d;
 	nz = oz + v.z*d;
-	{
-            var curpos = nd.getWorldTransform().getOrigin();
-	}
-//	am.selectedBody = nd;
-//	am.jointBody = nd;	
-	//	moveJointToPoint(am,nx,ny,nz);
+        var prevpos = nd.getWorldTransform().getOrigin();
 	var n_o = new Ammo.btVector3(nx,ny,nz);
 	startTransform.setOrigin(n_o);
-//	am.jointBody = nd;
-//	am.selectedBody = nd;
-//	moveJointToPoint(am,nx,ny,nz);
-    // This is wrong...we ned to move x,y,z plus the inverse ...
-    // or let the constraint handle!
+	
 	nd.setWorldTransform(startTransform);
-	{
-            var curpos = nd.getWorldTransform().getOrigin();
-	}
+	
+        var curpos = nd.getWorldTransform().getOrigin();
+	console.log("Pos s:",prevpos.x(),curpos.x());
 	cv = constraint_violations(true,nd,robot);
 	if (cv <= n) {
 	    steps++;
@@ -3829,14 +3857,9 @@ function ooch(robot,act,nd,v,step,max) {
 	    nx = ox + v.x*d;
 	    ny = oy + v.y*d;
 	    nz = oz + v.z*d;
-//	    am.selectedBody = nd;
-//	    am.jointBody = nd;
 	    var n_o = new Ammo.btVector3(nx,ny,nz);
 	    startTransform.setOrigin(n_o);
 	    nd.setWorldTransform(startTransform);	    
-//	    am.jointBody = nd;
-//	    am.selectedBody = nd;
-//	    moveJointToPoint(am,nx,ny,nz);
 	}
     }
     var act_settings =
@@ -3871,9 +3894,10 @@ function robot_heading(robot) {
 
 function bump(robot,nd_names,x,y) {
     var forward = new THREE.Vector3(x,y,0);
-    var step = 0.005;
+    var step = 0.01;
 
-    var nds = nd_names.map(n => get_body_by_name(n));
+    var nds = nd_names.map(n => get_body_by_name(robot,n));
+    console.log("nodes",nds);
     var stages = nds.map(nd =>
 			 {
 			     var forward = new THREE.Vector3(x,y,0);
@@ -3909,34 +3933,60 @@ function funky_gait1() {
 
     // These are the red ones..
     var lean_forward = bump(robot,[alphabetic_name(red(0)),
-			     alphabetic_name(red(1)),
-			     alphabetic_name(red(2)),
-			     alphabetic_name(red(3))],
-			    1,
-			    0);
+    			     alphabetic_name(red(1)),
+    			     alphabetic_name(red(2)),
+    			     alphabetic_name(red(3))],
+    			    1,
+    			    0);
     var x = 1.0;
     var y = 0.0;
     var stages = [];
     var cnt = 0;
     var eqg = equitetrabeam_glog();
     stages[cnt++] = eqg;
+   stages[cnt++] = lean_forward;    
     // This is the number of feet on the ground. In theory
     // it could be computed from the number of nodes.
     var nf = 3;
-    //    for(var s = 0; s < nf; s++) {
     for(var s = 0; s < 3; s++) {    
 	var yel = s % nf;
 	var blu = (s+ybphase) % nf;
 	var yn = alphabetic_name(yellow(yel));
 	var bn = alphabetic_name(blue(blu));
 	stages[cnt++] = bump(robot,[yn,bn],0,1);
-	stages[cnt++] = bump(robot,[yn,bn],1,0);
+	stages[cnt++] = bump(robot,[yn,bn],2,0);
 	stages[cnt++] = bump(robot,[yn,bn],0,-1);
 	stages[cnt++] = lean_forward;
     }
-    stages[cnt++] = eqg;    
+   stages[cnt++] = eqg;    
     console.log("stages",stages);
-    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);        
+    return stages;
+}
+
+function fgex() {
+    var fg = funky_gait1();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,fg,10,1000);
+}
+
+function test_leanforward() {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(red(0)),
+			     alphabetic_name(red(1)),
+			     alphabetic_name(red(2)),
+			     alphabetic_name(red(3))],
+			    1,
+			0);
+    console.log("stages",reach_up);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,reach_up,10,1000);
+}
+
+function test_footforward() {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(blue(1))],
+			    2,
+			0);
+    console.log("stages",reach_up);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,reach_up,10,1000);
 }
 
 function test_abstract_robot() {
@@ -3957,6 +4007,40 @@ function build_act_model_from_robot(r) {
 	ma[act] = di;
     });
     return ma;
+}
+
+function flatten(glog) {
+    if (glog_is_atom(glog)) {
+	return glog;
+    } else {
+	var ret = [];
+	glog.forEach(g => {
+ 	    ret = ret.concat(flatten(g));
+	});
+	return ret;
+    }
+}
+// This is an initial attempt to write a function that
+// can be directly used by emacs-ctl.el
+function convert_glog_to_sexpr0(glog) {
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    var str = "( ";
+	    for(var key in glog) {
+		str += "(" + key + " " + parseInt(glog[key].toFixed(0)) + ") ";
+	    }
+	    str += ")\n";
+	    return str;
+	}
+    } else {
+	var str = "(";
+	var fglog = flatten(glog);
+	fglog.forEach(g => {
+	    str += convert_glog_to_sexpr0(g);
+	});
+	str += ")";
+	return str;
+    }
 }
     
 </script>
