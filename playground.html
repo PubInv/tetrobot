@@ -1144,6 +1144,7 @@ function get_class_of_actuator(act) {
     if ("B3" == act) { return "b,";}
     if ("B4" == act) { return "oe";}
     if ("B5" == act) { return "ge";}
+    
     if ("C0" == act) { return "r,";}
     if ("C1" == act) { return "po";}
     if ("C2" == act) { return "oo";}
@@ -1180,30 +1181,37 @@ function generate_glog(long_length_meters,red,yellow,blue,orange_even,orange_odd
 
     // This is done by hand, but in the future we should do this by number, so as
     // to be completely independent of the number of tetrahedra
-    var glog = [{"A0": pe,
-		 "A1": oe,
-		 "A2": r,
-		 "A3": ge,
+    var glog = [{"A0": oe,
+		 "A1": pe,
+		 "A2": ge,
+		 
+		 "A3": r,
 		 "A4": oo,
 		 "A5": po,
+		 
 		 "B0": y,
 		 "B1": go,
-		 "B2": pe,
+		 "B2": oe,
+		 
 		 "B3": b,
-		 "B4": oe,
+		 "B4": pe,
 		 "B5": ge,
+		 
 		 "C0": r,
-		 "C1": po,
-		 "C2": oo,
+		 "C1": oo,
+		 "C2": po,
+		 
 		 "C3": y,
 		 "C4": go,
-		 "C5": pe,
+		 "C5": oe,
+		 
 		 "D0": b,
-		 "D1": oe,
+		 "D1": pe,
 		 "D2": ge,
+		 
 		 "D3": r,
-		 "D4": po,
-		 "D5": oo
+		 "D4": oo,
+		 "D5": po
 		}
 	       ];
     return glog;
@@ -1223,16 +1231,16 @@ function equitetrabeam_glog() {
 
     // Note that purple and orange are reversed due to a chirality problem...
     // need to work that out..
-    var orange_odd =  one_hop;
-    var purple_even = one_hop;
+    var orange_even =  one_hop;    
+    var orange_odd = two_hop;    
 
-    var orange_even = two_hop;
-    var purple_odd =  two_hop;
+    var purple_even = two_hop;
+    var purple_odd =  one_hop;
 
     // These numbers work better but that doesn't explain what I can be computing wrong!!!
     // Possibly my number from my spreadsheet are somehow wrong!
 
-    var long_len = (am.MEAN_EDGE_LENGTH + am.MAX_EDGE_LENGTH)/2;
+    var long_len = am.MEAN_EDGE_LENGTH;
     var glog = generate_glog(long_len,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
     return glog;
 }
@@ -1569,6 +1577,7 @@ function update_constraints(links,f) {
 	    b = t;
 	}
 	var d = f(link);
+	console.log(a.name,b.name,d);
 
 	var memBody = link.body;
 	var b_a = memBody.endpoints[0];
@@ -1642,7 +1651,7 @@ function update_constraints(links,f) {
 
 	if ((b_a.name == "B")  && (b_z.name == "D")) {
 	    //	    debugger;
-	    console.log(b_a,b_z);
+//	    console.log(b_a,b_z);
 	}
 	{
 	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
@@ -1714,12 +1723,6 @@ function assume_pose(pose) {
 // additional controller can be added in a completely regular way.
 
 var ACTUATORS_PER_CONTROLLER = 6;
-function actuator_name_from_number(n) {
-    var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
-    var controller_name = alphabetic_name(controller);
-    var digit = n % ACTUATORS_PER_CONTROLLER;
-    return controller_name + digit;
-}
 
 function actuator_name_from_number(n) {
     var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
@@ -1751,9 +1754,9 @@ function find_bodies_from_actuator(name) {
 	} else if (n == 3) {
 	    return [alphabetic_name(1),alphabetic_name(2)];	    
 	} else if (n == 4) {
-	    return [alphabetic_name(2),alphabetic_name(3)];	    
+	    return [alphabetic_name(1),alphabetic_name(3)];	    
 	} else if (n == 5) {
-	    return [alphabetic_name(3),alphabetic_name(1)];	    
+	    return [alphabetic_name(2),alphabetic_name(3)];	    
 	}
     } else {
 	var hi = Math.floor((n - 6) / 3)+4;
@@ -3059,14 +3062,15 @@ function updatePhysics( deltaTime ) {
 		var di = parseInt(l.toFixed(0));
 
 //		var color = get_member_color(am,d);
-		var color = ((di < 0) || (di > 100)) ? "yellow" : "white";		
+		var color = ((di < 0) || (di > 100)) ? "yellow" : "white";
+		color = "yellow";
 		if ((di < 0) || (di > 100)) {
 //		    console.log(di);
 		}
 //		if (objPhys.name == "A D")
 //		    console.log("SP",di,color);
 		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,
-								 ""+objPhys.name +": "+di,color,1.0);
+								 ""+objPhys.aname+" | " + objPhys.name + ": "+di ,color,1.0);
 	    } else {
 		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);		
 	    }
@@ -3117,6 +3121,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
 	b_z = t;
     }
     memBody.name = b_a.name + " " + b_z.name;
+    memBody.aname = find_actuator(b_a.name,b_z.name);
     memBody.endpoints = [];
     memBody.endpoints[0] = b_a;
     memBody.endpoints[1] = b_z;
