@@ -113,11 +113,56 @@ function num_edges(color,nds) {
     if (color == YEL)
 	return num_yel_edges(nds);
     if (color == BLU)
-	return num_blue_edges(nds);
+	return num_blu_edges(nds);
     if (color == ORA)
 	return num_ora_edges(nds);
     if (color == GRN)
 	return num_grn_edges(nds);
     if (color == PRP)
 	return num_prp_edges(nds);
+}
+
+
+function nine_list(st,cnt) {
+    if (0 >= cnt)
+	return [];
+    else {
+	var nl = nine_list(9+st,cnt-1);
+	nl.push(st);
+	return nl;	
+    }
+}
+
+function hopping(col1,col2,n) {
+    var n2 = Math.floor(n / 2);
+    if ((n % 2) == 0) {
+	return en(nd_from_color(col1,n2),
+		  nd_from_color(col2,n2));
+    } else {
+	return en(nd_from_color(col1,n2+1),
+		  nd_from_color(col2,n2));
+    }
+}
+
+function all_edges(color,nds) {
+    var num = num_edges(color,nds);
+    var rednds = num_red_nds(nds);
+    var yelnds = num_yel_nds(nds);
+    var blunds = num_blu_nds(nds);
+    if (color == RED)
+	return nine_list(3,num);
+    if (color == YEL)
+	return nine_list(6,num);	
+    if (color == BLU)
+	return nine_list(9,num);
+    var edges = [];
+    for(var i = 0; i < num; i++) {
+	if (color == ORA)
+	    edges.push(hopping(RED,YEL,i));
+	if (color == GRN)
+	    edges.push(hopping(YEL,BLU,i));	    
+	if (color == PRP)
+	    edges.push(hopping(RED,BLU,i));
+    }
+    return edges;
 }
