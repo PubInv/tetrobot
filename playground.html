@@ -99,7 +99,7 @@
 	    <button type="button" onclick="walk_forward()">
 	      Walk Forward
 	    </button>
-	    <button type="button" onclick="one_foot_walking()">
+	    <button type="button" onclick="off1()">
 	      One-foot Walking
 	    </button>
 	    <!-- These are currently not workin....
@@ -1042,7 +1042,6 @@ function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms,
     if (!cur) {
 	cur = atom;
     }
-    console.log(cur);
     for(var j = 0; j < subdivisions; j++) {
 	var func = null;
 	if (j == (subdivisions - 1)) {
@@ -1077,8 +1076,6 @@ function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_m
     var res0 = get_first_executable(ctx,glog);
     var first = res0[0];
     var rest = res0[1];
-    console.log(rest);
-    console.log((rest.length == 0 ? finish_callback : null));
     execute_atom(ctx,initial,first,subdivisions,time_between_poses_ms,
 		 (rest.length == 0 ? finish_callback : null));
     if (rest.length > 0) {
@@ -1474,6 +1471,8 @@ function actuator_space_model_func(robot,selectedBody,jointBody,act_model) {
 	    // This split is based on whether we are dealing with abstract robots or not!
 	    var d =  oa.distanceTo(ob);
 	    d = parseInt(actuator_to_length.invert(d).toFixed(0));
+	    d = Math.min(d,1023);
+	    d = Math.max(d,0);
 	} else {
 	    // otherwise we just want to take this from the act_model...
 	    d = act_model[actuator_name];
@@ -3706,7 +3705,6 @@ function print_distances() {
 
 function constraint_violations(debug,nd,robot) {
     var violation = 0;
-    console.log("cv start",get_wt_origin(nd));
     robot.robot_members.forEach(function (m) {
 	var a = m.a;
 	var b = m.b;
@@ -3738,6 +3736,14 @@ function print_masses() {
 	var di = parseInt(x.toFixed(0));
 	console.log(a.name,b.name,d,di)
     });
+}
+
+function is_valid_model(a) {
+    for(var k in Object.keys(a)) {
+	if (a[k] < 0) return false;
+	if (a[k] > 1023) return false;
+    }
+    return true;
 }
 
 // An experimental function to "ooch" one node in a
@@ -3785,7 +3791,6 @@ function ooch(robot,act,nd,v,step,max) {
 	set_wt_origin(nd,vn);
 	
         var curpos = get_wt_origin(nd);
-	console.log("Pos s:",prevpos.x,curpos.x);
 	cv = constraint_violations(true,nd,robot);
 	if (cv <= n) {
 	    steps++;
@@ -3806,6 +3811,7 @@ function ooch(robot,act,nd,v,step,max) {
 				  // This is a serious weakness, I need to investigate this.
 				  act);
     // set_interp_constraints(act_settings,act_settings,1.0);
+    console.assert(is_valid_model(act_settings));
     console.log("steps:",steps);
     console.log("act_settings:",act_settings);
   
@@ -3834,14 +3840,14 @@ function bump(robot,nd_names,x,y,z) {
     var step = 0.01;
 
     var nds = nd_names.map(n => get_body_by_name(robot,n));
-    console.log("nodes",nds);
     var stages = nds.map(nd =>
 			 {
 			     var forward = new THREE.Vector3(x,y,z);
 			     var act = build_act_model_from_robot(robot)
-			     return  ooch(robot,act,nd,forward,step,60)[1];
+			     var model =   ooch(robot,act,nd,forward,step,60)[1];
+			     return model;
 			 });
-    return stages;
+    return stages[stages.length-1];
 }
 
 // Idea: Now that I have separated this, why not make it completely abstract?
@@ -3897,7 +3903,6 @@ function funky_gait1() {
 	stages[cnt++] = lean_forward;
     }
    stages[cnt++] = eqg;    
-    console.log("stages",stages);
     return stages;
 }
 
@@ -3915,7 +3920,6 @@ function test_leanforward() {
 			    1,
 			0,
 		       0);
-    console.log("stages",reach_up);
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,reach_up,10,1000);
 }
 
@@ -3930,7 +3934,6 @@ function test_footforward(nd_num) {
     var reach_dn = bump(robot,[alphabetic_name(nd_num)],
 			    0,
 			-0.2,0);
-    console.log("stages",[reach_up,reach_fd]);
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,[reach_up,reach_fd,reach_dn],10,1000);
 }
 function one_foot_forward(robot,nd_num) {
@@ -3943,6 +3946,12 @@ function one_foot_forward(robot,nd_num) {
     return [reach_up,reach_dn];
     
 }
+function one_foot_up(robot,nd_num) {
+    var reach_up = bump(robot,[alphabetic_name(nd_num)],
+			    0.0,
+			0.2,0);
+    return reach_up;
+}
 function off0() {
     var stages = [];
     var robot = am.get_abstract_robot(am.robot);
@@ -3950,20 +3959,23 @@ function off0() {
 
     stages[cnt++] = equitetrabeam_glog();
 
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+ //   stages[cnt++] =
+
+    bump(robot,[alphabetic_name(red(0)),
     				alphabetic_name(red(1)),
     				alphabetic_name(red(2)),
     				alphabetic_name(red(3))				
     			       ],
     			 0.2,0.2,0.0);
 
-    stages[cnt++] = bump(robot,[alphabetic_name(yellow(1)),
+//    stages[cnt++] =
+	bump(robot,[alphabetic_name(yellow(1)),
     				alphabetic_name(yellow(2)),
 				alphabetic_name(blue(1))
     			       ],
     			 0.0,-0.2,0.0);
 
-    stages[cnt++] = one_foot_forward(robot,yellow(0));
+    stages[cnt++] =	one_foot_forward(robot,yellow(0));
 
     stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
 				alphabetic_name(yellow(1)),
@@ -3973,23 +3985,33 @@ function off0() {
     
     stages[cnt++] = one_foot_forward(robot,blue(0));
 
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+//    stages[cnt++] =
+	bump(robot,[alphabetic_name(red(0)),
     				alphabetic_name(red(1)),
     				alphabetic_name(red(2)),
     				alphabetic_name(red(3))				
     			       ],
     			 0.2,0.2,0.0);
 
-    stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
+//    stages[cnt++] =
+	bump(robot,[alphabetic_name(yellow(0)),
 				alphabetic_name(yellow(2)),				
 				alphabetic_name(blue(0)),
 				alphabetic_name(blue(1))
     			       ],
     			 0.0,-0.2,0.0);
     stages[cnt++] = one_foot_forward(robot,yellow(1));
+    
+       bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
     stages[cnt++] = one_foot_forward(robot,blue(1));
     
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+//    stages[cnt++] =
+	bump(robot,[alphabetic_name(red(0)),
     				alphabetic_name(red(1)),
     				alphabetic_name(red(2)),
     				alphabetic_name(red(3))				
@@ -3997,77 +4019,80 @@ function off0() {
     			 0.2,0.2,0);
     
     stages[cnt++] = one_foot_forward(robot,yellow(2));
+
+       bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
     stages[cnt++] = one_foot_forward(robot,blue(2));
   
     stages[cnt++] = equitetrabeam_glog();
-
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
     return stages;
 }
 
 
-function test_one_foot_walking()
-{
-    var robot = am.get_abstract_robot(am.robot);
+// This is an attempt to do hexapodal walking, lifting feet in 3 pairs.
+function off1() {
     var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
     var cnt = 0;
-    stages[cnt++] = one_foot_forward(robot,blue(0));
 
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			   0.2,0.2,0);
-    
-    stages[cnt++] = one_foot_forward(robot,yellow(2));
-    
-     stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			  0.2,0.2,0);
-    
-    stages[cnt++] = one_foot_forward(robot,blue(2));
-
-        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			  0.2,0.2,0);
-    stages[cnt++] = one_foot_forward(robot,yellow(1));
-
-        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			     0.2,0.2,0);
-    
-    stages[cnt++] = one_foot_forward(robot,blue(1));
-
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			     0.2,0.2,0);
-    
-    stages[cnt++] = one_foot_forward(robot,yellow(0));
-    
-    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
-    				alphabetic_name(red(1)),
-    				alphabetic_name(red(2)),
-    				alphabetic_name(red(3))				
-    			       ],
-    			     0.2,0.2,0);
-    
     stages[cnt++] = equitetrabeam_glog();
+
+
+    bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+	           	 0.2,0.2,0.0);
+
+    function modp(n) {
+	return (n + 3) % 3;
+    }
+
+    for(var i = 0; i < 3; i++) {
+	var j = modp(i+1);
+	//	stages[cnt++] =
+	  bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    		     ],
+	       0.2,0.2,0.0);
+	
+	bump(robot,[alphabetic_name(yellow(modp(i-1))),
+		    alphabetic_name(yellow(modp(i+1))),				
+		    alphabetic_name(blue(modp(j-1))),
+		    alphabetic_name(blue(modp(j+1)))
+    			       ],
+    			 0.0,-0.2,0.0);
+	stages[cnt++] =
+	    one_foot_forward(robot,yellow(i));
+	stages[cnt++] =  one_foot_forward(robot,blue(j));
+	stages[cnt++] = bump(robot,[alphabetic_name(yellow(modp(i))),
+		    alphabetic_name(blue(modp(j)))
+    			       ],
+    			 0.0,-0.2,0.0);
+	
+    }
+    stages[cnt++] =
+	  bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    		     ],
+	       0.2,0.2,0.0);
+  
+    stages[cnt++] = equitetrabeam_glog();
+    regularize_glog(stages);
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
     return stages;
- }
+}
+
 
 function test_abstract_robot() {
     var robot0 = am.get_abstract_robot(am.robot);
@@ -4122,6 +4147,22 @@ function convert_glog_to_sexpr0(glog) {
 	return str;
     }
 }
+// Note: This is a destructive function
+function regularize_glog(glog) {
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    for(var key in glog) {
+		glog[key] = Math.max(0,Math.min(1023,parseInt(glog[key].toFixed(0))));
+	    }
+	}
+    } else {
+	var fglog = flatten(glog);
+	fglog.forEach(g => {
+	    regularize_glog(g);
+	});
+    }
+}
+
 function add_edge_value(pose,color,nds,value) {
     var e = all_edges(color,nds).map(nd =>
 				      {
@@ -4136,7 +4177,7 @@ function add_edge_value(pose,color,nds,value) {
 // The goal is in part to produce a "total" pose.
 // Therefore I will run over all actuators, and take the average.
 // If neither present, I will use 500. if one present, I use only the one.
-function union_poses(a,b) {
+function meld_poses(a,b) {
     var p = {};
     var n = Object.keys(am.robot.robot_members).length
     for(var i = 0; i < n; i++) {
@@ -4169,7 +4210,7 @@ function arc_up() {
 //    add_edge_value(pose,ORA,nds,1000);
 //    add_edge_value(pose,GRN,nds,0);
 //    add_edge_value(pose,PRP,nds,1000);
-    var p = union_poses(pose,{});
+    var p = meld_poses(pose,{});
 
     stages[cnt++] = p;
 //   stages[cnt++] = equitetrabeam_glog();
