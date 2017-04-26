@@ -1159,7 +1159,7 @@ function get_class_of_actuator(act) {
     if ("D5" == act) { return "oo";}
 }
 
-
+// TODO: This needs to be regularized!
 function generate_glog(long_length_meters,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
 {
     // TODO: This needs to be a parameter, or we need to use the difference
@@ -1966,8 +1966,8 @@ var AM = function() {
 
     this.INITIAL_HEIGHT = 0.2;
 
-
-   this.NUMBER_OF_TETRAHEDRA = 7;
+//   this.NUMBER_OF_TETRAHEDRA = 13;
+    this.NUMBER_OF_TETRAHEDRA = 7;
 //       this.NUMBER_OF_TETRAHEDRA = 5;
 
 
@@ -1991,7 +1991,8 @@ var AM = function() {
 
     this.robot = {
 	robot_joints: [],
-	robot_members: []
+	robot_members: [],
+	NUMBER_OF_TETRAHEDRA: this.NUMBER_OF_TETRAHEDRA 
     };
     
     this.meshes = [];
@@ -2161,6 +2162,7 @@ AM.prototype.get_abstract_robot = function(r) {
     });
 
     // then we copy all of the members....
+    robot.NUMBER_OF_TETRAHEDRA = r.NUMBER_OF_TETRAHEDRA;
     return robot;
 }
 
@@ -4034,7 +4036,8 @@ function off0() {
 }
 
 
-// This is an attempt to do hexapodal walking, lifting feet in 3 pairs.
+// TODO: This needs to work with any number of Tetrahedra, which will
+// be a fun function to write.
 function off1() {
     var stages = [];
     var robot = am.get_abstract_robot(am.robot);
@@ -4089,6 +4092,111 @@ function off1() {
   
     stages[cnt++] = equitetrabeam_glog();
     regularize_glog(stages);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+}
+
+// This is an experimental attempt to write a turn function.  Basic
+// idea is to leave middle two feet still and rotate about that.
+// This approach seems to be a complete failure. Let me try to rewrite moving one side at a time.
+function turn_ccw7tet() {
+    var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
+    var cnt = 0;
+
+    stages[cnt++] = equitetrabeam_glog();
+
+    // Basic idea is to shorten/lengthen all edges that are
+    // on either side of the mid point.  For a 7-tet robot
+    // in the equitetrabeam hexapod position, this are the blue
+    // and yellow rails. No doubt more will be required.
+    // Unfortunately, for a 7 tet the center is a line, which is
+    // not stable. So keeping it symmetric, I will treat it as
+    // double triangle (parallelogram) in the center.
+
+    // These should be used to turn in another direction.
+    var head_dir = 0.2;
+    var tail_dir = -0.2;
+
+    // First, lean back...
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(red(0)),
+		    alphabetic_name(red(1)),
+		    alphabetic_name(red(2))		    
+    		     ],
+	     -0.2,0.2,0.0);
+
+    // The "rear back" hunch...
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(red(3))		    
+    		     ],
+	     -0.2,-0.2,0.0);
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(blue(0))		    
+    		     ],
+	     -0.2,0.2,head_dir);
+    
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(red(0))		    
+    		     ],
+	     0.0,0.0,head_dir);
+    
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(yellow(0))		    
+    		     ],
+	     0.2,0.2,head_dir);
+    stages[cnt++] =
+	bump(robot,[alphabetic_name(yellow(0))		    
+    		     ],
+	     0.2,-0.2,head_dir);
+
+      stages[cnt++] =
+	bump(robot,[alphabetic_name(blue(0))		    
+    		     ],
+	     -0.2,0.2,head_dir);
+
+
+    // // First, lean forward
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(red(1)),
+    // 		    alphabetic_name(red(2)),
+    // 		    alphabetic_name(red(3))		    
+    // 		     ],
+    // 	     0.2,0.2,0.0);
+
+    // // The "rear back" hunch...
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(red(0))		    
+    // 		     ],
+    // 	     0.2,-0.2,0.0);
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(yellow(2))		    
+    // 		     ],
+    // 	     0.0,0.2,tail_dir);
+    
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(red(3))		    
+    // 		     ],
+    // 	     0.0,0.0,tail_dir);
+    
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(blue(2))		    
+    // 		     ],
+    // 	     0.0,0.2,tail_dir);
+    // stages[cnt++] =
+    // 	bump(robot,[alphabetic_name(blue(2))		    
+    // 		     ],
+    // 	     0.0,-0.2,tail_dir);
+    
+
+ //   stages[cnt++] = arc_up();
+
+ //   stages[cnt++] = equitetrabeam_glog();
+    
+    
+    regularize_glog(stages);
+
+    
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
     return stages;
 }
@@ -4168,8 +4276,10 @@ function add_edge_value(pose,color,nds,value) {
 				      {
 					  return actuator_name_from_number(nd);
 				      });
+    console.log(e);
     e.forEach(function (r) {
 	pose[r] = value;
+	console.log("r = "+r,value);
     });
 }
 
@@ -4199,11 +4309,13 @@ function arc_up() {
     var stages = [];
     var robot = am.get_abstract_robot(am.robot);
     var cnt = 0;
-    var nds = 10;
+    var nds = Object.keys(robot.robot_joints).length;
  
     stages[cnt++] = equitetrabeam_glog();
-    var pose = am.most_recent_constraints;    
+    var pose = am.most_recent_constraints;
+    console.log(pose);    
     add_edge_value(pose,RED,nds,1000);
+    console.log(pose);
     add_edge_value(pose,BLU,nds,0);
     add_edge_value(pose,YEL,nds,0);        
 
@@ -4213,10 +4325,10 @@ function arc_up() {
     var p = meld_poses(pose,{});
 
     stages[cnt++] = p;
-//   stages[cnt++] = equitetrabeam_glog();
     execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
     return stages;
 }
+
 
 </script>
 </html>
