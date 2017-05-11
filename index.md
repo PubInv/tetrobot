@@ -111,7 +111,7 @@ The project has done a number of things so far that might be useful to others in
 
 <ul>
 <li>
-We are very excited to have produced a functioning controller in the form of a miniature controller: the <a href="https://pubinv.github.io/GlussCon/">GlussCon<a>.
+We are very excited to have produced a functioning controller in the form of a miniature controller: the <a href="https://pubinv.github.io/GlussCon/">GlussCon</a>.
 This has been a big hit amoung users.  We believe this an innovative and powerful way to control the non-rectillinear geometry of the glussbot.
 A major priority is for us to build the next prototype of the GlussCon, which functions well but is fragile and messy at present.
 </li>
