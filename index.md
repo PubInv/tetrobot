@@ -11,17 +11,20 @@ title: Gluss Main Page
 The Gluss Project seeks to build Gluss, a robotic material that moves like a slug but is strong like a truss. We are exploring using networks of linear actuators connected in triangular shapes to build strong space frames that can ooze into position. This a version of the TETROBOT concept from 20 years ago made accessible to hobbyist.
 
 The Gluss Project is a part of <a href="https://github.com/PubInv/PIFAH">Public Invention</a>, which seeks to invent things directly beneficial to all humanity without seeking profit or patents. The project was started in August, 2015.
+
+Here is a summary of our presentation at SxSW Create, 2017:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/kYpHKjkcXKA" frameborder="0" allowfullscreen></iframe>
 	  
 ## Status 
 
-Currently the Gluss Project is mostly Robert L. Read, although we welcome your assistance. We have acheived a crawling robot made of three tetrahedra. Technically, this a "5TetGlussbot", but we are seeking a more personal name.
+Currently the Gluss Project is Robert L. Read, full time, and Joshua Hannan and a number of students working as part time volunteers, although we welcome additional assistance.
+We have acheived a crawling robot made of three tetrahedra. Technically, this a "5TetGlussbot", but we are seeking a more personal name.
 <iframe width="560" height="315" src="https://www.youtube.com/embed/zl0AEfxyVMw" frameborder="0" allowfullscreen></iframe>
-
-We demoed this at the Wichita Mini Maker Faire, and were very pleased that children enjoy it.
 
 You may wish to subscribe to our <a href="https://www.youtube.com/watch?v=1T8XSMhwKUE">YouTube Channel</a>, since because motion is so intrinsic to the Gluss Project, videos are good way to show what we are doing.
 
-The 3TetGlussbot uses commercial linear acuators and the "Turret Joint", an invention of Kwon, Song and Kim, implemented by Rob using a 3D printer. It is controlled by two Arduino Mega with an open-source shield we designed ourselves to allow up to 6 motors to be controlled with a single Mega. An Emacs lisp program communicates via bluetooth with the two controller, giving us a command line interface to control the robot.
+The Glussbot uses commercial linear acuators and the "Turret Joint", an invention of Kwon, Song and Kim, implemented by Rob using a 3D printer. It is controlled by two Arduino Mega with an open-source shield we designed ourselves to allow up to 6 motors to be controlled with a single Mega. An Emacs lisp program communicates via bluetooth with the two controller, giving us a command line interface to control the robot.
 
 ## A Techical Paper
 
@@ -108,6 +111,16 @@ The project has done a number of things so far that might be useful to others in
 
 <ul>
 <li>
+We are very excited to have produced a functioning controller in the form of a miniature controller: the <a href="https://pubinv.github.io/GlussCon/">GlussCon<a>.
+This has been a big hit amoung users.  We believe this an innovative and powerful way to control the non-rectillinear geometry of the glussbot.
+A major priority is for us to build the next prototype of the GlussCon, which functions well but is fragile and messy at present.
+</li>
+<li>
+We have discoverd a  <a href="http://pubinv.github.io/tetrahelix/">tetrahelix continuum.</a> We are prepare an academic paper. The website allows interactive
+design of a continuum of tetrahelices. In particular, this allows us to "untwist" the Boerdijk-Coxeter helix, turning our actual 7TetGlussbot robot into a hexapod
+robot.
+</li>
+<li>
 The <a href="http://pubinv.github.io/turret-joint/">Turret Joint</a> Open-SCAD files are <a href="http://www.thingiverse.com/thing:1043716">
 completely parameterizable</a>
 and would allow anyone to make their own Turret Joints.
@@ -132,6 +145,12 @@ The <a href="http://pubinv.github.io/CoilChoice/">CoilChoice</a> project may be 
 
 Like most ideas, the idea of gluss is a melding of several pre-existing ideas:
 <ul>
+<li>
+The pioneering work begun 20 years ago by Prof. Sanderson, Greg Hamlin, and others in building the TETROBOT was a crucial first step.
+The glussbot represent a continuation of that work after a pause or diversion. (I have not been given permission to use the TETROBOT name.
+I mention it a lot to draw attention to the original research, but tend to use the word "glussbot" for
+the robots built by Public Invention, which are much smaller and use a different joint.)
+</li>
 <li>
 <a href="https://en.wikipedia.org/wiki/Buckminster_Fuller">Buckminster Fuller</a> advocated <a href="https://en.wikipedia.org/wiki/Synergetics_(Fuller)">thinking</a> about structures as fully triangulated rigid structures.
 <img width="30%" src="https://upload.wikimedia.org/wikipedia/commons/b/b2/Synergetics_abmod.gif"/>
