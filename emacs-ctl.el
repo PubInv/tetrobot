@@ -51,12 +51,18 @@
 (setq BACK-FRONT-SYMMETRY
       '((A3 . B3) (A1 . B1) (A2 . B2) (A4 . B4) (A5 . B5)))
 
+;; This assumes the ACTUATOR-MAP is build in the standard order
+(defun actuator-name-from-num (n)
+  (car (nth n ACTUATOR-MAP))
+  )
+			       
+
 
 ;; sym is an optional identifying symbol to uniquely identify the call...
 (defun driver-send-com (driver com &optional sym)
   ;; In theory this will work if the com is a string or an s-expr
   (progn
-    (print (format "driver-send-com %s %s %s" driver com sym))
+;;    (print (format "driver-send-com %s %s %s" driver com sym))
     (if (and (stringp com) sym)
 	(print "Whoa, we can't add a symbol to a string!"))
     (let* ((driver-string (cdr (assoc driver CONTROLLER-PORTS)))
@@ -67,7 +73,7 @@
 	   )
       (let (
 	    (command-str (format "%s\n" com-with-sym)))
-	(print (format "about to call with str: %s" command-str))
+;;	(print (format "about to call with str: %s" command-str))
 	(process-send-string process command-str))
 	)
       ))
@@ -1006,8 +1012,8 @@ Return the results of all forms as a list."
 ;; TODO --- TEST THIS, and add the optional symbol argument, then put in
 ;; the dance.
 (defun valid-pose (pose)
-  (print "pose")
-  (print pose)
+;;  (print "pose")
+;;  (print pose)
   (let ((result 
 	 (cl-reduce #'(lambda (x y) (and x y))
 	  (mapcar #'(lambda (ass)
@@ -1018,8 +1024,9 @@ Return the results of all forms as a list."
 	  pose
 	  )
 	  )))
-    (print "valid:")
-    (print result)
+;;    (print "valid:")
+;;    (print result)
+    t
      )
   )
 
@@ -1361,7 +1368,7 @@ Return the results of all forms as a list."
 ;; (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS)
 ;; (require 'web-server)
 
-;; (load "~/PubInv/gluss/emacs-ctl.el")
+;; (load "~/PubInv/gluss/emacs-ctl.el")>
 
 ;; (init)
 ;; (turn-left)
@@ -1675,7 +1682,7 @@ Return the results of all forms as a list."
 (defun json-parse (string)
   (let ((new 
 	 (range-limit (convert-from-pairs-to-list (json-read-from-string string)))))
-    (print new)
+;;    (print new)
     new
   ))
 
@@ -2552,7 +2559,7 @@ A4: 383,
 A5: 377,
 }
 ")))
-    (print converted)
+;;    (print converted)
   (assert
    (equal
     converted
@@ -2696,13 +2703,17 @@ A5: 377,
 ;; gray: gnd
 
 ;;
-
+;; (load "~/PubInv/gluss/emacs-ctl.el")
+;; (load "~/PubInv/gluss/tetrahelix.el")
+;; (init)
 ;; (big)
 ;; (small)
 ;; (relax)
 ;; (cancel-glusscon-timer)
 ;; (establish-timer-for-glusscon-probe 2)
 ;; (setq glusscon-url "http://172.16.18.202")
+;; After establishing bluetooth network by doing "group network" on the raspberry pi:
+;; (setq glusscon-url "http://192.168.2.2")
 
 (defvar demo-timer nil)
 (defun establish-timer-for-demos (period-seconds)
