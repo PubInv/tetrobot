@@ -55,6 +55,9 @@
 	    <button type="button" onclick="toggle_mouse_action()">
 	      Toggle Mouse Cannon/Grab
 	    </button>
+	    <button type="button" onclick="toggle_constraints()">
+	      Toggle Constraints
+	    </button>
     </div>
     </div>
 	<div class="panel panel-default">
@@ -65,6 +68,9 @@
     <div class="panel-body">
 	    <button type="button" onclick="equitetrabeam()">
 	      Equitetrabeam
+	    </button>
+	    <button type="button" onclick="equitetrabeam_adjusted()">
+	      Equitetrabeam Adjusted
 	    </button>
 	    <button type="button" onclick="tetrabeam()">
 	      Tetrabeam
@@ -77,6 +83,24 @@
 	    </button>
 	    <button type="button" onclick="relax()">
 	      Relax
+	    </button>
+	    <button type="button" onclick="circle_head()">
+	      Circle Head
+	    </button>
+	    <button type="button" onclick="circle_b()">
+	      Circle B
+	    </button>
+	    <button type="button" onclick="circle_tripod()">
+	      Circle Tripod
+	    </button>
+	    <button type="button" onclick="lean_forward()">
+	      Lean Forward
+	    </button>
+	    <button type="button" onclick="walk_forward()">
+	      Walk Forward
+	    </button>
+	    <button type="button" onclick="one_foot_walking()">
+	      One-foot Walking
 	    </button>
 	    <!-- These are currently not workin....
 		 <button type="button" onclick="flat()">
@@ -200,8 +224,31 @@
 
     
     <script src="./js/OrbitControls.js"></script>
-     <script type="text/javascript" src="./js/dat.gui.js"></script> 
+    <script type="text/javascript" src="./js/dat.gui.js"></script>
+    <script src="./javascripts/tetrahelix_numbering.js"></script>
+
     <script>
+    
+var RED = 0;
+var YEL = 1;
+var BLU = 2;
+var ORA = 3;
+var GRN = 4;
+var PRP = 5;
+
+
+function red(n) {
+    return nd_from_color(RED,n);
+}
+
+function blue(n) {
+    return nd_from_color(BLU,n);
+}
+
+function yellow(n) {
+
+    return nd_from_color(YEL,n);
+}
 
 function convert_to_number(obj) {
     for(var k in obj) {
@@ -349,7 +396,7 @@ function clear_text() {
 var sprite_controls = new function () {
     this.size = 50;
     this.sprite = 0;
-    this.transparent = true;
+    this.transparent = false;
     this.opacity = 0.6;
     this.colorize = 0xffffff;
     this.textcolor = "yellow";
@@ -361,7 +408,7 @@ var sprite_controls = new function () {
         })
     };
 
-    this.draw_and_create = function (sprite,x,y,message) {
+    this.draw_and_create = function (sprite,x,y,message,color,opacity) {
 	var fontsize = 128;
 	var ctx, texture,
 	    spriteMaterial, 
@@ -370,12 +417,17 @@ var sprite_controls = new function () {
 	ctx.font = fontsize + "px Arial";
 
 	// setting canvas width/height before ctx draw, else canvas is empty
-	canvas.width = ctx.measureText(message).width;
-	canvas.height = fontsize * 2; // fontsize * 1.5
+	// canvas.width = ctx.measureText(message).width;
+	// canvas.height = fontsize * 2; // fontsize * 1.5
 
+	// I have no idea why making these large makes the sprite smaller!!!
+	canvas.width = ctx.measureText(message).width;
+	canvas.height = fontsize*2; // fontsize * 1.5
+
+	
 	// after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
 	ctx.font = fontsize + "px Arial";        
-	ctx.fillStyle = this.textcolor;        
+	ctx.fillStyle = color || this.textcolor;        
 	ctx.fillText(message, 0, fontsize);
 
 	texture = new THREE.Texture(canvas);
@@ -383,7 +435,7 @@ var sprite_controls = new function () {
 	texture.needsUpdate = true;
 
 	var spriteMaterial = new THREE.SpriteMaterial({
-	    opacity: this.opacity,
+	    opacity: opacity || this.opacity,
 	    color: this.colorize,
 	    transparent: this.transparent,
 	    map : texture});
@@ -408,18 +460,23 @@ var sprite_controls = new function () {
 
 
 function get_member_color(gui,len) {
-    if (len < am.MIN_EDGE_LENGTH)
+    if (len < am.MIN_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
 	return d3.rgb("black");
-    else if (len > am.MAX_EDGE_LENGTH)
-	return d3.rgb("black");
-    else {
-	var p = (len - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
+    } else if (len > am.MAX_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
+	return d3.rgb("red");
+    } else {
 	return d3.rgb(gui.color_scale(len));
     }
 }
 
 
-
+/*
 function render(gui) {
     gui.renderer.render(gui.scene, gui.camera);
     gui.renderer.render(gui.grid_scene, gui.camera);
@@ -427,6 +484,7 @@ function render(gui) {
     // This is for the sprites....
     gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
 }
+*/
 
 
 function remove_non_eternal_constraints() {
@@ -434,6 +492,8 @@ function remove_non_eternal_constraints() {
 	var cs = c.body.constraints;
 	am.physicsWorld.removeConstraint(cs[0]);
 	am.physicsWorld.removeConstraint(cs[1]);
+//	am.physicsWorld.removeConstraint(cs[2]);
+//	am.physicsWorld.removeConstraint(cs[3]);		
     });
 
 }
@@ -451,16 +511,27 @@ function vectorToString(v) {
     return "["+v.x+","+v.y+","+v.z+"]";
 }
 
-function ccw_tetrahelix_vertex(n,edge_length) {
+function tetrahelix_vertex(chi,n,edge_length) {
     // TODO: memoize these functions.
     var r = (3 * Math.sqrt(3) / 10) * edge_length;
     var h = (1/Math.sqrt(10)) *edge_length;
+
+    // This is the percentage of rotation around the
+    // helix we go in some sense. I don't like this
+    // formulation, but there not be any other or better closed form
+    // formulation.  This comes from H.S.M. Coxeter by way of Robert W. Gray
     var theta = Math.acos(-2/3);
     // I want to make sure "B and C" land on the ground first!    
-    var twist = 45*(Math.PI / 180.0);
-    return new THREE.Vector3( r * Math.cos(n*theta+twist),  r * Math.sin(n*theta+twist), n*h );
+    var twist = 260*(Math.PI / 180.0);
+    return new THREE.Vector3( r * Math.cos(n*theta+twist),  chi*r * Math.sin(n*theta+twist), n*h );
 }
 
+function ccw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(1,n,edge_length);
+}
+function cw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(-1,n,edge_length);    
+}
 
 // To do a great job with this, we really need to know the
 // range of possible values, but I'll fake it..
@@ -488,6 +559,12 @@ function allow_con() {
 
 function toggle_mouse_action() {
     am.MOUSE_FIRES = !am.MOUSE_FIRES;
+}
+
+function toggle_constraints() {
+    // This actually didn't seem to work...
+    //    am.CONSTRAINTS = !am.CONSTRAINTS;
+    
 }
 
 function step_con() {
@@ -584,6 +661,7 @@ function testApplyBulletTransformInverse() {
     
 }
 
+
 function addMouseConstraint(gui,x,y,z,body) {
     // The cannon body constrained by the mouse joint
     var constrainedBody = body;
@@ -638,7 +716,7 @@ function addMouseConstraint(gui,x,y,z,body) {
 
 
 // This functions moves the transparent joint body to a new postion in space
-
+// We need to remove globals from this.
 function moveJointToPoint(gui,x,y,z) {
     var is_obstacle = (gui.selectedBody.structureKind == "obstacle");
     var act_natural = ((gui.FORCE_REGIME == "ALLOW") ||
@@ -687,15 +765,15 @@ function moveJointToPoint(gui,x,y,z) {
 	//	var act_settings = model_to_actuator_space(pose,am.robot);
 	
 	// TODO: change most_recent_constraints -> most recent model
-	console.log("constraints:");
-	console.log(gui.most_recent_constraints);
+//	console.log("constraints:");
+//	console.log(gui.most_recent_constraints);
 	var act_settings =
 	    actuator_space_model_func(gui.robot,
 				      gui.selectedBody,
 				      gui.jointBody,
 				      gui.most_recent_constraints);
-	console.log("settings:");
-	console.log(act_settings);
+//	console.log("settings:");
+//	console.log(act_settings);
 	// now move to the new pose.
 	set_interp_constraints(act_settings,act_settings,1.0);
     }
@@ -732,9 +810,9 @@ function render_actuator_model(form) {
 }
 
 // TODO: This can be better.
-function get_body_by_name(name) {
+function get_body_by_name(robot,name) {
     var retval;
-    am.robot.robot_joints.forEach(function (bx) {
+    robot.robot_joints.forEach(function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
 	    if (bx.name == name) {
 		retval = bx;
@@ -772,33 +850,36 @@ function find_link_body(a,b,members) {
 	}
     }
 }
+
+// WARNING: I think this may be a significant problem.
+// Computing the distance from from the transform in
+// fractional movements and setting the constraints to those
+// values allows error to accumulate.
 function set_interp_constraints(am0,am1,frac) {
-    remove_non_eternal_constraints();
+
     
     var links = [];
     for (var key in am0) {
 	if (am1.hasOwnProperty(key)) {
 	    var link  = find_bodies_from_actuator(key);
-            var a = get_body_by_name(link[0]);
-            var b = get_body_by_name(link[1]);
-	    var oa = a.getWorldTransform().getOrigin();
-	    var ob = b.getWorldTransform().getOrigin();
-	    var d = oa.distance(ob);
-	    
+            var a = get_body_by_name(am.robot,link[0]);
+            var b = get_body_by_name(am.robot,link[1]);
 	    var body = find_link_body(a,b,am.robot.robot_members);
 	    
 	    links.push({a: a, b: b, k: key, body: body.body });
 	}
     }
-    console.log("XXXXXX");
+    //    console.log("XXXXXX");
+
+    remove_non_eternal_constraints();
     update_constraints(links,link => {
 	var a = link.a;
 	var b = link.b;
 	var key = link.k;
 	var e = actuator_to_length(interp(am0[key],am1[key],frac));
 	var aname = find_actuator(a.name,b.name);
-	console.log(get_class_of_actuator(aname));
-	console.log(e/am.MIN_EDGE_LENGTH);
+//	console.log(get_class_of_actuator(aname));
+//	console.log(e/am.MIN_EDGE_LENGTH);
 	return e;
     });
 
@@ -955,25 +1036,37 @@ function glog_is_executable(glog) {
     return glog_is_atom(glog) && !glog_is_definition(glog);
 }
 
-function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms) {
+function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms,
+		      finish_callback) {
     var intertick = time_between_poses_ms / subdivisions;
     if (!cur) {
 	cur = atom;
     }
-
+    console.log(cur);
     for(var j = 0; j < subdivisions; j++) {
-	setTimeout(function(am0,am1,frac) {
+	var func = null;
+	if (j == (subdivisions - 1)) {
+	    func = finish_callback;
+	}
+	setTimeout(function(am0,am1,frac,func) {
 	    set_interp_constraints(am0,am1,frac);
+	    // This is an attempt to get the "finishining" callback to be
+	    // called after we have had enough time to give control back
+	    // to the physics engine...
+	    if (func)
+		setTimeout(func,intertick,0);
 	},
 		   j*intertick,
 		   cur,
 		   atom,
-		   j/(subdivisions*1.0)
+		   j/(subdivisions*1.0),
+		   func
 		  );
     }
 }
 
-function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_ms) {
+function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_ms,
+		finish_callback) {
     // if glog is an empty array or null, there is nothing to do.
     if (glog_is_atom(glog)) {
 	if (glog_is_executable(glog)) {
@@ -983,16 +1076,21 @@ function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_m
     var wait_time = time_between_poses_ms/subdivisions;
     var res0 = get_first_executable(ctx,glog);
     var first = res0[0];
-    execute_atom(ctx,initial,first,subdivisions,time_between_poses_ms);
     var rest = res0[1];
+    console.log(rest);
+    console.log((rest.length == 0 ? finish_callback : null));
+    execute_atom(ctx,initial,first,subdivisions,time_between_poses_ms,
+		 (rest.length == 0 ? finish_callback : null));
     if (rest.length > 0) {
 	setTimeout(function(r) {
-	    execute(ctx,first,execute_atom,rest,subdivisions,time_between_poses_ms);
+	    execute(ctx,first,execute_atom,rest,subdivisions,time_between_poses_ms,
+		    finish_callback
+		   );
 	},
 		   time_between_poses_ms,
 		   rest
 		  );
-    }
+    } 
 }
 function execute_atom_dummy(ctx,glog) {
     console.log("atom"+glog);
@@ -1012,6 +1110,26 @@ function test_execute_1() {
     execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
 }
 
+// create a glog representing an application of a partial pose to the current
+// state.
+function apply_delta_pose(pp) {
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    apply_delta_pose_x(pp,actmodel);
+}
+function apply_delta_pose_x(pp,base_model) {
+    var new_model = JSON.parse(JSON.stringify(base_model))
+    for (var key in new_model) {
+	var bs = find_bodies_from_actuator(key);
+	var bname = bs[0]+" "+bs[1];
+	if (pp[bname]) {
+	    new_model[key] = base_model[key] + pp[bname];
+	    new_model[key] = Math.min(Math.max(new_model[key],0),1023);
+	}
+    }
+    return new_model;
+}
+
 function fraction_from_length(l) {
     return (l - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
 }
@@ -1029,6 +1147,7 @@ function get_class_of_actuator(act) {
     if ("B3" == act) { return "b,";}
     if ("B4" == act) { return "oe";}
     if ("B5" == act) { return "ge";}
+    
     if ("C0" == act) { return "r,";}
     if ("C1" == act) { return "po";}
     if ("C2" == act) { return "oo";}
@@ -1043,55 +1162,126 @@ function get_class_of_actuator(act) {
     if ("D5" == act) { return "oo";}
 }
 
-function generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
+
+function generate_glog(long_length_meters,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
 {
     // TODO: This needs to be a parameter, or we need to use the difference
     // between the maximum and minimum of the 9 input parameters.
-    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
-    var r = 1000 * fraction_from_length(mean_len * red);
-    var y = 1000 * fraction_from_length(mean_len * yellow);
-    var b = 1000 * fraction_from_length(mean_len * blue);    
+    //    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
+    var mean_len = long_length_meters/orange_even;
+    
+    var r = Math.min(Math.max(1000 * fraction_from_length(mean_len * red),0),1023);
+    var y = Math.min(Math.max(1000 * fraction_from_length(mean_len * yellow),0),1023);
+    var b = Math.min(Math.max(1000 * fraction_from_length(mean_len * blue),0),1023);    
 
-    var oe = 1000 * fraction_from_length(mean_len * orange_even);
-    var oo = 1000 * fraction_from_length(mean_len * orange_odd);
-    var pe = 1000 * fraction_from_length(mean_len * purple_even);    
-    var po = 1000 * fraction_from_length(mean_len * purple_odd);
+    var oe = Math.min(Math.max(1000 * fraction_from_length(mean_len * orange_even),0),1023);
+    var oo = Math.min(Math.max(1000 * fraction_from_length(mean_len * orange_odd),0),1023);
+    var pe = Math.min(Math.max(1000 * fraction_from_length(mean_len * purple_even),0),1023);    
+    var po = Math.min(Math.max(1000 * fraction_from_length(mean_len * purple_odd),0),1023);
 
-    var ge = 1000 * fraction_from_length(mean_len * green_even);
-    var go = 1000 * fraction_from_length(mean_len * green_odd);
+    var ge = Math.min(Math.max(1000 * fraction_from_length(mean_len * green_even),0),1023);
+    var go = Math.min(Math.max(1000 * fraction_from_length(mean_len * green_odd),0),1023);
 
     // This is done by hand, but in the future we should do this by number, so as
     // to be completely independent of the number of tetrahedra
-    var glog = [{"A0": pe,
-		 "A1": oe,
-		 "A2": r,
-		 "A3": ge,
+    var glog = [{"A0": oe,
+		 "A1": pe,
+		 "A2": ge,
+		 
+		 "A3": r,
 		 "A4": oo,
 		 "A5": po,
+		 
 		 "B0": y,
 		 "B1": go,
-		 "B2": pe,
+		 "B2": oe,
+		 
 		 "B3": b,
-		 "B4": oe,
+		 "B4": pe,
 		 "B5": ge,
+		 
 		 "C0": r,
-		 "C1": po,
-		 "C2": oo,
+		 "C1": oo,
+		 "C2": po,
+		 
 		 "C3": y,
 		 "C4": go,
-		 "C5": pe,
+		 "C5": oe,
+		 
 		 "D0": b,
-		 "D1": oe,
+		 "D1": pe,
 		 "D2": ge,
+		 
 		 "D3": r,
-		 "D4": po,
-		 "D5": oo
+		 "D4": oo,
+		 "D5": po
 		}
 	       ];
     return glog;
 }
+function equitetrabeam_glog() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+
+    // WARNING: This looks wrong to me!!!
+    var green_even = one_hop;
+    var green_odd = two_hop;
+
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_even =  one_hop;    
+    var orange_odd = two_hop;    
+
+    var purple_even = two_hop;
+    var purple_odd =  one_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var long_len = (am.MEAN_EDGE_LENGTH + am.MIN_EDGE_LENGTH)/2;
+    var glog = generate_glog(long_len,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
+}
 
 function equitetrabeam() {
+    var glog = equitetrabeam_glog();
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+//    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
+
+function curl_up() {
+    var red = 1.4;
+    var yellow = 0.6;
+    var blue = 0.6;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+    var green_even = one_hop;
+    var green_odd = one_hop;
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  one_hop;
+    var purple_even = one_hop;
+
+    var orange_even = two_hop;
+    var purple_odd =  two_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+       var long_len = (am.MEAN_EDGE_LENGTH + am.MAX_EDGE_LENGTH)/2;
+    var glog = generate_glog(long_len,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
+}
+
+function equitetrabeam_x() {
     var red = 1.0;
     var yellow = 1.0;
     var blue = 1.0;
@@ -1099,6 +1289,7 @@ function equitetrabeam() {
     // var orange_odd = 	1.192667598;
     // var purple_even = 	1.192667598;
     // var purple_odd = 1.05946024;
+    var two_hop = 2/Math.sqrt(3);
     var green_even = Math.sqrt(10/9);
     var green_odd = Math.sqrt(13/9);
 
@@ -1224,11 +1415,18 @@ function update_standard_poses() {
 
 function execute_gait() {
     var gait = $("#gait").val();
+    execute_gait_glog(gait);
+/*    var pose_names = gait.trim().split(" ");
+    var initial = get_first_executable(am.standard_ctx,pose_names[0]);
+    execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+*/
+}
+
+function execute_gait_glog(gait) {
     var pose_names = gait.trim().split(" ");
     var initial = get_first_executable(am.standard_ctx,pose_names[0]);
     execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
 }
-
 // Eventually this should be a linear interpolation of the models of frace from m1 to m2
 function interpolate_model(m1,m2,frac) {
     console.assert(m1.length == m2.length,m1);
@@ -1246,9 +1444,10 @@ function extract_physical_node_model(robot) {
     var nodes = [];
     robot.robot_joints.forEach( function (bx) {
 	if ((bx.structureKind != "member") && (bx.name != "floor")) {
-	    var o = bx.getWorldTransform().getOrigin();
+//	    var o = bx.getWorldTransform().getOrigin();
+	    var o = get_wt_origin(bx);
 	    nodes.push({ name: bx.name,
-			 position: new THREE.Vector3(o.x(),o.y(),o.z()) });
+			 position: new THREE.Vector3(o.x,o.y,o.z) });
 	}
     });
     return nodes;
@@ -1267,12 +1466,13 @@ function actuator_space_model_func(robot,selectedBody,jointBody,act_model) {
 	if ((a.name == sn) || (b.name == sn)) { // here we want to compute distance...
 	    // invert actually returns strings, for some reason, probably for css...
 	    var oa = (sn == a.name) ?
-		jointBody.getWorldTransform().getOrigin() :
-		a.getWorldTransform().getOrigin();
+		get_wt_origin(jointBody) :
+		get_wt_origin(a);
 	    var ob = (sn == b.name) ?
-		jointBody.getWorldTransform().getOrigin() :		
-		b.getWorldTransform().getOrigin();
-	    var d = oa.distance(ob);
+		get_wt_origin(jointBody) :		
+		get_wt_origin(b);
+	    // This split is based on whether we are dealing with abstract robots or not!
+	    var d =  oa.distanceTo(ob);
 	    d = parseInt(actuator_to_length.invert(d).toFixed(0));
 	} else {
 	    // otherwise we just want to take this from the act_model...
@@ -1310,9 +1510,11 @@ function model_to_actuator_space(bodies,robot) {
 	var b = mem.b;
 	// invert actually returns strings, for some reason, probably for css...
 	// a.position will not be correct in the AMMO model...
-	var oa = a.getWorldTransform().getOrigin();
-	var ob = b.getWorldTransform().getOrigin();
-	var d = oa.distance(ob);
+//	var oa = a.getWorldTransform().getOrigin();
+//	var ob = b.getWorldTransform().getOrigin();
+	var oa = get_wt_origin(a);
+	var ob = get_wt_origin(b)
+	var d = oa.distanceTo(ob);
 	var d = parseInt(actuator_to_length.invert(d).toFixed(0));
 	var actuator_name = find_actuator(a.name,b.name);
 	pose[actuator_name] = d;
@@ -1367,7 +1569,7 @@ function auto_rectify_toggle() {
 }
 
 function update_constraints(links,f) {
-    remove_non_eternal_constraints();
+  //  remove_non_eternal_constraints();
     for(var lin in links) {
 	var link = links[lin];  
 	var a = link.a;
@@ -1394,8 +1596,8 @@ function update_constraints(links,f) {
 	}
 	var n = get_number(memBody);
 	// Possibly removing the body removes the constraints, unclear...
-	am.physicsWorld.removeConstraint(memBody.constraints[0]);
-	am.physicsWorld.removeConstraint(memBody.constraints[1]);
+//	am.physicsWorld.removeConstraint(memBody.constraints[0]);
+//	am.physicsWorld.removeConstraint(memBody.constraints[1]);
 	am.physicsWorld.removeRigidBody(memBody);
 	
 
@@ -1419,6 +1621,7 @@ function update_constraints(links,f) {
 	var mbq = memBody.getWorldTransform().getRotation();
         quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
 
+	
 	var mesh = create_actuator(d,pos,quat,b_a,b_z);
 	var new_memBody = mesh["ammo_obj"];
 	new_memBody.constraints = [];
@@ -1439,10 +1642,15 @@ function update_constraints(links,f) {
 	}
 
 	var s = d/2;
-	var fudge = 0.95;
+	// This probably needs to be made standardized.  It is very
+	// tricky to model tension.  This tends to create compression if fundge is 0.95, which
+	// manifest itself in weird ways.
+	var fudge = 1.0;
 	s = s * fudge;
-
+	var CFMvalue = am.CONSTRAINTS ? am.myCFMvalue :  am.myCFMvalue /10;
+	var ERPvalue = am.CONSTRAINTS ? am.myERPvalue :  am.myERPvalue /10;	
 	// This is guessed from the enumeration in Bullet's btTypeConstraint.h
+
 	{
 	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
 	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
@@ -1452,8 +1660,8 @@ function update_constraints(links,f) {
 						       pivotInB);
 	    // Apparently setLimit is not expected in the javascript engine.
 	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
-	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
-	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, CFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, ERPvalue, -1)
 	    
 	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[0] = con;
@@ -1467,8 +1675,8 @@ function update_constraints(links,f) {
 						       pivotInB);
 	    // Apparently setLimit is not expected in the javascript engine.	    
 	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
-	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
-	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, CFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, ERPvalue, -1)
 	    
 	    am.physicsWorld.addConstraint(con, true);
 	    new_memBody.constraints[1] = con;		
@@ -1513,12 +1721,15 @@ function assume_pose(pose) {
 // additional controller can be added in a completely regular way.
 
 var ACTUATORS_PER_CONTROLLER = 6;
+
 function actuator_name_from_number(n) {
     var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
     var controller_name = alphabetic_name(controller);
     var digit = n % ACTUATORS_PER_CONTROLLER;
     return controller_name + digit;
 }
+
+
 function compute_body_number(name) {
     if (name.length > 1) {
 	debugger;
@@ -1537,13 +1748,13 @@ function find_bodies_from_actuator(name) {
 	} else if (n == 1) {
 	    return [alphabetic_name(0),alphabetic_name(2)];	    
 	} else if (n == 2) {
-	    return [alphabetic_name(0),alphabetic_name(3)];	    
-	} else if (n == 3) {
 	    return [alphabetic_name(1),alphabetic_name(2)];	    
+	} else if (n == 3) {
+	    return [alphabetic_name(0),alphabetic_name(3)];	    
 	} else if (n == 4) {
-	    return [alphabetic_name(2),alphabetic_name(3)];	    
+	    return [alphabetic_name(1),alphabetic_name(3)];	    
 	} else if (n == 5) {
-	    return [alphabetic_name(3),alphabetic_name(1)];	    
+	    return [alphabetic_name(2),alphabetic_name(3)];	    
 	}
     } else {
 	var hi = Math.floor((n - 6) / 3)+4;
@@ -1577,6 +1788,9 @@ function test_find_bodies_from_actuator() {
 }
 
 // a and b are node names.
+// This is the function that really has to be changed to reperesent
+// the correct numbering.
+/*
 function find_actuator(a,b) {
     if (a == b)
 	debugger;
@@ -1613,6 +1827,15 @@ function find_actuator(a,b) {
     }
     return actuator_name_from_number(n);
 }
+*/
+
+function find_actuator(a,b) {
+    var an = a.charCodeAt(0) - "A".charCodeAt(0);
+    var bn = b.charCodeAt(0) - "A".charCodeAt(0);
+    console.assert((a < "Z") && (b < "Z"));
+    var n = en(an,bn);
+    return actuator_name_from_number(n);
+}
 
 function test_find_actuator() {
     var x0 = find_actuator("A","B");
@@ -1630,6 +1853,14 @@ function test_find_actuator() {
     }
     var x3 = find_actuator("F","E");
     if (x3 != "B5") {
+	debugger;
+    }
+    var x4 = find_actuator("B","D");
+    if (x4 != "A4") {
+	debugger;
+    }
+    var x5 = find_actuator("B","C");
+    if (x5 != "A2") {
 	debugger;
     }
 }
@@ -1732,8 +1963,9 @@ var AM = function() {
     this.movedButNotSent = false;
     
     this.MOUSE_FIRES = false;
+    this.CONSTRAINTS = true;
 
-    this.INITIAL_HEIGHT = 0.1;
+    this.INITIAL_HEIGHT = 0.2;
 
 
    this.NUMBER_OF_TETRAHEDRA = 7;
@@ -1742,7 +1974,7 @@ var AM = function() {
 
     // I don't understand this...need to fully understand.
     this.MARKER_MASS = 0;
-    this.Y_GRAVITY_FORCE = -9.8;
+    this.Y_GRAVITY_FORCE = -9.8 / 100;
     this.MARKER_RADIUS = 0.009;
     
     this.MEMBER_FRACTION = 20;
@@ -1751,12 +1983,12 @@ var AM = function() {
     // These are in meters, measured joint-center to joint-center
     this.BASIC_BODY_MASS = 1.0; // This is kilograms.
     this.MEMBER_MASS = 1.0;
-    this.MAX_EDGE_LENGTH = 0.470;
-    this.MIN_EDGE_LENGTH = 0.330;
+    this.MAX_EDGE_LENGTH = 0.420;
+    this.MIN_EDGE_LENGTH = 0.290;
     this.MEAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
     this.JOINT_RADIUS = 0.03; // This is the current turret joint ball.
 
-    this.JOINT_MASS = 1;
+    this.JOINT_MASS = 1.0;
 
     this.robot = {
 	robot_joints: [],
@@ -1777,7 +2009,7 @@ var AM = function() {
     this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
 
     this.color_scale = d3.scale.quantile().domain([this.MIN_EDGE_LENGTH, this.MAX_EDGE_LENGTH])
-	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow', '#FFD700', 'orange', '#FF4500']);
+	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow']);
     this.color_material_palette = {};
 
     this.url_for_robot = "http://127.0.0.1:9000";
@@ -1835,6 +2067,102 @@ AM.prototype.remove_robot = function() {
     this.bodies = [];
     this.robot.robot_joints = [];
     this.robot.robot_members = [];
+}
+
+// This copies the robot into an "abstract robot"
+// using Bullet Rigid objects in the same places and the
+// same linkage structure, but not connected to any
+// simulated world and ignoring all issues such as mass,
+// color, thickness, etc.  It is effectively a purely
+// geometric version of the same robot.
+
+// Because I am separating an abstract robot from
+// a phyiscal robot, I'm going to create getters and setters
+// for the worldTransforms of the nodes which is type -dependent.
+// Both of them take and receive THREE.Vector3 types
+// because those are convenient and neutral.
+
+
+// Note: A JavaScript master would probably be able to do
+// this extensitions to the prototypes. I may return to that once it works.
+function get_wt_origin(nd) {
+    if (nd instanceof Ammo.btRigidBody) {
+	var o = nd.getWorldTransform().getOrigin();
+	var pos = new THREE.Vector3();
+	pos.set( o.x(), o.y(), o.z());
+	return pos;
+    } else {
+	return nd.abstract_pos;
+    }
+}
+
+function set_wt_origin(nd,v) {
+    if (nd instanceof Ammo.btRigidBody) {
+	var startTransform = new Ammo.btTransform();
+	startTransform.setIdentity();
+	startTransform.setOrigin(v);
+	nd.setWorldTransform(startTransform);
+    } else {
+	nd.abstract_pos = v;
+    }
+}
+
+
+AM.prototype.compute_centroid = function() {
+    var c =  new THREE.Vector3(0,0,0);
+    var n = 0;
+    this.robot.robot_joints.forEach(j => {
+	// TODO: This code was taken from CreateSphere -- should be unified,
+	// but sadly that code is mixing the Three.js concepts in...
+	// In reality we should cleanly separate the abastract and physical
+	// robot models, so I am not goint to unify this code yet.
+	var p = get_wt_origin(j);
+	c = c.add(p);
+	n++;
+    });
+    c = c.divideScalar(n);
+    return c;
+}
+
+AM.prototype.get_abstract_robot = function(r) {
+    // These shouldn't matter --- I'm just using them to
+    // create an object to have a uniform geometry.
+    var rad = 0.01;
+    var m = 0.1;
+    var robot = { robot_joints: [],
+		  robot_members: []
+		};
+    // first we will copy all of the joints...
+    r.robot_joints.forEach(j => {
+	// TODO: This code was taken from CreateSphere -- should be unified,
+	// but sadly that code is mixing the Three.js concepts in...
+	// In reality we should cleanly separate the abastract and physical
+	// robot models, so I am not goint to unify this code yet.
+	var pos = get_wt_origin(j);
+	var body = {};
+	set_wt_origin(body,pos);
+	body.name = j.name;
+	body.structureKind = j.structureKind;
+	robot.robot_joints.push(body);
+    }
+			  );
+
+
+    r.robot_members.forEach(m => {
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+
+	var b_a = robot.robot_joints.find( j => j.name == m.a.name);
+	var b_z = robot.robot_joints.find( j => j.name == m.b.name);
+	var body = { name: m.name,
+		     structure_kind: m.structure_kind }; 
+	var link = { a: b_a, b: b_z, body: body};	    
+	robot.robot_members.push(link);
+	
+    });
+
+    // then we copy all of the members....
+    return robot;
 }
 
 var am = new AM();
@@ -1984,22 +2312,32 @@ function onMouseDown(e){
 	    if(idx !== -1) {
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
-		var zero = new Ammo.btVector3(0, 0, 0 );
-		am.manipulatedObject.setMassProps(0.0,zero);
-		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
-		// Now we want to change color to show locked...
-		// TODO: This is a global...
-		am.meshes[idx].material.color.setHex( 0xFF0000 );
-		am.lockedGroups.handlocked.push(obj);
+		am.manipulatedObject.mesh = am.meshes[idx];
+		
+		var index_locked = am.lockedGroups.handlocked.indexOf(obj);
+		if (index_locked < 0) {
+		    am.lockedGroups.handlocked.push(obj);
+		    // ATTACH ORIGINAL COLOR TO THE OBJECT, NOT THE MESH --- I"M LOSING IT HERE.
+		    am.manipulatedObject.original_color = am.meshes[idx].material.color.getHex();
+		    var zero = new Ammo.btVector3(0, 0, 0 );
+		    am.manipulatedObject.setMassProps(0.0,zero);
+		    addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		    // Now we want to change color to show locked...
+		    // TODO: This is a global...
+		    am.meshes[idx].material.color.setHex( 0x000000 );
+		} else {
+		    am.lockedGroups.handlocked.splice(index_locked,1);
+		    am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+		}
 	    }
 	} else {
 	    //            constraintDown = true;
             // Set marker on contact point
             setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
 	    // what we really want to do here is to change the color, but stash the old color first to restore...
-	    am.meshes[idx].material.original_color = am.meshes[idx].material.color.getHex();
+	    var original_color = am.meshes[idx].material.color.getHex();
+	    am.meshes[idx].material.original_color = original_color;
 	    am.meshes[idx].material.color.setHex( 0xFF00FF );
-
 
             // Set the movement plane
             setScreenPerpCenter(pos,am);
@@ -2008,6 +2346,10 @@ function onMouseDown(e){
 		var obj = am.meshes[idx].ammo_obj;
 		am.manipulatedObject = obj;
 		am.manipulatedObject.mesh = am.meshes[idx];
+		// This is roughly the same as being handlocked
+		if (original_color != 0) {
+		    am.manipulatedObject.original_color = original_color;
+		}
 		// We may have to restore the mass...would be better if we knew...
 		var mass = ((obj.structureKind == "joint") ? am.JOINT_MASS :
 			    ((obj.structureKind == "member") ? am.MEMBER_MASS : am.OBSTACLE_MASS));
@@ -2043,9 +2385,14 @@ function onMouseUp(e) {
 				     -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
 				     0.5 );                                            //z
     
-    mouse3D.unproject( am.camera );
+  //  mouse3D.unproject( am.camera );
+     mouse3D.unproject( am.camera );
+    mouse3D.sub(am.camera.position);
+    mouse3D.project( am.camera );
+
 
     var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+    
     if(pos){
         setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
         moveJointToPoint(am,pos.x,pos.y,pos.z);
@@ -2053,10 +2400,35 @@ function onMouseUp(e) {
     // remove the marker
     removeClickMarker(am);
 
-    if (am.manipulatedObject) {
-	am.manipulatedObject.setGravity(am.FULL_GRAVITY);
-	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.mesh.material.original_color);	
+      var entity = findNearestIntersectingObject(am,e.clientX,e.clientY,am.camera,am.meshes);
+    var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
+    
+    if (!(pos &&
+	(
+	    (entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
+	)
+	 )) {
+	return;
     }
+
+    if (!e.shiftKey) {
+	if (am.manipulatedObject) {
+	    am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+	    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+//	    if (index > -1) {
+		am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // } else {
+	    // 	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // }
+	}
+    }
+
+  
 
     // Send the remove mouse joint to server
     removeJointConstraint(am);
@@ -2064,30 +2436,55 @@ function onMouseUp(e) {
     // Restore joint masses....
     // Actually, this is really wrong, we need to keep track of the nodes that are truly locked
     // in place as compared to those that we have locked for convenience.
+
+
+
     for(var i = 0; i < am.lockedGroups.temporary.length; i++) {
     	var joint = am.lockedGroups.temporary[i];
     	var zero = new Ammo.btVector3(0, 0, 0 );
-    	joint.setMassProps(am.JOINT_MASS,zero);
+	if (am.lockedGroups.handlocked.indexOf(joint) < 0)
+    	    joint.setMassProps(am.JOINT_MASS,zero);
     }
     am.lockedGroups.temporary = [];
-    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
-    if (index > -1) {
-	 am.lockedGroups.handlocked.splice(index, 1);
+
+    if (!e.shiftKey) {
+	var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+	if (index > -1) {
+	    am.lockedGroups.handlocked.splice(index, 1);
+	    if (am.manipulatedObject.structureKind == "joint") {
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(am.JOINT_MASS,zero);	
+	    }
+	}
+
+
     }
 
+    // if (e.shiftKey) {
+
+    // 	for(var i = 0; i < am.lockedGroups.handlocked.length; i++) {
+    // 	    var joint = am.lockedGroups.handlocked[i];
+    // 	    if (joint.name != am.manipulatedObject) {
+    // 		var zero = new Ammo.btVector3(0, 0, 0 );
+    // 		joint.setMassProps(0.0,zero);
+    // 	    }
+    // 	}
+    // }
+
+    	if (am.gplane.visible == true) {
+	    am.gplane.visible = false;
+	    // We need to re-establish the controls because I don't have
+	    // any good way of exiting the active state...
+	    am.controls.dispose();
+	    establish_controls(am);
+	}
+    
     if (am.movedButNotSent) {
 	send_to_robot_url();
 	am.movedButNotSent = false;
     }
-    
-    if (am.gplane.visible == true) {
-	am.gplane.visible = false;
-	// We need to re-establish the controls because I don't have
-	// any good way of exiting the active state...
-	am.controls.dispose();
-	establish_controls(am);
-    }
-
+    am.manipulateObject = null;
+    console.log("handlocked",am.lockedGroups.handlocked.length);
 }
 
 
@@ -2415,7 +2812,10 @@ function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
     var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
     shape.setMargin( am.margin );
 
-    var body = createRigidBody( threeObject, shape, mass, pos, quat );
+    var body = createRigidBody( threeObject, shape, mass, pos, quat,true );
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,threeObject);
+    
 
     body.setDamping(0.9,0.9);
 
@@ -2427,7 +2827,7 @@ function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
 // Not sure how to use the quaternion here,
 function createSphere(m,r,pos,quat,material) {
     var c = (pos) ? pos : new Ammo.btVector3(2, 10, 0);
-    
+
     var colShape        = new Ammo.btSphereShape(r),
         startTransform  = new Ammo.btTransform();
 
@@ -2455,7 +2855,12 @@ function createSphere(m,r,pos,quat,material) {
     ball.castShadow = true;
     ball.receiveShadow = true;
 
-    var body = createRigidBody(ball,colShape,mass,c,quat);
+    // HACK: Why am I redefining this variable?
+    var body = createRigidBody(ball,colShape,mass,c,quat,true);
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,ball);
+    
+
 
     body.setFriction( 0.99 );
     
@@ -2468,7 +2873,7 @@ function createSphere(m,r,pos,quat,material) {
     return ball;
 }
 
-function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
+function createRigidBody( threeObject, physicsShape, mass, pos, quat,add ) {
 
     threeObject.position.copy( pos );
     threeObject.quaternion.copy( quat );
@@ -2489,20 +2894,17 @@ function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
 
     threeObject.userData.physicsBody = body;
 
+    if (add) {
     am.scene.add( threeObject );
     if ( mass > 0 ) {
-
 	am.rigidBodies.push( threeObject );
 
-	// Disable deactivation
-	body.setActivationState( 4 );
-
+	}
     }
+    // We need this even if we are not actually adding this object...
+    // Disable deactivation
+    body.setActivationState( 4 );
 
-    am.physicsWorld.addRigidBody( body );
-    
-    am.push_body_mesh_pair(body,threeObject);
-    
     return body;
 }
 
@@ -2527,7 +2929,7 @@ function processClick() {
 	am.pos.copy( am.raycaster.ray.direction );
 	am.pos.add( am.raycaster.ray.origin );
 	am.quat.set( 0, 0, 0, 1 );
-	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat );
+	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat,true );
 	ballBody.setFriction( 0.5 );
 
 	ballBody.setDamping(0.9,0.9);
@@ -2560,9 +2962,24 @@ function animate() {
     render();
 }
 
+function update_member_colors() {
+    am.robot.robot_members.forEach( mem => {
+	var d = member_length(mem.a,mem.b);
+	var idx = am.bodies.indexOf(mem.body);
+	var mesh = am.meshes[idx];
+	var color = get_member_color(am,d);
+	mesh.material.color = color;
+	mesh.material.needsUpdate = true;
+    }
+    );
+}
 function render() {
     var deltaTime = am.clock.getDelta();
     updatePhysics( deltaTime );
+    // Let's update the colors to make sure they are correct due to changes in physics...
+    // This is mainly needed because we "snap" to new constraints...
+    update_member_colors();
+    
     processClick();
     am.controls.update( deltaTime );
 
@@ -2641,8 +3058,36 @@ function updatePhysics( deltaTime ) {
 	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
 	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
 	// WARNING: This was removed only to get a good screen shot.
-	if (objPhys.name) 
-	    objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);	
+	if (objPhys.name) {
+	    if (objPhys.structureKind == "member") {
+		var a = objPhys.endpoints[0];
+		var b = objPhys.endpoints[1];
+		var d = member_length(a,b);
+
+//		var act = find_actuator(a.name,b.name);
+//		console.log(act);
+		for(var j = am.robot.robot_members.length -1; j >= 0; j--) {
+		    if (am.robot.robot_members[j].body.name == objPhys.name) {
+		    }
+		}
+
+		
+		var l = actuator_to_length.invert(d) / 10.23;
+		var di = parseInt(l.toFixed(0));
+
+//		var color = get_member_color(am,d);
+		var color = ((di < 0) || (di > 100)) ? "yellow" : "white";
+		color = "yellow";
+		if ((di < 0) || (di > 100)) {
+//		    console.log(di);
+		}
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,
+								 ""+objPhys.aname+" | " + objPhys.name + ": "+di ,color,1.0);
+	    } else {
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);		
+	    }
+
+	}
     }
 
 }
@@ -2659,6 +3104,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
     var len = d+ -am.JOINT_RADIUS*2;
 
     var color = get_member_color(am,d);
+    
     var tcolor = new THREE.Color(color.r,color.g,color.b);
     var cmat = memo_color_mat(tcolor);
     var mesh =  createParalellepiped(
@@ -2687,6 +3133,7 @@ function create_actuator(d,pos,quat,b_a,b_z) {
 	b_z = t;
     }
     memBody.name = b_a.name + " " + b_z.name;
+    memBody.aname = find_actuator(b_a.name,b_z.name);
     memBody.endpoints = [];
     memBody.endpoints[0] = b_a;
     memBody.endpoints[1] = b_z;
@@ -2713,7 +3160,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
     var colors = [ "red", "yellow", "blue" ];
 
     for(var i = 0; i < n; i++) {
-	var v = ccw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
+	var v = cw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
 	v = v.add(pvec);
 
 	var material = new THREE.MeshPhongMaterial( { color: colors[i % 3] } );    
@@ -2809,7 +3256,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		am.physicsWorld.addConstraint(con, true);
 		constraints.push(con);		
 	    }
-
+	    
 	    var endpoints = [];
 	    endpoints.push(b_a);
 	    endpoints.push(b_z);
@@ -2822,7 +3269,7 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 	    // I had trouble tying this to the actuator members themselves,
 	    // which would be more elegant.
 	    var blocking_mass = 1.0;
-;
+
 	    function create_non_roll_body(b,s) {
 		pos.set( v.x, v.y, v.z);
 		quat.set( 0, 0, 0, 1 );
@@ -2853,10 +3300,10 @@ function load_NTetGlussBot_Ammo(am,tets,pvec) {
 		}
 	    var s = 0.02;
 	    if (!b_a["non-rolling-constraint"]) {
-		create_non_roll_body(b_a,s)
+		create_non_roll_body(b_a,s);
 	    }
 	    if (!b_z["non-rolling-constraint"]) {
-		create_non_roll_body(b_z,s)
+		create_non_roll_body(b_z,s);
 	    }
 	}
 
@@ -2882,6 +3329,853 @@ function rectify(id) {
     set_constraints(actmodel);
 }
 
+/* Here begins my attempt to compute the correct motion for an isolated node
+based on a vector.
 
-        </script>
+In all probability this will require me to define the "direction" of the 
+robot as a vector that more or less goes from the centroid of the rear 
+triangle to the centroid of the front triangle.
+
+My basic strategy is to find all connected nodes and use the dot product
+to find the change in length. 
+
+*/
+
+function dotp(a,b) {
+	var n = 0, lim = Math.min(a.length,b.length);
+	for (var i = 0; i < lim; i++) n += a[i] * b[i];
+	return n;
+ }
+
+
+/* return the partial pose of nodes connected to nd that accomplishes
+the isolated movement defined by v.
+*/
+
+function find_connected_members(robot,nd) {
+    var members = [];
+    robot.robot_members.forEach(function (c) {
+	if ((c.a.name == nd.name) ||
+	    (c.b.name == nd.name)) {
+	    members.push(c);
+	}
+    });
+    return members;
+}
+
+
+
+
+// WARNING: I'm pretty sure this algorithm is fundamentally flawed even
+// it what it is trying to do.
+function compute_partial_pose(robot,nd,v) {
+    // First, find all connected nodes...this is brute force, later
+    // we can improve efficiency...
+    var mems = find_connected_members(robot,nd);
+
+    // For each connected node, compute the dot product with v and
+    // use that to determine the appropriate length.
+    var ndp = nd.getWorldTransform().getOrigin();	    
+    var current = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());
+    var hypothetical = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());    
+    hypothetical.addVectors(hypothetical,v);
+    var pp = {};
+    for(var i = 0; i < mems.length; i++) {
+	var mem = mems[i];
+	var nm = mem.body.name;
+	var other = (nd.name == mem.a.name) ? mem.b : mem.a;
+	var otherv = other.getWorldTransform().getOrigin();
+	var other3 = new THREE.Vector3(otherv.x(),otherv.y(),otherv.z());
+	// this needs to be a vector subtraction.
+	var hd = other3.distanceTo(hypothetical);
+	var cd = other3.distanceTo(current);
+	var h_act = parseInt(actuator_to_length.invert(hd).toFixed(0));
+	var c_act = parseInt(actuator_to_length.invert(cd).toFixed(0));		
+	var delta = h_act - c_act;
+	pp[nm] = delta;
+    }
+    return pp;
+}
+
+var circle_starting_config = null;
+function circle_head() {
+    var v = new Ammo.btVector3(1,1,1).op_add(new Ammo.btVector3(2,2,2));
+
+    var nda = am.robot.robot_members[0].a;
+    var ndb = am.robot.robot_members[1].b;
+    var ndav = nda.getWorldTransform().getOrigin();
+    var ndbv = ndb.getWorldTransform().getOrigin();
+    var va = new THREE.Vector3(ndav.x(),ndav.y(),ndav.z());
+    var vb = new THREE.Vector3(ndbv.x(),ndbv.y(),ndbv.z());
+    va.subVectors(va,vb);
+    va.multiplyScalar(0.2);
+    var va_down = new THREE.Vector3(0,-1/6,0);
+    var va_up = new THREE.Vector3(0,1/6,0);
+    var va_east = new THREE.Vector3(-1/6,0,0);
+    var va_west = new THREE.Vector3(1/6,0,0);
+
+    var pp_a_down = compute_partial_pose(am.robot,nda,va_down);
+    var pp_a_up = compute_partial_pose(am.robot,nda,va_up);
+    var pp_a_east = compute_partial_pose(am.robot,nda,va_east);
+    var pp_a_west = compute_partial_pose(am.robot,nda,va_west);
+
+    if (!circle_starting_config) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+	circle_starting_config = actmodel;
+    }
+    var m_down = apply_delta_pose_x(pp_a_down,circle_starting_config);
+    var m_up = apply_delta_pose_x(pp_a_up,circle_starting_config);
+    var m_east = apply_delta_pose_x(pp_a_east,circle_starting_config);
+    var m_west = apply_delta_pose_x(pp_a_west,circle_starting_config);
+    var glog = [m_down,m_up,m_east,m_east,m_west,m_west];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);    
+}
+
+// Attempt to compute a vector point from the tail to the head by using the centroids
+// of the first and last triangle.  More sophisticated approaches are possible,
+// but this probably half-way work.
+function compute_centroid(a,b,c) {
+    var av = a.getWorldTransform().getOrigin();
+    var bv = b.getWorldTransform().getOrigin();
+    var cv = c.getWorldTransform().getOrigin();
+    var x = (av.x() + bv.x() + cv.x())/3;
+    var y = (av.y() + bv.y() + cv.y())/3;
+    var z = (av.z() + bv.z() + cv.z())/3;    
+    return new THREE.Vector3(x,y,z);
+}
+
+function compute_axis_vector() {
+    var ch = compute_centroid(am.robot.robot_joints[0],am.robot.robot_joints[1],am.robot.robot_joints[2]);
+    var n = am.robot.robot_joints.length;
+    var ct = compute_centroid(am.robot.robot_joints[n-3],am.robot.robot_joints[n-2],am.robot.robot_joints[n-1]);
+    
+    var vh = new THREE.Vector3(ch.x,ch.y,ch.z);
+    var vt = new THREE.Vector3(ct.x,ct.y,ct.z);    
+    vh.subVectors(vh,vt);
+    
+    return vh;
+}
+
+var circle_foot_initial = null;
+function circle_foot(ft) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    // This is a "radius" -- and a joke.
+    var factor = 1/3;
+    var r = m*factor;
+    
+    v.normalize();
+    v.multiplyScalar(r);
+    // Now length should be r...
+    var va_dn = new THREE.Vector3(0,-r,0);
+    var va_up = new THREE.Vector3(0,r,0);
+    var va_fd = new THREE.Vector3(v.x,v.y,0);
+    var va_bk = new THREE.Vector3(-v.x,v.y,0,0);
+    var pp_a_dn = compute_partial_pose(am.robot,ft,va_dn);
+    var pp_a_up = compute_partial_pose(am.robot,ft,va_up);
+    var pp_a_fd = compute_partial_pose(am.robot,ft,va_fd);
+    var pp_a_bk = compute_partial_pose(am.robot,ft,va_bk);
+
+    if (!circle_foot_initial) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+	circle_foot_initial = actmodel;
+    }
+    
+    var m_dn = apply_delta_pose_x(pp_a_dn,circle_foot_initial);
+    var m_up = apply_delta_pose_x(pp_a_up,circle_foot_initial);
+    var m_fd = apply_delta_pose_x(pp_a_fd,circle_foot_initial);
+    var m_bk = apply_delta_pose_x(pp_a_bk,circle_foot_initial);
+    var glog = [m_dn,m_fd,m_up,m_bk];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);    
+    
+}
+
+// var circle_foot_initial = null;
+
+
+function move_foot_forward(ft) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+
+    var factor = 1/4;
+    var r = m*factor;
+    var hr = r*2;
+    
+    v.normalize();
+    v.multiplyScalar(hr);
+    // Now length should be r...
+    var v_dn = new THREE.Vector3(0,-r,0);
+    var v_up = new THREE.Vector3(0,r,0);
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    var v_bk = new THREE.Vector3(-v.x,0,-v.z);
+
+     var NUM_PHASE = 3;
+    var phase = [];
+    for(var i = 0; i < NUM_PHASE; i++) {
+	phase.push(apply_delta_pose_x([],actmodel));
+    }
+    var pp_a_dn = compute_partial_pose(am.robot,ft,v_dn);
+    var pp_a_up = compute_partial_pose(am.robot,ft,v_up);
+    var pp_a_fd = compute_partial_pose(am.robot,ft,v_fd);
+    
+//    phase[0] = apply_delta_pose_x(pp_a_up,phase[0]);    
+//    phase[1] = apply_delta_pose_x(pp_a_dn,phase[1]);
+    phase[0] = apply_delta_pose_x(pp_a_fd,phase[0]);
+
+    return phase;
+}
+
+var callcc = null;
+
+function one_foot_walking() {
+    var eq_g = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,eq_g,10,2000,
+	    () => {
+		var lf_g = lean_forward_glog();
+		var ft0 = move_foot_forward(am.robot.robot_joints[blue(2)]);
+		var lf_g2 = lean_forward_glog();
+		var stance = [lf_g,ft0,lf_g2];
+		execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stance,10,2000,
+			() => {
+			    console.log("assigning to callcc");
+			    callcc = () => {
+				var ft0 = move_foot_forward(am.robot.robot_joints[blue(0)]);
+				var ft1 = move_foot_forward(am.robot.robot_joints[yellow(2)]);
+				var ft2 = move_foot_forward(am.robot.robot_joints[red(3)]);
+				var stance = [ft0,ft1,ft2];
+				execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stance,10,2000,
+					() => {
+					    console.log("all done");
+					});
+			    }});
+	    });
+}
+
+
+function circle_tripod_steps(tpa,tpb) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    // This is a "radius" -- and a joke.
+//    if (!circle_foot_initial) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+//	circle_foot_initial = actmodel;
+    //    }
+    
+    var factor = 1/4;
+    var r = m*factor;
+    var hr = r*2;
+
+    var v_dn = new THREE.Vector3(0,-r,0);
+    var v_up = new THREE.Vector3(0,r,0);
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    var v_bk = new THREE.Vector3(-v.x,0,-v.z);
+    
+    var NUM_PHASE = 4;
+    var phase0 = [];
+    var phase1 = [];    
+    for(var i = 0; i < NUM_PHASE; i++) {
+	phase0.push(apply_delta_pose_x([],actmodel));
+	phase1.push(apply_delta_pose_x([],actmodel));	
+    }
+    for(var i = 0; i < tpa.length; i++) {
+	var foota = tpa[i];
+//	var footb = tpb[i];	
+	var pp_a_dn = compute_partial_pose(am.robot,foota,v_dn);
+	var pp_a_up = compute_partial_pose(am.robot,foota,v_up);
+	var pp_a_fd = compute_partial_pose(am.robot,foota,v_fd);
+	var pp_a_bk = compute_partial_pose(am.robot,foota,v_bk);
+
+	phase0[0] = apply_delta_pose_x(pp_a_dn,phase0[0]);
+	phase0[1] = apply_delta_pose_x(pp_a_bk,phase0[1]);
+	phase0[2] = apply_delta_pose_x(pp_a_up,phase0[2]);
+	phase0[3] = apply_delta_pose_x(pp_a_fd,phase0[3]);
+	
+    }
+    for(var i = 0; i < tpb.length; i++) {
+//	var foota = tpa[i];
+	var footb = tpb[i];	
+
+	var pp_b_up = compute_partial_pose(am.robot,footb,v_up);
+	var pp_b_dn = compute_partial_pose(am.robot,footb,v_dn);
+	var pp_b_bk = compute_partial_pose(am.robot,footb,v_bk);
+	var pp_b_fd = compute_partial_pose(am.robot,footb,v_fd);
+	
+	phase1[0] = apply_delta_pose_x(pp_b_up,phase1[0]);
+	phase1[1] = apply_delta_pose_x(pp_b_fd,phase1[1]);
+	phase1[2] = apply_delta_pose_x(pp_b_dn,phase1[2]);
+	phase1[3] = apply_delta_pose_x(pp_b_bk,phase1[3]);
+    }
+    return [phase0,phase1];
+}
+
+function lean_forward_glog() {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    var glog = [];
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    v_fd.normalize();
+    var m = am.MEAN_EDGE_LENGTH;
+    v_fd.multiplyScalar(m/10);    
+    // To be completely general, this should check length...
+    // but this is what we do for now.
+    var top_rail = [am.robot.robot_joints[red(0)],
+		    am.robot.robot_joints[red(1)],
+		    am.robot.robot_joints[red(2)],
+		    am.robot.robot_joints[red(3)]		    
+		   ];
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    var phase = apply_delta_pose_x([],actmodel);
+    for(var i = 0; i < top_rail.length; i++) {
+	var nd = top_rail[i];
+	var pp_fd = compute_partial_pose(am.robot,nd,v_fd);
+	phase = apply_delta_pose_x(pp_fd,phase);	
+    }
+    glog.push(phase);
+    return glog;
+}
+
+function lean_forward() {
+    var glog = lean_forward_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,5000);
+}
+
+
+var first_tripod = [am.robot.robot_joints[yellow(0)],
+		    am.robot.robot_joints[blue(1)],
+		    am.robot.robot_joints[yellow(2)]];
+var second_tripod = [am.robot.robot_joints[blue(0)],
+		     am.robot.robot_joints[yellow(1)],
+		     am.robot.robot_joints[blue(2)]];
+
+function circle_b() {
+    var nd = am.robot.robot_joints[1];
+    circle_foot(nd);
+}
+
+function circle_tripod() {
+    var glog = circle_tripod_steps(first_tripod,second_tripod);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,5000);   
+}
+
+function walk_forward() {
+    var eq_g = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,eq_g,10,1000,
+	    () => {
+		    var lf_g = lean_forward_glog();		    
+		    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,lf_g,10,2000,
+			() => {
+//			    callcc = () => {
+		    var ci_g = circle_tripod_steps(first_tripod,second_tripod);
+			    //		    var stance = [ci_g[1][0]];
+			    var motion = [ci_g[0][0],ci_g[1][0],ci_g[0][1],ci_g[1][1],lf_g,ci_g[0][2],ci_g[1][2],ci_g[0][3],ci_g[1][3]];
+			    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,motion,10,2000,
+				    () => {
+					    console.log("ALL DONE");
+				    });
+//			    }
+			});
+	    });
+	   
+}
+
+function member_length(a,b) {
+    var ao = get_wt_origin(a);
+    var bo = get_wt_origin(b);
+    var d = ao.distanceTo(bo);
+    return d;
+}
+
+function print_distances() {
+    am.robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	var d = member_length(a,b);
+	var x = actuator_to_length.invert(d)/10.23;
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di);
+    });
+}
+
+function constraint_violations(debug,nd,robot) {
+    var violation = 0;
+    console.log("cv start",get_wt_origin(nd));
+    robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	// We are only looking for local violations touching nd!
+	if ((a.name == nd.name) || (b.name == nd.name)) {
+	    var d = member_length(a,b);
+	    var x = actuator_to_length.invert(d)/10.23;
+	    var di = parseInt(x.toFixed(0));
+	    if (debug) {
+		console.log(d,di);
+	    }
+            if (di < 0) {
+		violation += Math.abs(di);
+            }
+	    if (di > 100) {
+		violation += di;
+	    }
+	}
+    });
+    if (debug) {
+	console.log("violation:",violation);
+    }
+    return violation;
+}
+
+function print_masses() {
+    am.robot.robot_joints.forEach(function (j) {
+	var x = actuator_to_length.invert(d)/10.23
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di)
+    });
+}
+
+// An experimental function to "ooch" one node in a
+// specific direction until a constraint is hit, such as
+// "moving the rearmost foot forward until a constraint is hit".
+// vector is the direction to move relative to the robot direction vector,
+// not space, where the head is considered to be in the positive x direction.
+// There is a lot of quick and dirty programming in this function that should be
+// rewritten.
+// Currently I'm attempting to stop when we go from
+// no violations to a violation.  This is a global condition
+// which is probably not what we want.
+function ooch(robot,act,nd,v,step,max) {
+    var axis = new THREE.Vector3(1,0,0);
+    var heading = robot_heading(robot);
+    axis.normalize();
+    heading.normalize();
+    var q = new THREE.Quaternion();
+    q.setFromUnitVectors ( axis, heading );
+    console.log("before rotate",v);
+    v.applyQuaternion(q);
+    console.log("after rotate",v);
+    var initpos = get_wt_origin(nd);
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+
+    var ox = initpos.x;
+    var oy = initpos.y;
+    var oz = initpos.z;
+    var steps = 0;
+    // This should really be parametrized by the nd we are moving,
+    // and we probably don't really need to rely on the physics engine here,
+    // it is just distances---in fact, we could probably produce a constant-time
+    // algorithm for it!!! (but another day...)
+    var n = constraint_violations(true,nd,robot);
+    var cv = n;
+    while(cv <= n && (steps < max)) {
+	var d = ((steps+1)*step);
+	nx = ox + v.x*d;
+	ny = oy + v.y*d;
+	nz = oz + v.z*d;
+	var vn = new THREE.Vector3(nx,ny,nz);
+        var prevpos = get_wt_origin(nd);
+	
+	set_wt_origin(nd,vn);
+	
+        var curpos = get_wt_origin(nd);
+	console.log("Pos s:",prevpos.x,curpos.x);
+	cv = constraint_violations(true,nd,robot);
+	if (cv <= n) {
+	    steps++;
+	} else {
+	    // we're putting it back!
+	    var d = ((steps)*step);
+	    nx = ox + v.x*d;
+	    ny = oy + v.y*d;
+	    nz = oz + v.z*d;
+	    var vn = new THREE.Vector3(nx,ny,nz);	    
+	    set_wt_origin(nd,vn)
+	}
+    }
+    var act_settings =
+	actuator_space_model_func(robot,
+				  nd,
+				  nd,
+				  // This is a serious weakness, I need to investigate this.
+				  act);
+    // set_interp_constraints(act_settings,act_settings,1.0);
+    console.log("steps:",steps);
+    console.log("act_settings:",act_settings);
+  
+    return [steps,act_settings];
+}
+// 
+// I need to Figure out if I should do a line-fit of the robot
+// or if there is some simpler way to do it.
+// This is the best explanation for how to use svd:
+// https://www.ltu.se/cms_fs/1.51590!/svd-fitting.pdf
+// We can probably use this:
+// https://www.npmjs.com/package/node-svd
+//
+function robot_heading(robot) {
+    // WARNING: this is a quick-and-dirty hack.
+    // The proper way is probably a line-fitting using least squares on node points.
+    var h = get_wt_origin(robot.robot_joints[0]);
+    var t = get_wt_origin(robot.robot_joints.slice(-1)[0]);
+    return new THREE.Vector3(h.x-t.x,h.y-t.y,h.z-t.z);
+}
+
+
+
+function bump(robot,nd_names,x,y,z) {
+    var forward = new THREE.Vector3(x,y,z);
+    var step = 0.01;
+
+    var nds = nd_names.map(n => get_body_by_name(robot,n));
+    console.log("nodes",nds);
+    var stages = nds.map(nd =>
+			 {
+			     var forward = new THREE.Vector3(x,y,z);
+			     var act = build_act_model_from_robot(robot)
+			     return  ooch(robot,act,nd,forward,step,60)[1];
+			 });
+    return stages;
+}
+
+// Idea: Now that I have separated this, why not make it completely abstract?
+// We will coopy the robot, keeping its geometry and structure, and
+// keep it embedded in the Z-positive semi-volume, but we will
+// not attach it to the Bullet Physics world, which is needed for
+// obstacle, friction, and gravity simulation, but is not needed for
+// this kind of robot planning.
+// In order to do this, I have to:
+// 1) Copy the robot
+// 2) make sure all functions are properly parametrized so that they
+// operate on the correct robot.
+// This is an attempt to development a truly working gait.
+function funky_gait1() {
+
+    var robot = am.get_abstract_robot(am.robot);
+//    robot = am.robot;
+    // We will try moving two feet at a time, making
+    // Three fundamental moves. The basic idea here is
+    // to lift yellow(n) and the same time you are lifting blue(n+phase).
+    var ybphase = 1;
+    // We're goint to try this in two stages:
+    // First we move each up up and forward until it bumps.
+    // Then we will move it down and forward.
+    // Then we will lean forward as much as possible and repeat.
+
+    // These are the red ones..
+    var lean_forward = bump(robot,[alphabetic_name(red(0)),
+    			     alphabetic_name(red(1)),
+    			     alphabetic_name(red(2)),
+    			     alphabetic_name(red(3))],
+    			    1,
+    			    0,
+			   0);
+    var x = 1.0;
+    var y = 0.0;
+    var stages = [];
+    var cnt = 0;
+    var eqg = equitetrabeam_glog();
+    stages[cnt++] = eqg;
+   stages[cnt++] = lean_forward;    
+    // This is the number of feet on the ground. In theory
+    // it could be computed from the number of nodes.
+    var nf = 3;
+    for(var s = 0; s < 3; s++) {    
+	var yel = s % nf;
+	var blu = (s+ybphase) % nf;
+	var yn = alphabetic_name(yellow(yel));
+	var bn = alphabetic_name(blue(blu));
+	stages[cnt++] = bump(robot,[yn,bn],0,1,0);
+	stages[cnt++] = bump(robot,[yn,bn],2,0,0);
+	stages[cnt++] = bump(robot,[yn,bn],0,-1,0);
+	stages[cnt++] = lean_forward;
+    }
+   stages[cnt++] = eqg;    
+    console.log("stages",stages);
+    return stages;
+}
+
+function fgex() {
+    var fg = funky_gait1();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,fg,10,1000);
+}
+
+function test_leanforward() {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(red(0)),
+			     alphabetic_name(red(1)),
+			     alphabetic_name(red(2)),
+			     alphabetic_name(red(3))],
+			    1,
+			0,
+		       0);
+    console.log("stages",reach_up);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,reach_up,10,1000);
+}
+
+function test_footforward(nd_num) {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(nd_num)],
+			    0,
+			0.2,0);
+    var reach_fd = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			0,0);
+    var reach_dn = bump(robot,[alphabetic_name(nd_num)],
+			    0,
+			-0.2,0);
+    console.log("stages",[reach_up,reach_fd]);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,[reach_up,reach_fd,reach_dn],10,1000);
+}
+function one_foot_forward(robot,nd_num) {
+    var reach_up = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			0.2,0);
+    var reach_dn = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			-0.3,0);
+    return [reach_up,reach_dn];
+    
+}
+function off0() {
+    var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
+    var cnt = 0;
+
+    stages[cnt++] = equitetrabeam_glog();
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(1)),
+    				alphabetic_name(yellow(2)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+
+    stages[cnt++] = one_foot_forward(robot,yellow(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
+				alphabetic_name(yellow(1)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
+				alphabetic_name(yellow(2)),				
+				alphabetic_name(blue(0)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+    stages[cnt++] = one_foot_forward(robot,yellow(1));
+    stages[cnt++] = one_foot_forward(robot,blue(1));
+    
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(2));
+    stages[cnt++] = one_foot_forward(robot,blue(2));
+  
+    stages[cnt++] = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+}
+
+
+function test_one_foot_walking()
+{
+    var robot = am.get_abstract_robot(am.robot);
+    var stages = [];
+    var cnt = 0;
+    stages[cnt++] = one_foot_forward(robot,blue(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			   0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(2));
+    
+     stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			  0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(2));
+
+        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			  0.2,0.2,0);
+    stages[cnt++] = one_foot_forward(robot,yellow(1));
+
+        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(1));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(0));
+    
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = equitetrabeam_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+ }
+
+function test_abstract_robot() {
+    var robot0 = am.get_abstract_robot(am.robot);
+    var robot1 = am.get_abstract_robot(robot0);
+    var cv = constraint_violations(true,robot0.robot_joints[0],robot0);    
+    var cv1 = constraint_violations(true,robot1.robot_joints[0],robot1);
+    console.assert(cv == cv1,cv,cv1);
+}
+
+function build_act_model_from_robot(r) {
+    var ma = {};
+    r.robot_members.forEach(m => {
+	var d = member_length(m.a,m.b);
+	var x = actuator_to_length.invert(d);
+	var di = parseInt(x.toFixed(0));
+	var act = find_actuator(m.a.name,m.b.name);
+	ma[act] = di;
+    });
+    return ma;
+}
+
+function flatten(glog) {
+    if (glog_is_atom(glog)) {
+	return glog;
+    } else {
+	var ret = [];
+	glog.forEach(g => {
+ 	    ret = ret.concat(flatten(g));
+	});
+	return ret;
+    }
+}
+// This is an initial attempt to write a function that
+// can be directly used by emacs-ctl.el
+function convert_glog_to_sexpr0(glog) {
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    var str = "( ";
+	    for(var key in glog) {
+		str += "(" + key + " " + parseInt(glog[key].toFixed(0)) + ") ";
+	    }
+	    str += ")\n";
+	    return str;
+	}
+    } else {
+	var str = "(";
+	var fglog = flatten(glog);
+	fglog.forEach(g => {
+	    str += convert_glog_to_sexpr0(g);
+	});
+	str += ")";
+	return str;
+    }
+}
+function add_edge_value(pose,color,nds,value) {
+    var e = all_edges(color,nds).map(nd =>
+				      {
+					  return actuator_name_from_number(nd);
+				      });
+    e.forEach(function (r) {
+	pose[r] = value;
+    });
+}
+
+// This is perhaps a little weak.
+// The goal is in part to produce a "total" pose.
+// Therefore I will run over all actuators, and take the average.
+// If neither present, I will use 500. if one present, I use only the one.
+function union_poses(a,b) {
+    var p = {};
+    var n = Object.keys(am.robot.robot_members).length
+    for(var i = 0; i < n; i++) {
+	var name = actuator_name_from_number(i);
+	if (name in a && name in b) {
+	    p[name] = a[name] + b[name];
+	} else if (name in a) {
+	    p[name] = a[name];
+	} else if (name in b) {
+	    p[name] = b[name];
+	} else {
+	    p[name] = 500;
+	}
+    }
+    return p;
+}
+
+function arc_up() {
+    var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
+    var cnt = 0;
+    var nds = 10;
+ 
+    stages[cnt++] = equitetrabeam_glog();
+    var pose = am.most_recent_constraints;    
+    add_edge_value(pose,RED,nds,1000);
+    add_edge_value(pose,BLU,nds,0);
+    add_edge_value(pose,YEL,nds,0);        
+
+//    add_edge_value(pose,ORA,nds,1000);
+//    add_edge_value(pose,GRN,nds,0);
+//    add_edge_value(pose,PRP,nds,1000);
+    var p = union_poses(pose,{});
+
+    stages[cnt++] = p;
+//   stages[cnt++] = equitetrabeam_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+}
+
+</script>
 </html>
