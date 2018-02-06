@@ -1,0 +1,4207 @@
+<!DOCTYPE html>
+<!-- NOTE: This is playground2d.html, deliberately creating a 2D truss and communicating with the C++ optimizer. -->
+<!-- NOTE: The "virtual world" (in this case the C++ world) is the System of Record for the object/truss/robot. -->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>gluss playground</title>
+        <style>
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin:0;
+                padding:0;
+                overflow: auto;
+            }
+	    .robscroll {
+	    overflow: auto;
+	    background: #fff;
+	    }
+        </style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  </head>
+    <body>
+    <div id="container"></div>    
+<!--     <div id="world"></div> 
+    <div id="worldspace"></div> -->
+
+    
+    <div id="control" class="robscroll">
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Control Graphical Interactions</h3>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+    <div class="panel-body">
+    
+	    <button id="gravity_ctl" type="button" onclick="toggle_gravity()" >
+	      Turn Gravity Off    
+	    </button>
+	    <button id="auto_rectify_ctl" type="button" onclick="auto_rectify_toggle()" >
+	      Turn Auto Rectify On
+	    </button>
+	    <button type="button" onclick="rectify()">
+	      Rectify
+	    </button>
+	    <button type="button" onclick="disable_con()">
+	      Disable Constraints On Manipulation
+	    </button>
+	    <button type="button" onclick="allow_con()">
+	      Allow Constraints On Manipulation
+	    </button>
+	    <button type="button" onclick="toggle_mouse_action()">
+	      Toggle Mouse Cannon/Grab
+	    </button>
+	    <button type="button" onclick="toggle_constraints()">
+	      Toggle Constraints
+	    </button>
+    </div>
+    </div>
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Standard Poses</h3>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+    <div class="panel-body">
+	    <button type="button" onclick="equitetrabeam()">
+	      Equitetrabeam
+	    </button>
+	    <button type="button" onclick="equitetrabeam_adjusted()">
+	      Equitetrabeam Adjusted
+	    </button>
+	    <button type="button" onclick="tetrabeam()">
+	      Tetrabeam
+	    </button>
+	    <button type="button" onclick="big_size()">
+	      Big size
+	    </button>
+	    <button type="button" onclick="small_size()">
+	      Small size
+	    </button>
+	    <button type="button" onclick="relax()">
+	      Relax
+	    </button>
+	    <button type="button" onclick="circle_head()">
+	      Circle Head
+	    </button>
+	    <button type="button" onclick="circle_b()">
+	      Circle B
+	    </button>
+	    <button type="button" onclick="circle_tripod()">
+	      Circle Tripod
+	    </button>
+	    <button type="button" onclick="lean_forward()">
+	      Lean Forward
+	    </button>
+	    <button type="button" onclick="walk_forward()">
+	      Walk Forward
+	    </button>
+	    <button type="button" onclick="one_foot_walking()">
+	      One-foot Walking
+	    </button>
+	    <!-- These are currently not workin....
+		 <button type="button" onclick="flat()">
+		   Flat Pose
+		 </button>
+		 <button type="button" onclick="regenerate()">
+		   Regenerate
+		 </button>
+		 -->
+	  </div>
+	</div>
+
+	<!--
+	    <textarea id="cli" rows="8" cols="80">
+	      Imagine enterring a command here.
+	    </textarea>
+	    <button type="button" onclick="execute_code(this)">
+	      Execute    
+	    </button>
+	    -->
+
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Pose and Gait</h3>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+	    <button type="button" onclick="load_pose()">
+	      Load Pose from JSON
+	    </button>
+	    
+	    <span>
+	      <button type="button" onclick="name_pose()">
+		Name Pose
+	      </button>
+	      Pose Name:
+	      <input id="posename" type="text" name="pose"><br>
+    </span>
+    Standard poses: <div id="stdposes"></div>
+    Standard gaits: <div id="stdgaits"></div>    
+	    My named poses: <div id="poslist"></div>
+	    <span>
+	      <button type="button" onclick="execute_gait()">
+		Execute Gait
+	      </button>
+	      Gait:
+	      <textarea id="gait" rows="8" cols="80"></textarea>
+	    </span>
+	  </div>
+	</div>
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Robot Control</h3>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+            <button type="button" onclick="send_to_robot_url()">
+	      Send Pose to Robot
+	    </button>
+	    Send Poses To URL:
+	    <input id="poseurl" type="text" name="poseurl"><br>
+	    <div id="robotcomresult">
+	    </div>
+	  </div>
+	</div>	
+	
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">JSON Interactions</h3>
+	    <span class="pull-left clickable"><i class="glyphicon glyphicon-chevron-up"></i></span>
+	  </div>
+	  <div class="panel-body">
+
+<div>
+	    <textarea id="pmodel" rows="8" cols="80">
+	      The physcial model positions as JSON object will be rendered here.
+	    </textarea>
+            
+            <textarea id="amodel" rows="8" cols="80">
+	      The actuator positions as JSON object will be rendered here.
+    </textarea>
+    </div>
+	  <div>  
+	    <button type="button" onclick="render_physical_model(this)">
+	      Render Physical    
+	    </button>
+	    <button type="button" onclick="render_actuator_model()">
+	      Render Actuators
+	    </button>
+	    <button type="button" onclick="render_actuator_model('escaped')">
+	      Render Actuators Esacped
+	    </button>
+</div>
+	  </div>
+	</div>
+      </div>
+    </body>
+
+    <script src="./js/axes.js"></script>
+    
+    <script src="./js/three.js"></script>
+    <script src="./js/ammo.js"></script>
+    <script src="./js/OrbitControls.js"></script>    
+    <script src="./js/Detector.js"></script>
+    <script src="./js/stats.min.js"></script>    
+    <script src="./js/cannon.js"></script>
+    	<script src="./js/Projector.js"></script>	
+    <script src="./js/STLLoader.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>    
+   <script src="./js/d3-scale.min.js"></script>
+   <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-collection.v1.min.js"></script>
+<script src="https://d3js.org/d3-color.v1.min.js"></script>
+<script src="https://d3js.org/d3-format.v1.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-time.v1.min.js"></script>
+<script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale.v1.min.js"></script>
+
+    
+    <script src="./js/OrbitControls.js"></script>
+    <script type="text/javascript" src="./js/dat.gui.js"></script>
+    <script src="./javascripts/tetrahelix_numbering.js"></script>
+
+    <script>
+    
+var RED = 0;
+var YEL = 1;
+var BLU = 2;
+var ORA = 3;
+var GRN = 4;
+var PRP = 5;
+
+
+function red(n) {
+    return nd_from_color(RED,n);
+}
+
+function blue(n) {
+    return nd_from_color(BLU,n);
+}
+
+function yellow(n) {
+
+    return nd_from_color(YEL,n);
+}
+
+function convert_to_number(obj) {
+    for(var k in obj) {
+	if (typeof obj[k] == "string") {
+	    obj[k] = parseInt(obj[k]);
+	}
+    }
+    return obj;
+}
+
+// A "robot" is really a graph of vertices with connections.
+// In physical realization, the connections are actuators with length limits.
+// In our first implementation, we will treat this as a set of springs in
+// the cannon.js world...
+// So in a sense we have 3 virtual worlds here: the abstract world
+// of the robot, the cannon.js world of almost-physical objects, and
+// the three.js world of meshes.
+// This will be made slightly more confusing by utilizing Three.js
+// and cannon.js utility classes (such as Vector) for convenience,
+// even in the abstract world of the robot space.
+
+// TODO: I hate global variables ---- I'd like to encapsulate this
+// into a class.
+
+
+
+
+function establish_controls(gui) {
+    gui.controls = new THREE.OrbitControls( gui.camera, gui.container );
+    gui.controls.enableDamping = true;
+    gui.controls.dampingFactor = 0.25;
+    gui.controls.enableZoom = true;
+    gui.controls.enabled = true;
+
+    // We may be able to make this the last object clicked to change the controls.
+    gui.controls.target.set(0,0,0);
+    gui.controls.target.set(gui.latestLookAt.x,gui.latestLookAt.y,gui.latestLookAt.z);
+}
+
+function addShadowedLight(scene, x, y, z, color, intensity ) {
+    var directionalLight = new THREE.DirectionalLight( color, intensity );
+    directionalLight.position.set( x, y, z );
+    scene.add( directionalLight );
+    directionalLight.castShadow = true;
+    var d = 1;
+    directionalLight.shadow.camera.left = -d;
+    directionalLight.shadow.camera.right = d;
+    directionalLight.shadow.camera.top = d;
+    directionalLight.shadow.camera.bottom = -d;
+    directionalLight.shadow.camera.near = 1;
+    directionalLight.shadow.camera.far = 4;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.bias = -0.005;
+}
+
+
+
+function setClickMarker(gui,x,y,z) {
+    if(!gui.clickMarker){
+        var shape = new THREE.SphereGeometry(gui.MARKER_RADIUS/4, 8, 8);
+        gui.clickMarker = new THREE.Mesh(shape, gui.markerMaterial);
+        gui.scene.add(gui.clickMarker);
+    }
+    gui.clickMarker.visible = true;
+    gui.clickMarker.position.set(x,y,z);
+    gui.movedButNotSent = true;
+}
+
+
+function removeClickMarker(gui){
+    gui.clickMarker.visible = false;
+}
+
+
+// This function creates a virtual movement plane for the mouseJoint to move in
+function setScreenPerpCenter(point, gui) {
+    // If it does not exist, create a new one
+    if(!gui.gplane) {
+	// We need to be precese about what these coordinates are!
+        var planeGeo = new THREE.PlaneGeometry(4000,4000);
+	// Something has change in three.js, apparently ray casting only
+	// works with visible objects.  Since we are creating a plan to
+	// move the joint in, I am going to try to create an object here that makes since.
+	var plane_material = new THREE.MeshLambertMaterial( { color: 0x110000 } );
+	plane_material.transparent = true;
+	plane_material.opacity = 0.0;
+	
+	gui.gplane = new THREE.Mesh(planeGeo,plane_material);
+	
+        gui.scene.add(gui.gplane);
+    }
+    gui.gplane.visible = true;
+    gui.gplane.name = "movementplane";
+    gui.controls.enabled = false;
+
+    // Center at mouse position
+    gui.gplane.position.copy(point);
+
+    // Make it face toward the camera
+    gui.gplane.quaternion.copy(gui.camera.quaternion);
+}
+
+
+function projectOntoPlane(gui,screenX,screenY,thePlane,camera) {
+    var x = screenX;
+    var y = screenY;
+    var now = new Date().getTime();
+    // project mouse to that plane
+    // This is probably highly wrong...
+    // this means that we can only fold an object on itself.
+    // I think this would work if you have
+    var hit = findNearestIntersectingObject(gui,screenX,screenY,camera,[thePlane]);
+    if(hit)
+        return hit.point;
+    else return false;
+}
+function findNearestIntersectingObject(gui,clientX,clientY,camera,objects) {
+    var mouse3D = new THREE.Vector3( ( event.clientX / gui.renderer.getSize().width ) * 2 - 1,   //x
+                                     -( event.clientY / (gui.renderer.getSize().height) ) * 2 + 1,  //y
+                                     0.5 );                                            //z
+    
+    var mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / gui.renderer.getSize().width) * 2 - 1;
+    mouse.y = -(event.clientY / (gui.renderer.getSize().height)) * 2 + 1; 
+
+    var raycaster = new THREE.Raycaster();
+    try {
+	raycaster.setFromCamera(mouse, camera);
+	var intersects = raycaster.intersectObjects( objects );        
+	var closest = false;
+	if (intersects.length > 0) {
+            closest = intersects[0];
+	}
+	return closest;
+    } catch (err) {
+	console.log("Error: "+err);
+	return null;
+    }
+}
+
+function clear_text() {
+    $("p").remove();
+}
+var sprite_controls = new function () {
+    this.size = 50;
+    this.sprite = 0;
+    this.transparent = false;
+    this.opacity = 0.6;
+    this.colorize = 0xffffff;
+    this.textcolor = "yellow";
+    this.rotateSystem = true;
+
+    this.clear = function (x,y) {
+        am.sceneOrtho.children.forEach(function (child) {
+            if (child instanceof THREE.Sprite) am.sceneOrtho.remove(child);
+        })
+    };
+
+    this.draw_and_create = function (sprite,x,y,message,color,opacity) {
+	var fontsize = 128;
+	var ctx, texture,
+	    spriteMaterial, 
+	    canvas = document.createElement('canvas');
+	ctx = canvas.getContext('2d');
+	ctx.font = fontsize + "px Arial";
+
+	// setting canvas width/height before ctx draw, else canvas is empty
+	// canvas.width = ctx.measureText(message).width;
+	// canvas.height = fontsize * 2; // fontsize * 1.5
+
+	// I have no idea why making these large makes the sprite smaller!!!
+	canvas.width = ctx.measureText(message).width;
+	canvas.height = fontsize*2; // fontsize * 1.5
+
+	
+	// after setting the canvas width/height we have to re-set font to apply!?! looks like ctx reset
+	ctx.font = fontsize + "px Arial";        
+	ctx.fillStyle = color || this.textcolor;        
+	ctx.fillText(message, 0, fontsize);
+
+	texture = new THREE.Texture(canvas);
+	texture.minFilter = THREE.LinearFilter; // NearestFilter;
+	texture.needsUpdate = true;
+
+	var spriteMaterial = new THREE.SpriteMaterial({
+	    opacity: opacity || this.opacity,
+	    color: this.colorize,
+	    transparent: this.transparent,
+	    map : texture});
+	
+	spriteMaterial.scaleByViewport = true;
+	spriteMaterial.blending = THREE.AdditiveBlending;
+
+        if (!sprite) {
+	    sprite = new THREE.Sprite(spriteMaterial);
+	}
+	
+	sprite.scale.set(this.size, this.size, this.size);
+	sprite.position.set(x, y, 0);
+	
+	am.sceneOrtho.add(sprite);
+	return sprite;
+    };
+};
+
+
+
+
+
+function get_member_color(gui,len) {
+    if (len < am.MIN_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
+	return d3.rgb("black");
+    } else if (len > am.MAX_EDGE_LENGTH) {
+	var l = actuator_to_length.invert(len) / 10.23;
+	var di = parseInt(l.toFixed(0));
+//	console.log(di,len);
+	return d3.rgb("red");
+    } else {
+	return d3.rgb(gui.color_scale(len));
+    }
+}
+
+
+/*
+function render(gui) {
+    gui.renderer.render(gui.scene, gui.camera);
+    gui.renderer.render(gui.grid_scene, gui.camera);
+    gui.renderer.autoClear = false;
+    // This is for the sprites....
+    gui.renderer.render(gui.sceneOrtho, gui.cameraOrtho);
+}
+*/
+
+
+function remove_non_eternal_constraints() {
+    am.robot.robot_members.forEach(function (c) {
+	var cs = c.body.constraints;
+	am.physicsWorld.removeConstraint(cs[0]);
+	am.physicsWorld.removeConstraint(cs[1]);
+//	am.physicsWorld.removeConstraint(cs[2]);
+//	am.physicsWorld.removeConstraint(cs[3]);		
+    });
+
+}
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+};
+
+
+function vectorToString(v) {
+    return "["+v.x+","+v.y+","+v.z+"]";
+}
+
+function tetrahelix_vertex(chi,n,edge_length) {
+    // TODO: memoize these functions.
+    var r = (3 * Math.sqrt(3) / 10) * edge_length;
+    var h = (1/Math.sqrt(10)) *edge_length;
+
+    // This is the percentage of rotation around the
+    // helix we go in some sense. I don't like this
+    // formulation, but there not be any other or better closed form
+    // formulation.  This comes from H.S.M. Coxeter by way of Robert W. Gray
+    var theta = Math.acos(-2/3);
+    // I want to make sure "B and C" land on the ground first!    
+    var twist = 260*(Math.PI / 180.0);
+    return new THREE.Vector3( r * Math.cos(n*theta+twist),  chi*r * Math.sin(n*theta+twist), n*h );
+}
+
+function ccw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(1,n,edge_length);
+}
+function cw_tetrahelix_vertex(n,edge_length) {
+    return tetrahelix_vertex(-1,n,edge_length);    
+}
+
+// To do a great job with this, we really need to know the
+// range of possible values, but I'll fake it..
+function alphabetic_name(n) {
+    if (n < 26) {
+	return String.fromCharCode(65+n);
+    } else {
+	if (n < 26*26) {
+	    return alphabetic_name(Math.floor(n/26))+alphabetic_name(n % 26);
+	} else {
+	    return ""+n;
+	}
+    }
+}
+
+var joints_to_link_map = {};
+
+
+function disable_con() {
+    am.FORCE_REGIME = "DISABLE";
+}
+function allow_con() {
+    am.FORCE_REGIME = "ALLOW";    
+}
+
+function toggle_mouse_action() {
+    am.MOUSE_FIRES = !am.MOUSE_FIRES;
+}
+
+function toggle_constraints() {
+    // This actually didn't seem to work...
+    //    am.CONSTRAINTS = !am.CONSTRAINTS;
+    
+}
+
+function step_con() {
+}
+
+function send_to_robot_url() {
+    // Right now, we are just sending the current config
+    var pmodel = extract_physical_node_model(am.robot);
+    if (pmodel.length > 0) {
+	
+	var amx = model_to_actuator_space(pmodel,am.robot);
+	var x = JSON.stringify(amx,null,2);
+	console.log(x);
+	am.url_for_robot = $("#poseurl").val();
+	console.log(x);
+	$.ajax({url: am.url_for_robot,
+		crossDomain: true,
+		beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
+		data: x,
+		success: function(result){
+		    
+		    $("#robotcomresult").html(result);
+		},
+		error: function (request, status, error) {
+		    console.log(error);
+		}
+	       });
+    }
+
+}
+
+function updateMouseConstraints(gui,body) {
+    if (gui.FORCE_REGIME == "STEP") {
+
+    } else if (gui.FORCE_REGIME == "DISABLE") {
+	
+    } else if (gui.FORCE_REGIME == "ALLOW") {
+    }
+    
+}
+
+
+// This is an experimental function.  Ammo does not properly
+// expose the ability to apply a transform to a vector.  However,
+// Three.js has all of this functionality, so I am attempting
+// to simulate it in Three.js.  If this works, I will have to
+// work with Ammo.idl to open this functionality.
+function applyBulletTransformInverse(trans,vect) {
+    var scale = new THREE.Vector3(1,1,1);
+    
+    var tv = new THREE.Vector3(vect.x(),vect.y(),vect.z());
+    
+    var threeTrans = new THREE.Matrix4();
+    threeTrans = threeTrans.identity();
+
+    var trans_origin = trans.getOrigin();
+    var translation = new THREE.Vector3(trans_origin.x(),trans_origin.y(),trans_origin.z());
+    var quaternion = new THREE.Quaternion();
+
+    var q = trans.getRotation();
+    
+    quaternion.set( q.x(), q.y(), q.z(), q.w() );
+    
+    threeTrans.compose(translation, quaternion, scale);
+
+    var threeTransI = new THREE.Matrix4();
+    
+    threeTransI.getInverse(threeTrans);
+
+    // DON'T ASK ME WHY THREE WRITES IT THIS WAY!!!
+    var array = [tv.x,tv.y,tv.z];
+    
+    var ra = threeTransI.applyToVector3Array(array);
+    
+    return new Ammo.btVector3(ra[0], ra[1], ra[2]);
+}
+
+function testApplyBulletTransformInverse() {
+
+    // Test by setting up a Bullet Transform that puts the x axis at a non-unit
+    // angle. Then we should be able to invert and get back to to the origin.
+
+    var x = 1.0;
+    var y = 2.0;
+    var z = 3.0;
+    var trans0 = new Ammo.btTransform();
+    trans0.setIdentity();
+    trans0.setOrigin(new Ammo.btVector3(x, y, z));
+    var v0 = new Ammo.btVector3(x, y, -z)
+    var vr0 = applyBulletTransformInverse(trans0,v0);
+    console.log(vr0);
+    console.log(vr0.x(),vr0.y(),vr0.z());
+
+    
+}
+
+
+function addMouseConstraint(gui,x,y,z,body) {
+    // The cannon body constrained by the mouse joint
+    var constrainedBody = body;
+    
+    gui.physicsWorld.removeRigidBody(gui.jointBody);
+
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+    startTransform.setOrigin(new Ammo.btVector3(x, y, z));
+    gui.jointBody.setCenterOfMassTransform(startTransform);
+    //	gui.jointBody.clearForces();
+    gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+    gui.physicsWorld.addRigidBody(gui.jointBody);
+
+    updateMouseConstraints(gui,body);
+
+    gui.selectedBody = body;	
+    //    if (gui.FORCE_REGIME == "ALLOW") {
+    var markerBody = gui.jointBody;
+    var constrainedBody = body;
+    var startTransform = constrainedBody.getWorldTransform();
+
+
+    // MAJOR BUG: This is not taking the rotation of the constainedObject into account
+    // We need to use the Transform to transform the point into its position in the
+    // local space, I think.
+
+    var pivotInA = new Ammo.btVector3( 0, 0, 0 );;
+    // x,y,z are in global space.
+    
+    var globalVector = new Ammo.btVector3(x,y,z);
+    var pivotInB = applyBulletTransformInverse(startTransform,globalVector);
+
+    var con = new Ammo.btPoint2PointConstraint(markerBody,
+					       constrainedBody,
+					       pivotInA,
+					       pivotInB);
+    markerBody.setGravity(am.NO_GRAVITY);
+    constrainedBody.setGravity(am.NO_GRAVITY);
+    
+    gui.mouseConstraint = con;
+    gui.selectedBody = body;
+    
+    gui.physicsWorld.addConstraint(con, true);
+    //    } else if (gui.FORCE_REGIME == "DISABLE") {
+    //    }
+
+}
+
+
+
+
+// This functions moves the transparent joint body to a new postion in space
+// We need to remove globals from this.
+function moveJointToPoint(gui,x,y,z) {
+    var is_obstacle = (gui.selectedBody.structureKind == "obstacle");
+    var act_natural = ((gui.FORCE_REGIME == "ALLOW") ||
+		       is_obstacle);
+    
+    if (act_natural) {
+	
+    } else {
+	gui.physicsWorld.removeRigidBody(gui.jointBody);
+    }
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+
+    var n_o = new Ammo.btVector3(x,y,z);
+    startTransform.setOrigin(n_o);
+
+    // This is wrong...we ned to move x,y,z plus the inverse ...
+    // or let the constraint handle!
+    gui.jointBody.setWorldTransform(startTransform);
+
+    gui.jointBody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    gui.jointBody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+
+    var cbody = gui.selectedBody;
+    cbody.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    cbody.setAngularVelocity(new Ammo.btVector3(0,0,0));
+
+    gui.jointBody.setGravity(am.NO_GRAVITY);
+    gui.selectedBody.setGravity(am.NO_GRAVITY);
+    
+    if (act_natural) {
+	
+    } else  {
+	gui.physicsWorld.addRigidBody(gui.jointBody);
+
+
+	// Now we want to tell the robot to assume (instantly)?
+	// The pose indicated by placing the selectedBody at x,y,z
+	// Todo this we basically compute the current pose using
+	// the marker body position in place of the current.
+
+	// Now take the am.most_recent pose and compute a modifcation
+	// of it based on the physical distance of (x,y,z) to the
+	// attached nodes.  Construct a new model and move to that.
+
+	//	var act_settings = model_to_actuator_space(pose,am.robot);
+	
+	// TODO: change most_recent_constraints -> most recent model
+//	console.log("constraints:");
+//	console.log(gui.most_recent_constraints);
+	var act_settings =
+	    actuator_space_model_func(gui.robot,
+				      gui.selectedBody,
+				      gui.jointBody,
+				      gui.most_recent_constraints);
+//	console.log("settings:");
+//	console.log(act_settings);
+	// now move to the new pose.
+	set_interp_constraints(act_settings,act_settings,1.0);
+    }
+}
+
+
+// TODO: This is specific to CANNON
+function removeJointConstraint(gui) {
+    // Remove constriant from world
+    if (!gui.selectedBody) {
+	return;
+    }
+    gui.physicsWorld.removeConstraint(gui.mouseConstraint);
+    gui.mouseConstraint = false;
+    gui.selectedBody = null;
+}
+
+function render_physical_model(id) {
+    var pmodel = extract_physical_node_model(am.robot);
+    var command = $("#pmodel").val(JSON.stringify(pmodel,null,2));
+}
+
+
+// This is now rendering in an "emacs-ready" way --- that needs to be
+// made clear.
+function render_actuator_model(form) {
+    var pmodel = extract_physical_node_model(am.robot);
+    
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    var x = JSON.stringify(actmodel,null,2);
+    if (form === 'escaped')
+	x = '"'+x.replace(/"/gi,'\\"')+'"';
+    var command = $("#amodel").val(x);
+}
+
+// TODO: This can be better.
+function get_body_by_name(robot,name) {
+    var retval;
+    robot.robot_joints.forEach(function (bx) {
+	if ((bx.structureKind != "member") && (bx.name != "floor")) {
+	    if (bx.name == name) {
+		retval = bx;
+	    }
+	}
+    });
+    return retval;
+}
+
+function set_constraints(actmodel) {
+    update_constraints(am.robot.robot_members,link => {
+	var a = link.a;
+	var b = link.b;
+	var act = find_actuator(link.a.name,link.b.name);
+	var e = actuator_to_length(actmodel[act]);	
+	return e;
+    });
+    am.most_recent_constraints = actmodel;
+}
+
+function interp(x,y,frac) {
+    return x + (y-x)*frac;
+}
+function find_link_body(a,b,members) {
+    if (a.name > b.name) {
+	var t = b;
+	b = a;
+	a = t;
+    }
+    for(var i = 0; i < members.length; i++) {
+	var memBody = members[i];
+	if ((memBody.a.name == a.name)
+	    && (memBody.b.name == b.name)) {
+	    return memBody;
+	}
+    }
+}
+
+// WARNING: I think this may be a significant problem.
+// Computing the distance from from the transform in
+// fractional movements and setting the constraints to those
+// values allows error to accumulate.
+function set_interp_constraints(am0,am1,frac) {
+
+    
+    var links = [];
+    for (var key in am0) {
+	if (am1.hasOwnProperty(key)) {
+	    var link  = find_bodies_from_actuator(key);
+            var a = get_body_by_name(am.robot,link[0]);
+            var b = get_body_by_name(am.robot,link[1]);
+	    var body = find_link_body(a,b,am.robot.robot_members);
+	    
+	    links.push({a: a, b: b, k: key, body: body.body });
+	}
+    }
+    //    console.log("XXXXXX");
+
+    remove_non_eternal_constraints();
+    update_constraints(links,link => {
+	var a = link.a;
+	var b = link.b;
+	var key = link.k;
+	var e = actuator_to_length(interp(am0[key],am1[key],frac));
+	var aname = find_actuator(a.name,b.name);
+//	console.log(get_class_of_actuator(aname));
+//	console.log(e/am.MIN_EDGE_LENGTH);
+	return e;
+    });
+
+    am.most_recent_constraints = am1;
+}
+
+
+function load_pose(id) {
+    var pose_string = $("#amodel").val();
+    var unescaped = pose_string.replace(/\\\"/g,"\"");
+    var actuator_model = JSON.parse(unescaped);
+    set_constraints(actuator_model);
+}
+
+function name_pose(id) {
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    var name = $("#posename").val();
+    var pose = {};
+    pose["type"] = "pose";
+    pose["name"] = name;
+    pose["geometry"] = "5TetGlussBot";
+    pose["pose"] = actmodel;
+    localStorage.setItem(name, JSON.stringify(actmodel));
+    update_poses();
+}
+
+function set_named_pose(id) {
+    var pose = localStorage.getItem(localStorage.key(id));
+    var constraints = JSON.parse(pose);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,constraints.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+}
+function set_standard_pose(num) {
+    var pose = am.standard_objs[num];
+    var constraints = pose.pose;
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,pose.pose,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+}
+function set_standard_gait(num) {
+    var gait = am.standard_objs[num];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,gait.gait,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+}
+
+// This is section implements the Gluss Programming Language 0.1 (GLPL). A program is called a GLOG.
+// This should probably be broken out into a different file.  The basic concept
+// is that GLPL is a valid JSON object.  Here is a BNF, although since this is in JSON
+// we basically will do "parsing".
+// <glog> ::= <array> | <object>
+// <object> ::= <def> | <com>
+// <def> ::= <pose> | <gait>
+// <pose> ::= Object whose "type" is "pose" and has "pose" property | <string>
+// <gait> ::= Object whose "type is "gait" and has "gait" property, which is a glog
+// <array> ::= '[' <list> ']'
+// <list> ::= <glog> | <list> , <glog>
+// <com> ::= <string> | <ex-pose>
+// <ex-pose> ::= object which does not have "name" as a property
+// In other words, a GLOG is an array of GLOGs or an object, and an object pose or a gait,
+// and a gait is a GLOG.  So this is a language with no conditionals, not input, no loops.
+// Not that in when a <string> is a <pose>, it potentially must be resolvable by definitions
+// some where else.
+// Following the concept I learned back at Rice University in '86, the language has a "context"
+// which is mainly a dictionary of known defintions for strings.  Execution can return a context
+// which adds a defintion to the context.  All of this is easier in LISP, of course. In this case
+// we will use an object that maps names to GLOGs as the context
+// So the 0.1 version is really astounding simple.  The main thing we have to be able to do
+// is to process it into an executable pose and the remainding GLOG.
+
+// This function returns [first,rest] (meaning a two-element array, where rest may not be an atom)
+// It guarantees that the first is a executable command or an defintion (and that rest coorectly
+// takes into account the fact that the head of the glog might not be atomic.
+// Note that the context is an object that maps names to definitions.
+
+// So the equestion is should this return a pose?  I think yes---the goal here is
+// that this function expands all the way to a pose.  If a string is found,
+// it must be expanded in context, and the "rest" part properly filled out.
+function get_first_executable(ctx,glog) {
+    if (Array.isArray(glog)) {
+	if (glog.length == 0) {
+	    return [glog,[]];
+	} else if (glog.length == 1) {
+	    return get_first_executable(ctx,glog[0]);	    
+	} else {
+	    // Okay, so how to handle the resulting arg here is a little tricky....
+	    var res = get_first_executable(ctx,glog[0]);
+	    var rest = [];
+	    rest[0] = res[0];
+	    rest[1] = res[1].concat(glog.slice(1));
+	    return rest;
+	}
+    } else { // So we are either a definition of a command, either way we just package and are done.
+	// Now if we are a string, we look it up in the context and expand..
+	if (typeof glog == "string") {
+	    var def = ctx[glog];
+	    if (typeof def == 'undefined') { // didn't find it,
+		console.log("Couldn't find string in context:" + glog);
+		console.log("Context:" + ctx);
+	    } else {
+		if (def.type == "pose") {
+		    var rest = [];
+		    rest[0] = def.pose;
+		    rest[1] = [];
+		} else if (def.type == "gait") {
+		    var prog = def.gait; // This should be a glog!!
+		    return get_first_executable(ctx,prog);
+		}
+		return rest;
+	    }
+	} else { // Presumably it is a pose, we should probably check that...
+	    for(var k in glog) {
+		var val = glog[k];
+		var num;
+		if (typeof val == "string") {
+		    console.log("converting string to int: "+val);
+		    num = parseInt(val);
+		} else if (typeof val == "number")  {
+		    num = val;
+		} else {
+		    console.log("Couldn't intepret: "+val);
+		}
+		// Possibly we should put a value test in here?
+		glog[k] = num;
+	    }
+	    return [glog,[]];
+	}
+    }
+}
+
+// Real glogs have internal stucture we don't care about...so we can test with non-glogs..
+function test_get_first_executable_0() {
+    var ex0 = [[{A: 0},{A: 1}],[{A: 2}]];
+    var res0 = get_first_executable(null,ex0);
+    var f0 = res0[0];
+    if (f0.A != 0)
+	return false;
+    var res1 = get_first_executable(null,res0[1]);
+    var f1 = res1[0];
+    if (f1.A != 1)
+	return false;
+    var res2 = get_first_executable(null,res1[1]);
+    var f2 = res2[0];
+    if (f2.A != 2)
+	return false;
+    if (res2[1].length != 0)
+	return false;
+    return true;
+}
+
+function glog_is_atom(glog) {
+    return !(Array.isArray(glog));
+}
+function glog_is_definition(glog) {
+    return (glog["type"] == "pose" || glog["type"] == "gait");
+}
+function glog_is_executable(glog) {
+    return glog_is_atom(glog) && !glog_is_definition(glog);
+}
+
+function execute_atom(ctx,cur,atom,subdivisions,time_between_poses_ms,
+		      finish_callback) {
+    var intertick = time_between_poses_ms / subdivisions;
+    if (!cur) {
+	cur = atom;
+    }
+    console.log(cur);
+    for(var j = 0; j < subdivisions; j++) {
+	var func = null;
+	if (j == (subdivisions - 1)) {
+	    func = finish_callback;
+	}
+	setTimeout(function(am0,am1,frac,func) {
+	    set_interp_constraints(am0,am1,frac);
+	    // This is an attempt to get the "finishining" callback to be
+	    // called after we have had enough time to give control back
+	    // to the physics engine...
+	    if (func)
+		setTimeout(func,intertick,0);
+	},
+		   j*intertick,
+		   cur,
+		   atom,
+		   j/(subdivisions*1.0),
+		   func
+		  );
+    }
+}
+
+function execute(ctx,initial,execute_atom,glog,subdivisions,time_between_poses_ms,
+		finish_callback) {
+    // if glog is an empty array or null, there is nothing to do.
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    execute_atom(ctx,initial,glog,subdivisions,time_between_poses_ms);
+	}
+    }
+    var wait_time = time_between_poses_ms/subdivisions;
+    var res0 = get_first_executable(ctx,glog);
+    var first = res0[0];
+    var rest = res0[1];
+    console.log(rest);
+    console.log((rest.length == 0 ? finish_callback : null));
+    execute_atom(ctx,initial,first,subdivisions,time_between_poses_ms,
+		 (rest.length == 0 ? finish_callback : null));
+    if (rest.length > 0) {
+	setTimeout(function(r) {
+	    execute(ctx,first,execute_atom,rest,subdivisions,time_between_poses_ms,
+		    finish_callback
+		   );
+	},
+		   time_between_poses_ms,
+		   rest
+		  );
+    } 
+}
+function execute_atom_dummy(ctx,glog) {
+    console.log("atom"+glog);
+}
+
+//var RELAXED_POSE = {"A0":500,"A1":500,"A2":500,"A3":500,"A4":500,"A5":500,"B0":500,"B1":500,"B2":500,"B3":500,"B4":500,"B5":500,"C0":500,"C1":500,"C2":500,"C3":500,"C4":500,"C5":500};
+
+function test_execute_0() {
+    var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
+		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom_dummy,glog,10,1000);
+}
+
+function test_execute_1() {
+    var glog = [{"A0":800,"A1":400,"A2":236,"A3":0,"A4":1000,"A5":0,"B0":500,"B1":500,"B2":1000,"B3":0,"B4":600,"B5":1000,"C0":200,"C1":1000,"C2":500,"C3":969,"C4":500,"C5":200},
+		{"A0":800,"A1":400,"A2":236,"A3":500,"A4":1000,"A5":500,"B0":500,"B1":500,"B2":450,"B3":0,"B4":600,"B5":500,"C0":300,"C1":200,"C2":200,"C3":969,"C4":500,"C5":200}];
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+// create a glog representing an application of a partial pose to the current
+// state.
+function apply_delta_pose(pp) {
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    apply_delta_pose_x(pp,actmodel);
+}
+function apply_delta_pose_x(pp,base_model) {
+    var new_model = JSON.parse(JSON.stringify(base_model))
+    for (var key in new_model) {
+	var bs = find_bodies_from_actuator(key);
+	var bname = bs[0]+" "+bs[1];
+	if (pp[bname]) {
+	    new_model[key] = base_model[key] + pp[bname];
+	    new_model[key] = Math.min(Math.max(new_model[key],0),1023);
+	}
+    }
+    return new_model;
+}
+
+function fraction_from_length(l) {
+    return (l - am.MIN_EDGE_LENGTH) / (am.MAX_EDGE_LENGTH - am.MIN_EDGE_LENGTH);
+}
+
+function get_class_of_actuator(act) {
+    if ("A0" == act) { return "pe";}
+    if ("A1" == act) { return "oe";}
+    if ("A2" == act) { return "r,";}
+    if ("A3" == act) { return "ge";}
+    if ("A4" == act) { return "oo";}
+    if ("A5" == act) { return "po";}
+    if ("B0" == act) { return "y,";}
+    if ("B1" == act) { return "go";}
+    if ("B2" == act) { return "pe";}
+    if ("B3" == act) { return "b,";}
+    if ("B4" == act) { return "oe";}
+    if ("B5" == act) { return "ge";}
+    
+    if ("C0" == act) { return "r,";}
+    if ("C1" == act) { return "po";}
+    if ("C2" == act) { return "oo";}
+    if ("C3" == act) { return "y,";}
+    if ("C4" == act) { return "go";}
+    if ("C5" == act) { return "pe";}
+    if ("D0" == act) { return "b,";}
+    if ("D1" == act) { return "oe";}
+    if ("D2" == act) { return "ge";}
+    if ("D3" == act) { return "r,";}
+    if ("D4" == act) { return "po";}
+    if ("D5" == act) { return "oo";}
+}
+
+
+function generate_glog(long_length_meters,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd)
+{
+    // TODO: This needs to be a parameter, or we need to use the difference
+    // between the maximum and minimum of the 9 input parameters.
+    //    var mean_len = (am.MEAN_EDGE_LENGTH+ am.MIN_EDGE_LENGTH)/2;
+    var mean_len = long_length_meters/orange_even;
+    
+    var r = Math.min(Math.max(1000 * fraction_from_length(mean_len * red),0),1023);
+    var y = Math.min(Math.max(1000 * fraction_from_length(mean_len * yellow),0),1023);
+    var b = Math.min(Math.max(1000 * fraction_from_length(mean_len * blue),0),1023);    
+
+    var oe = Math.min(Math.max(1000 * fraction_from_length(mean_len * orange_even),0),1023);
+    var oo = Math.min(Math.max(1000 * fraction_from_length(mean_len * orange_odd),0),1023);
+    var pe = Math.min(Math.max(1000 * fraction_from_length(mean_len * purple_even),0),1023);    
+    var po = Math.min(Math.max(1000 * fraction_from_length(mean_len * purple_odd),0),1023);
+
+    var ge = Math.min(Math.max(1000 * fraction_from_length(mean_len * green_even),0),1023);
+    var go = Math.min(Math.max(1000 * fraction_from_length(mean_len * green_odd),0),1023);
+
+    // This is done by hand, but in the future we should do this by number, so as
+    // to be completely independent of the number of tetrahedra
+    var glog = [{"A0": oe,
+		 "A1": pe,
+		 "A2": ge,
+		 
+		 "A3": r,
+		 "A4": oo,
+		 "A5": po,
+		 
+		 "B0": y,
+		 "B1": go,
+		 "B2": oe,
+		 
+		 "B3": b,
+		 "B4": pe,
+		 "B5": ge,
+		 
+		 "C0": r,
+		 "C1": oo,
+		 "C2": po,
+		 
+		 "C3": y,
+		 "C4": go,
+		 "C5": oe,
+		 
+		 "D0": b,
+		 "D1": pe,
+		 "D2": ge,
+		 
+		 "D3": r,
+		 "D4": oo,
+		 "D5": po
+		}
+	       ];
+    return glog;
+}
+function equitetrabeam_glog() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+
+    // WARNING: This looks wrong to me!!!
+    var green_even = one_hop;
+    var green_odd = two_hop;
+
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_even =  one_hop;    
+    var orange_odd = two_hop;    
+
+    var purple_even = two_hop;
+    var purple_odd =  one_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var long_len = (am.MEAN_EDGE_LENGTH + am.MIN_EDGE_LENGTH)/2;
+    var glog = generate_glog(long_len,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
+}
+
+function equitetrabeam() {
+    var glog = equitetrabeam_glog();
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+//    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
+
+function curl_up() {
+    var red = 1.4;
+    var yellow = 0.6;
+    var blue = 0.6;
+    var fudge = 1.05;
+    var two_hop = 2/Math.sqrt(3);
+    var one_hop = 1.0;
+    var green_even = one_hop;
+    var green_odd = one_hop;
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  one_hop;
+    var purple_even = one_hop;
+
+    var orange_even = two_hop;
+    var purple_odd =  two_hop;
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+       var long_len = (am.MEAN_EDGE_LENGTH + am.MAX_EDGE_LENGTH)/2;
+    var glog = generate_glog(long_len,red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+    return glog;
+}
+
+function equitetrabeam_x() {
+    var red = 1.0;
+    var yellow = 1.0;
+    var blue = 1.0;
+    // var orange_even = 1.05946024;
+    // var orange_odd = 	1.192667598;
+    // var purple_even = 	1.192667598;
+    // var purple_odd = 1.05946024;
+    var two_hop = 2/Math.sqrt(3);
+    var green_even = Math.sqrt(10/9);
+    var green_odd = Math.sqrt(13/9);
+
+
+    // Note that purple and orange are reversed due to a chirality problem...
+    // need to work that out..
+    var orange_odd =  Math.sqrt(10/9);
+    var purple_even = Math.sqrt(10/9);
+
+    var orange_even = Math.sqrt(13/9);
+    var purple_odd =  Math.sqrt(13/9);
+
+    // These numbers work better but that doesn't explain what I can be computing wrong!!!
+    // Possibly my number from my spreadsheet are somehow wrong!
+
+    var glog = generate_glog(red,yellow,blue,orange_even,orange_odd,purple_even,purple_odd,green_even,green_odd);
+
+
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+    // WARNING: This is a very slow untwisting used for demo purposes
+//    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,100,100000);
+}
+// In reality, we will nedd to implement the Tetrahelix coloring in order to have a way of
+// designing actuators must comfortably. However, here I am testing it by hand.
+function tetrabeam() {
+    // To implement the "tetrabream", we need to make the "green odd" as the Sqrt(2) times the
+    // unity of the other lenghts. (note --- this would better be done through the physical mapping.
+    var min_len = am.MIN_EDGE_LENGTH;
+    var diagonal_len = am.MIN_EDGE_LENGTH * Math.sqrt(2.0);
+    var mid = 1000 * fraction_from_length(min_len);
+    var diag = 1000 * fraction_from_length(diagonal_len);
+    // Now the "Green Odd" nodes are:
+    // B1, C4
+    var glog = [{"A0": mid,
+		 "A1": mid,
+		 "A2": mid,
+		 "A3": mid,
+		 "A4": mid,
+		 "A5": mid,
+		 "B0": mid,
+		 "B1": diag,
+		 "B2": mid,
+		 "B3": mid,
+		 "B4": mid,
+		 "B5": mid,
+		 "C0": mid,
+		 "C1": mid,
+		 "C2": mid,
+		 "C3": mid,
+		 "C4": diag,
+		 "C5": mid,
+		 "D0": mid,
+		 "D1": mid,
+		 "D2": mid,
+		 "D3": mid,
+		 "D4": mid,
+		 "D5": mid
+		}
+	       ];
+    execute(am.standard_objs,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+function generate_context_from_standard(objects) {
+    var ctx = {};
+    for (var i = 0; i < objects.length; i++){
+	var obj = objects[i];
+	if (obj.type == "pose") {
+	    ctx[obj.name] = obj;
+	} else if (obj.type == "gait") {
+	    ctx[obj.name] = obj;	    
+	}
+    }
+    return ctx;
+}
+
+
+function test_execute_2() {
+    var n0 = am.standard_objs[5].name;
+    var n1 = am.standard_objs[6].name;
+    var glog = [n0,n1];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+function test_execute_3() {
+    var glog = ["thinwalk"];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);
+}
+
+// The purpose of this is to return the context with more definitions...
+function execute_definitions(ctx,glog) {
+}
+
+
+
+function update_poses() {
+    var names = "";
+    for (var i = 0; i < localStorage.length; i++){
+	names += '<button type="button" onclick="set_named_pose('+i+')">' + localStorage.key(i) + '</button>';
+
+    }
+    $("#poslist").html(names);
+}
+
+function update_standard_poses() {
+    var poses = "";
+    var gaits = "";    
+    for (var i = 0; i < am.standard_objs.length; i++){
+	var obj = am.standard_objs[i];
+	if (obj.type == "pose") {
+	    poses += '<button type="button" onclick="set_standard_pose('+i+')">' + am.standard_objs[i].name + '</button>';
+	} else if (obj.type == "gait") {
+	    gaits += '<button type="button" onclick="set_standard_gait('+i+')">' + am.standard_objs[i].name + '</button>';
+	}
+    }
+    $("#stdposes").html(poses);
+    $("#stdgaits").html(gaits);    
+}
+
+
+
+// Need to expand this machinergy so that at any time we can process
+// a pose or a gait mixed generically.
+
+function execute_gait() {
+    var gait = $("#gait").val();
+    execute_gait_glog(gait);
+/*    var pose_names = gait.trim().split(" ");
+    var initial = get_first_executable(am.standard_ctx,pose_names[0]);
+    execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+*/
+}
+
+function execute_gait_glog(gait) {
+    var pose_names = gait.trim().split(" ");
+    var initial = get_first_executable(am.standard_ctx,pose_names[0]);
+    execute(am.standard_ctx,initial[0],execute_atom,pose_names,am.GAIT_SUBDIVISIONS,am.TIME_BETWEEN_POSES_MS);
+}
+// Eventually this should be a linear interpolation of the models of frace from m1 to m2
+function interpolate_model(m1,m2,frac) {
+    console.assert(m1.length == m2.length,m1);
+    var v = {};
+    for (var key in m1) {
+	if (m1.hasOwnProperty(key)) {
+	    var iv = m1[key] + (m2[key] - m1[key])*frac;
+	    v[key] = iv;
+	}
+    }
+    return v;
+}
+
+function extract_physical_node_model(robot) {
+    var nodes = [];
+    robot.robot_joints.forEach( function (bx) {
+	if ((bx.structureKind != "member") && (bx.name != "floor")) {
+//	    var o = bx.getWorldTransform().getOrigin();
+	    var o = get_wt_origin(bx);
+	    nodes.push({ name: bx.name,
+			 position: new THREE.Vector3(o.x,o.y,o.z) });
+	}
+    });
+    return nodes;
+}
+
+function actuator_space_model_func(robot,selectedBody,jointBody,act_model) {
+    var pose = {};
+
+    var sn = selectedBody.name;
+    for(var lin in robot.robot_members) {
+	var mem = robot.robot_members[lin];  
+	var a = mem.a;
+	var b = mem.b;
+	var actuator_name = find_actuator(a.name,b.name);
+	var d;
+	if ((a.name == sn) || (b.name == sn)) { // here we want to compute distance...
+	    // invert actually returns strings, for some reason, probably for css...
+	    var oa = (sn == a.name) ?
+		get_wt_origin(jointBody) :
+		get_wt_origin(a);
+	    var ob = (sn == b.name) ?
+		get_wt_origin(jointBody) :		
+		get_wt_origin(b);
+	    // This split is based on whether we are dealing with abstract robots or not!
+	    var d =  oa.distanceTo(ob);
+	    d = parseInt(actuator_to_length.invert(d).toFixed(0));
+	} else {
+	    // otherwise we just want to take this from the act_model...
+	    d = act_model[actuator_name];
+	}
+	pose[actuator_name] = d;
+    }
+
+    return pose;
+}
+
+// Here I am developing some "poses" for fun.
+// This may allow us to simulate a gait.
+// This will require us to cross-reference the emacs-ctl.el file and
+// begin integration with that.
+// A pose exists in Actuator space rather than in cartesian space.
+var lo = 0;
+var mid = 450;
+var hi = 900;
+
+
+// We really want to iterate over all members here...
+function relax() {
+    fixed_size((am.MIN_EDGE_LENGTH+am.MAX_EDGE_LENGTH)/2);
+//    assume_pose(RELAXED_POSE);
+}
+
+// TODO: This is not using the argument --- something is terribly wrong.
+function model_to_actuator_space(bodies,robot) {
+    var pose = {};
+
+    for(var lin in robot.robot_members) {
+	var mem = robot.robot_members[lin];  
+	var a = mem.a;
+	var b = mem.b;
+	// invert actually returns strings, for some reason, probably for css...
+	// a.position will not be correct in the AMMO model...
+//	var oa = a.getWorldTransform().getOrigin();
+//	var ob = b.getWorldTransform().getOrigin();
+	var oa = get_wt_origin(a);
+	var ob = get_wt_origin(b)
+	var d = oa.distanceTo(ob);
+	var d = parseInt(actuator_to_length.invert(d).toFixed(0));
+	var actuator_name = find_actuator(a.name,b.name);
+	pose[actuator_name] = d;
+    }
+
+    return pose;
+}
+
+function half_size() {
+    factor_size(0.5);
+}
+
+function double_size() {
+    factors_size(2.0);
+}
+
+function big_size() {
+    fixed_size(am.MAX_EDGE_LENGTH);
+}
+function small_size() {
+    fixed_size(am.MIN_EDGE_LENGTH);
+}
+
+
+// TODO: Can thse bee done with some sort of macro?
+// NOTE: This is not AMMO ready.
+function toggle_gravity() {
+    if (am.gravity_on) {
+	am.gravity_on = false;
+	if (am.physicsWorld) {
+	    am.physicsWorld.setGravity( am.NO_GRAVITY );
+	}
+	$("#gravity_ctl").html("Turn Gravity On");
+    } else {
+	am.gravity_on = true;
+	if (am.physicsWorld) {
+	    am.physicsWorld.setGravity( am.FULL_GRAVITY );
+	}
+	$("#gravity_ctl").html("Turn Gravity Off");
+    }
+}
+
+
+function auto_rectify_toggle() {
+    if (am.auto_rectify_on) {
+	am.auto_rectify_on = false;
+	$("#auto_rectify_ctl").html("Turn Auto Rectify On");	
+    } else {
+	am.auto_rectify_on = true;
+	$("#auto_rectify_ctl").html("Turn Auto Rectify Off");	
+    }
+}
+
+function update_constraints(links,f) {
+  //  remove_non_eternal_constraints();
+    for(var lin in links) {
+	var link = links[lin];  
+	var a = link.a;
+	var b = link.b;
+	if (a.name > b.name) {
+	    var t = a;
+	    a = b;
+	    b = t;
+	}
+	var d = f(link);
+
+	var memBody = link.body;
+	var b_a = memBody.endpoints[0];
+	var b_z = memBody.endpoints[1];
+
+	// First, remove the existing body and mesh
+	function get_number(b) {
+	    for(var i = 0; i < am.bodies.length; i++) {
+		var bi = am.bodies[i];
+		if (b.name == bi.name)
+		    return i;
+	    }
+	    throw "Miserable failure: "+b.name+".";
+	}
+	var n = get_number(memBody);
+	// Possibly removing the body removes the constraints, unclear...
+//	am.physicsWorld.removeConstraint(memBody.constraints[0]);
+//	am.physicsWorld.removeConstraint(memBody.constraints[1]);
+	am.physicsWorld.removeRigidBody(memBody);
+	
+
+	am.scene.remove(am.meshes[n]);
+	am.remove_body_mesh_pair(am.meshes[n],memBody);
+	
+	// Then add again the the body (this should be a subroutine...
+	
+	var o_a = b_a.getWorldTransform().getOrigin();
+	var o_z = b_z.getWorldTransform().getOrigin();	    
+	var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
+	var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
+	
+	var v_avg = v_z.add(v_a);
+	v_avg.multiplyScalar(0.5);
+
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+
+	pos.set( v_avg.x, v_avg.y, v_avg.z);
+	var mbq = memBody.getWorldTransform().getRotation();
+        quat.set( mbq.x(), mbq.y(), mbq.z(), mbq.w() );
+
+	
+	var mesh = create_actuator(d,pos,quat,b_a,b_z);
+	var new_memBody = mesh["ammo_obj"];
+	new_memBody.constraints = [];
+
+	if (b_a.name > b_z.name) {
+	    var t = b_a;
+	    b_a = b_z;
+	    b_z = t;
+	}
+	
+	// TODO: This is ugly.
+	var link = { a: b_a, b: b_z, body: new_memBody};	    	    
+	for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
+	    if (am.robot.robot_members[x].body.name == memBody.name) {
+		am.robot.robot_members[x].memBody
+		am.robot.robot_members[x] = link;
+	    }
+	}
+
+	var s = d/2;
+	// This probably needs to be made standardized.  It is very
+	// tricky to model tension.  This tends to create compression if fundge is 0.95, which
+	// manifest itself in weird ways.
+	var fudge = 1.0;
+	s = s * fudge;
+	var CFMvalue = am.CONSTRAINTS ? am.myCFMvalue :  am.myCFMvalue /10;
+	var ERPvalue = am.CONSTRAINTS ? am.myERPvalue :  am.myERPvalue /10;	
+	// This is guessed from the enumeration in Bullet's btTypeConstraint.h
+
+	{
+	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+	    var pivotInB = new Ammo.btVector3( s, 0, 0 );;
+	    var con = new Ammo.btPoint2PointConstraint(b_a,
+						       new_memBody,
+						       pivotInA,
+						       pivotInB);
+	    // Apparently setLimit is not expected in the javascript engine.
+	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, CFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, ERPvalue, -1)
+	    
+	    am.physicsWorld.addConstraint(con, true);
+	    new_memBody.constraints[0] = con;
+	}
+	{
+	    var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+	    var pivotInB = new Ammo.btVector3( -s, 0, 0 );;
+	    var con = new Ammo.btPoint2PointConstraint(b_z,
+						       new_memBody,
+						       pivotInA,
+						       pivotInB);
+	    // Apparently setLimit is not expected in the javascript engine.	    
+	    // con.setLimit( lowerLimit, upperLimit, 0.9, 0.01, 0.0);
+	    con.setParam(am.BT_CONSTRAINT_STOP_CFM, CFMvalue, -1)
+	    con.setParam(am.BT_CONSTRAINT_STOP_ERP, ERPvalue, -1)
+	    
+	    am.physicsWorld.addConstraint(con, true);
+	    new_memBody.constraints[1] = con;		
+	}
+    }
+}
+
+
+function factor_size(f) {
+    update_constraints(am.robot.robot_members,link => {
+	var a = link.a;
+	var b = link.b;
+	var d = a.position.distanceTo(b.position);
+	return d*f;
+    });
+}
+
+function fixed_size(s) {
+    update_constraints(am.robot.robot_members,link => {
+	return s;
+    });
+}
+
+function assume_pose(pose) {
+    update_constraints(am.robot.robot_members,link => {
+	var act = find_actuator(link.a.name,link.b.name);
+	var d = actuator_to_length(pose[act]);
+	console.log(d);
+	return d;
+    });
+    am.most_recent_constraints = pose;
+}
+
+
+// To support bigger robots, I will have to allow numbering of these things.
+// This patten can be repeated.  Basically we order the links in the order in
+// which we fill in the nodes...
+// Not that this CANNOT be fully regular, since we must adjust at the
+// terminus based on the length, where we must break the patterns.
+// An alternative pattern would be to make the first tetradra irregular.
+// That is perhaps more sensible than what we have here.  Then each
+// additional controller can be added in a completely regular way.
+
+var ACTUATORS_PER_CONTROLLER = 6;
+
+function actuator_name_from_number(n) {
+    var controller = Math.floor(n / ACTUATORS_PER_CONTROLLER);
+    var controller_name = alphabetic_name(controller);
+    var digit = n % ACTUATORS_PER_CONTROLLER;
+    return controller_name + digit;
+}
+
+
+function compute_body_number(name) {
+    if (name.length > 1) {
+	debugger;
+    }
+    return name.charCodeAt(0) - 65;
+}
+
+// return a pair of body names
+function find_bodies_from_actuator(name) {
+    var c = name.charCodeAt(0) - 65;
+    var d = name.charCodeAt(1) - "0".charCodeAt(0);
+    var n = ACTUATORS_PER_CONTROLLER * c + d;
+    if (n < 6) {
+	if (n == 0) {
+	    return [alphabetic_name(0),alphabetic_name(1)];	    
+	} else if (n == 1) {
+	    return [alphabetic_name(0),alphabetic_name(2)];	    
+	} else if (n == 2) {
+	    return [alphabetic_name(1),alphabetic_name(2)];	    
+	} else if (n == 3) {
+	    return [alphabetic_name(0),alphabetic_name(3)];	    
+	} else if (n == 4) {
+	    return [alphabetic_name(1),alphabetic_name(3)];	    
+	} else if (n == 5) {
+	    return [alphabetic_name(2),alphabetic_name(3)];	    
+	}
+    } else {
+	var hi = Math.floor((n - 6) / 3)+4;
+	var lo = hi - (3 -  (n % 3));
+	return [alphabetic_name(lo),alphabetic_name(hi)];
+    }
+
+}
+function test_find_bodies_from_actuator() {
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "A"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+    
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "B"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+
+    for(var i = 0; i < ACTUATORS_PER_CONTROLLER; i++) {
+	var a = "G"+i;
+	var bs = find_bodies_from_actuator(a);
+	var ap = find_actuator(bs[0],bs[1]);
+	if (ap != a) debugger;
+    }
+
+}
+
+// a and b are node names.
+// This is the function that really has to be changed to reperesent
+// the correct numbering.
+/*
+function find_actuator(a,b) {
+    if (a == b)
+	debugger;
+
+    if (b < a) {
+	var t = a;
+	a = b;
+	b = t;
+    }
+    
+    // Without loss of generality, a < b.
+    var n;
+    if (b <= "D") {
+	if ((a == "A") && (b == "B")) {
+	    n = 0; 
+	} else if ((a == "A") && (b == "C")) {
+	    n = 1;
+	} else if ((a == "A") && (b == "D")) {
+	    n = 2;
+	} else if ((a == "B") && (b == "C")) {
+	    n = 3;
+	} else if ((a == "C") && (b == "D")) {
+	    n = 4;
+	} else if ((a == "B") && (b == "D")) {
+	    n = 5;
+	}
+    } else {
+	var k = compute_body_number(a);
+	var h = compute_body_number(b);
+	if ((h - k) > 3) {
+	    debugger;
+	}
+	n = 3 * ( h - 2 ) + (3 - (h - k));
+    }
+    return actuator_name_from_number(n);
+}
+*/
+
+function find_actuator(a,b) {
+    var an = a.charCodeAt(0) - "A".charCodeAt(0);
+    var bn = b.charCodeAt(0) - "A".charCodeAt(0);
+    console.assert((a < "Z") && (b < "Z"));
+    var n = en(an,bn);
+    return actuator_name_from_number(n);
+}
+
+function test_find_actuator() {
+    var x0 = find_actuator("A","B");
+    if (x0 != "A0")
+    {
+	debugger;
+    }
+    var x1 = find_actuator("E","B");
+    if (x1 != "B0") {
+	debugger;
+    }
+    var x2 = find_actuator("E","C");
+    if (x2 != "B1") {
+	debugger;
+    }
+    var x3 = find_actuator("F","E");
+    if (x3 != "B5") {
+	debugger;
+    }
+    var x4 = find_actuator("B","D");
+    if (x4 != "A4") {
+	debugger;
+    }
+    var x5 = find_actuator("B","C");
+    if (x5 != "A2") {
+	debugger;
+    }
+}
+
+
+// Compute the actuator name between the two 
+function actuator(b1,b2) {
+    return find_actuator(b1,b2);
+}
+
+
+
+
+
+
+// Here begins my attempt to integrate the AMMO.js port of the Bullet Physics engine
+
+
+// Detects webgl
+if ( ! Detector.webgl ) {
+    Detector.addGetWebGLMessage();
+    document.getElementById( 'container' ).innerHTML = "";
+}
+
+// - Global variables -
+
+// This will have to be split later
+var AM = function() {
+    this.PHYSICS_ENGINE = "AMMO";
+    this.container,
+    this.stats;
+    this.camera;
+    this.controls;
+    this.scene;
+    this.sceneOrtho;
+    this.renderer;
+    this.textureLoader;
+    this.clock = new THREE.Clock();
+    this.clickRequest = false;
+    this.mouseCoords = new THREE.Vector2();
+    this.raycaster = new THREE.Raycaster();
+    this.ballMaterial = new THREE.MeshPhongMaterial( { color: 0x202020 } );
+    this.pos = new THREE.Vector3();
+    this.quat = new THREE.Quaternion();
+
+
+    this.BT_CONSTRAINT_STOP_CFM = 3;
+    this.BT_CONSTRAINT_STOP_ERP = 1
+    this.myCFMvalue = 0.0;
+    this.myERPvalue = 0.8;
+
+    this.jointBody = null;
+
+    this.playgroundDimensions = {
+	w:10,
+	d:10,
+	h:3
+    };
+    this.GROUND_WIDTH = 1.0;
+
+    this.gravity_on = true;
+
+
+    //    this.TIME_BETWEEN_POSES_MS = 3000;
+    this.TIME_BETWEEN_POSES_MS = 3000;    
+    this.GAIT_SUBDIVISIONS = 30;    
+    //    this.GAIT_SUBDIVISIONS = 3;    
+    
+    // Physics variables
+    this.gravityConstant = -9.8;
+
+    this.NO_GRAVITY = new Ammo.btVector3( 0, 0, 0 );
+    this.FULL_GRAVITY = new Ammo.btVector3( 0, this.gravityConstant, 0 )
+    
+    this.collisionConfiguration;
+    this.dispatcher;
+    this.broadphase;
+    this.solver;
+    this.physicsWorld;
+    this.rigidBodies = [];
+    this.softBodies = [];
+    this.margin = 0.05;
+    this.hinge;
+    this.transformAux1 = new Ammo.btTransform();
+    this.softBodyHelpers = new Ammo.btSoftBodyHelpers();
+
+    this.armMovement = 0;
+
+    //    this.window_height_factor = 1/4.0;
+    this.window_height_factor = 0.5;
+    // Sadly, this seems to do nothing!
+    this.CAMERA_RADIUS_FACTOR = 1;
+
+    this.grid_scene = null;
+    // Used in manipulation of objects
+    this.gplane=false;
+    this.clickMarker=false;
+    this.mouseConstraint = null;
+    this.manipulatedObject = null;
+    this.movedButNotSent = false;
+    
+    this.MOUSE_FIRES = false;
+    this.CONSTRAINTS = true;
+
+    this.INITIAL_HEIGHT = 0.2;
+
+
+   this.NUMBER_OF_TETRAHEDRA = 7;
+//       this.NUMBER_OF_TETRAHEDRA = 5;
+
+
+    // I don't understand this...need to fully understand.
+    this.MARKER_MASS = 0;
+    this.Y_GRAVITY_FORCE = -9.8 / 100;
+    this.MARKER_RADIUS = 0.009;
+    
+    this.MEMBER_FRACTION = 20;
+
+    // These things should actually be a part of the ROBOT, not the mirrored world!
+    // These are in meters, measured joint-center to joint-center
+    this.BASIC_BODY_MASS = 1.0; // This is kilograms.
+    this.MEMBER_MASS = 1.0;
+    this.MAX_EDGE_LENGTH = 0.420;
+    this.MIN_EDGE_LENGTH = 0.290;
+    this.MEAN_EDGE_LENGTH = (this.MAX_EDGE_LENGTH + this.MIN_EDGE_LENGTH)/2;
+    this.JOINT_RADIUS = 0.03; // This is the current turret joint ball.
+
+    this.JOINT_MASS = 1.0;
+
+    this.robot = {
+	robot_joints: [],
+	robot_members: []
+    };
+    
+    this.meshes = [];
+    this.bodies = [];
+
+    this.standard_objs;
+    this.standard_ctx;
+
+    // This is sometimes useful for debugging.    
+    //    this.jointGeo = new THREE.BoxGeometry( this.JOINT_RADIUS*2,this.JOINT_RADIUS*2,this.JOINT_RADIUS*2);
+    this.jointGeo = new THREE.SphereGeometry( this.JOINT_RADIUS,32,32);
+    this.jointMaterial = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
+    
+    this.floorTexture = new THREE.ImageUtils.loadTexture("images/logo-white-background.png");
+
+    this.color_scale = d3.scale.quantile().domain([this.MIN_EDGE_LENGTH, this.MAX_EDGE_LENGTH])
+	.range(['violet', 'indigo', '#8A2BE2', 'blue', 'green', 'yellow']);
+    this.color_material_palette = {};
+
+    this.url_for_robot = "http://127.0.0.1:9000";
+
+    this.obstacles = [];
+    this.obstacleSize = this.MEAN_EDGE_LENGTH*5;
+
+    this.NUMBER_OF_OBSTACLES = 4;
+    this.OBSTACLE_FRACTION = 25;
+    //    this.OBSTACLE_FRACTION = 3;
+    this.OBSTACLE_MASS = 300;
+    //    this.CONSTRAINT_FORCE_SMALL = 1;
+
+    this.FORCE_REGIME = "DISABLE";    
+
+    this.GROUND_PLANE_MESH;
+    this.GROUND_BODY;
+    // This is whatever body we are operating on with the locator.
+    this.selectedBody;
+
+    this.lockedGroups = { handlocked: [],
+			  temporary: []}
+    
+
+    this.latestLookAt = new THREE.Vector3(0,0,0);    
+}
+AM.prototype.push_body_mesh_pair = function(body,mesh) {
+    this.meshes.push(mesh);
+    this.bodies.push(body);
+}
+AM.prototype.remove_body_mesh_pair = function(body,mesh) {
+    for(var i = this.meshes.length - 1; i >= 0; i--) {
+	if(this.meshes[i].name === mesh.name) {
+	    this.meshes.splice(i, 1);
+	    this.bodies.splice(i, 1);
+	}
+    }
+    delete mesh["ammo_obj"];
+    for(var i = this.rigidBodies.length - 1; i >= 0; i--) {
+	if(this.rigidBodies[i].name === body.name) {
+	    this.rigidBodies.splice(i, 1);
+	}
+    }
+}
+
+AM.prototype.clear_non_floor_body_mesh_pairs = function() {
+    this.meshes = [];
+    this.bodies = [];
+    this.meshes.push(am.GROUND_PLANE_MESH);
+    this.bodies.push(am.GROUND_BODY);
+    
+}
+AM.prototype.remove_robot = function() {
+    this.meshes = [];
+    this.bodies = [];
+    this.robot.robot_joints = [];
+    this.robot.robot_members = [];
+}
+
+// This copies the robot into an "abstract robot"
+// using Bullet Rigid objects in the same places and the
+// same linkage structure, but not connected to any
+// simulated world and ignoring all issues such as mass,
+// color, thickness, etc.  It is effectively a purely
+// geometric version of the same robot.
+
+// Because I am separating an abstract robot from
+// a phyiscal robot, I'm going to create getters and setters
+// for the worldTransforms of the nodes which is type -dependent.
+// Both of them take and receive THREE.Vector3 types
+// because those are convenient and neutral.
+
+
+// Note: A JavaScript master would probably be able to do
+// this extensitions to the prototypes. I may return to that once it works.
+function get_wt_origin(nd) {
+    if (nd instanceof Ammo.btRigidBody) {
+	var o = nd.getWorldTransform().getOrigin();
+	var pos = new THREE.Vector3();
+	pos.set( o.x(), o.y(), o.z());
+	return pos;
+    } else {
+	return nd.abstract_pos;
+    }
+}
+
+function set_wt_origin(nd,v) {
+    if (nd instanceof Ammo.btRigidBody) {
+	var startTransform = new Ammo.btTransform();
+	startTransform.setIdentity();
+	startTransform.setOrigin(v);
+	nd.setWorldTransform(startTransform);
+    } else {
+	nd.abstract_pos = v;
+    }
+}
+
+
+AM.prototype.compute_centroid = function() {
+    var c =  new THREE.Vector3(0,0,0);
+    var n = 0;
+    this.robot.robot_joints.forEach(j => {
+	// TODO: This code was taken from CreateSphere -- should be unified,
+	// but sadly that code is mixing the Three.js concepts in...
+	// In reality we should cleanly separate the abastract and physical
+	// robot models, so I am not goint to unify this code yet.
+	var p = get_wt_origin(j);
+	c = c.add(p);
+	n++;
+    });
+    c = c.divideScalar(n);
+    return c;
+}
+
+AM.prototype.get_abstract_robot = function(r) {
+    // These shouldn't matter --- I'm just using them to
+    // create an object to have a uniform geometry.
+    var rad = 0.01;
+    var m = 0.1;
+    var robot = { robot_joints: [],
+		  robot_members: []
+		};
+    // first we will copy all of the joints...
+    r.robot_joints.forEach(j => {
+	// TODO: This code was taken from CreateSphere -- should be unified,
+	// but sadly that code is mixing the Three.js concepts in...
+	// In reality we should cleanly separate the abastract and physical
+	// robot models, so I am not goint to unify this code yet.
+	var pos = get_wt_origin(j);
+	var body = {};
+	set_wt_origin(body,pos);
+	body.name = j.name;
+	body.structureKind = j.structureKind;
+	robot.robot_joints.push(body);
+    }
+			  );
+
+
+    r.robot_members.forEach(m => {
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+
+	var b_a = robot.robot_joints.find( j => j.name == m.a.name);
+	var b_z = robot.robot_joints.find( j => j.name == m.b.name);
+	var body = { name: m.name,
+		     structure_kind: m.structure_kind }; 
+	var link = { a: b_a, b: b_z, body: body};	    
+	robot.robot_members.push(link);
+	
+    });
+
+    // then we copy all of the members....
+    return robot;
+}
+
+var am = new AM();
+
+// - Main code -
+
+function initiation_stuff() {
+    // TODO: Organize these into an init function.
+    $(document).on('click', '.panel-heading span.clickable', function(e){
+	var $this = $(this);
+	if(!$this.hasClass('panel-collapsed')) {
+	    $this.parents('.panel').find('.panel-body').slideUp();
+	    $this.addClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+	} else {
+	    $this.parents('.panel').find('.panel-body').slideDown();
+	    $this.removeClass('panel-collapsed');
+	    $this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+	}
+    });
+
+    $("#poseurl").val(am.url_for_robot);
+
+    $.getJSON( "./standard_gaits.json")
+	.done(function( json ) {
+	    am.standard_objs = json;
+	    am.standard_ctx = generate_context_from_standard(am.standard_objs);
+
+	    var local_objs = [];
+	    for (var i = 0; i < localStorage.length; i++){
+		var obj = localStorage[localStorage.key(i)];
+		var pobj = JSON.parse(obj);
+		pobj["pose"] = convert_to_number(pobj["pose"])
+		am.standard_ctx[localStorage.key(i)] = pobj;
+	    }
+	    update_standard_poses();	
+	})
+	.fail(function( jqxhr, textStatus, error ) {
+	    var err = textStatus + ", " + error;
+	    console.log( "Request Failed: " + err );
+	});
+
+
+    $('.panel-heading span.clickable').click();
+
+    // Initialize Three.js
+    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+}
+
+
+
+// - Functions -
+
+function init() {
+
+    initGraphics();
+
+    initHandlers();
+
+    initPhysics();
+
+    createGround(am);
+    
+    createObstacles();
+
+    add_robot(am);
+
+    var pmodel = extract_physical_node_model(am.robot);
+    if (pmodel.length > 0) {
+	var amx = model_to_actuator_space(pmodel,am.robot);
+	am.most_recent_constraints = amx;	
+    }
+
+
+}
+// build a 2D Warren Truss given the coordinates (emedding in three-space);
+function build_truss(coords) {
+}
+
+function add_robot(am) {
+    var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
+
+    // Instead of generating here, we will make an AJAX call to our virtual space,
+    // receive the resulting robot, and construct that way.
+    // load_NTetGlussBot_Ammo(am,
+    // 			   am.NUMBER_OF_TETRAHEDRA,
+    // 			   pvec);
+    var virtual_world_url = "http://localhost" + "/goal"
+    // Really the first read should not be a goal call, I will fix that later.
+    var goal = {x: 10,y: 10};
+    $.ajax({url: virtual_world_url,
+		crossDomain: true,
+		beforeSend: function(xhr){xhr.setRequestHeader('Access-Control-Allow-Origin', '*');},
+		data: goal,
+	    success: function(result){
+		// here is where I will read the result and build the truss/manipulator
+		console.log("success!");
+		console.log(result);
+		},
+		error: function (request, status, error) {
+		    console.log(error);
+		}
+	       });
+    
+    // 
+    
+}
+
+// I have a problem there that when you quit moving the mouse,
+// the jointBody and constrainedBody both become detaches from
+// the mouse---that is, their normal physics apply, EXCEPT
+// for right when your move the mouse.  We could in theory
+// disable the physics for the object until MouseUp.  I am not
+// sure how to do this in Bullet.
+
+function onMouseMove(e){
+
+    // Move and project on the plane
+    if (am.gplane && am.selectedBody) {
+
+	var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+					 -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
+					 0.5 );                                            //z
+	mouse3D.unproject( am.camera );
+
+        var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+	
+        if(pos){
+            setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
+            moveJointToPoint(am,pos.x,pos.y,pos.z);
+        }
+    }
+}
+// BUG: It is easy to get to constrainedBodies someone both constrained,
+// But that is not the intention of the interaction tool, and is very annoying.
+function onMouseDown(e){
+    // Find mesh from a ray
+    
+    var mouse3D = new THREE.Vector3( ( e.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+				     -( e.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
+				     0.5 );                                            //z
+    mouse3D.unproject( am.camera );
+    mouse3D.sub(am.camera.position);
+    mouse3D.project( am.camera );
+    
+    var entity = findNearestIntersectingObject(am,e.clientX,e.clientY,am.camera,am.meshes);
+    var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
+    
+    if (pos &&
+	(
+	    (entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
+	)
+       ){
+        var idx = am.meshes.indexOf(entity.object);
+
+	if (e.ctrlKey) {
+	    am.latestLookAt.x = pos.x;
+	    am.latestLookAt.y = pos.y;
+	    am.latestLookAt.z = pos.z;
+	}
+	
+	if (e.shiftKey) {
+	    // If the shiftKey is down, we are going to toggle whether or not this one is fixed...
+	    // and we will visually represent that by turning the joint red, I guess.
+	    if(idx !== -1) {
+		var obj = am.meshes[idx].ammo_obj;
+		am.manipulatedObject = obj;
+		am.manipulatedObject.mesh = am.meshes[idx];
+		
+		var index_locked = am.lockedGroups.handlocked.indexOf(obj);
+		if (index_locked < 0) {
+		    am.lockedGroups.handlocked.push(obj);
+		    // ATTACH ORIGINAL COLOR TO THE OBJECT, NOT THE MESH --- I"M LOSING IT HERE.
+		    am.manipulatedObject.original_color = am.meshes[idx].material.color.getHex();
+		    var zero = new Ammo.btVector3(0, 0, 0 );
+		    am.manipulatedObject.setMassProps(0.0,zero);
+		    addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		    // Now we want to change color to show locked...
+		    // TODO: This is a global...
+		    am.meshes[idx].material.color.setHex( 0x000000 );
+		} else {
+		    am.lockedGroups.handlocked.splice(index_locked,1);
+		    am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+		}
+	    }
+	} else {
+	    //            constraintDown = true;
+            // Set marker on contact point
+            setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
+	    // what we really want to do here is to change the color, but stash the old color first to restore...
+	    var original_color = am.meshes[idx].material.color.getHex();
+	    am.meshes[idx].material.original_color = original_color;
+	    am.meshes[idx].material.color.setHex( 0xFF00FF );
+
+            // Set the movement plane
+            setScreenPerpCenter(pos,am);
+
+            if(idx !== -1){
+		var obj = am.meshes[idx].ammo_obj;
+		am.manipulatedObject = obj;
+		am.manipulatedObject.mesh = am.meshes[idx];
+		// This is roughly the same as being handlocked
+		if (original_color != 0) {
+		    am.manipulatedObject.original_color = original_color;
+		}
+		// We may have to restore the mass...would be better if we knew...
+		var mass = ((obj.structureKind == "joint") ? am.JOINT_MASS :
+			    ((obj.structureKind == "member") ? am.MEMBER_MASS : am.OBSTACLE_MASS));
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(mass,zero);
+		obj.setGravity(am.NO_GRAVITY);			
+		addMouseConstraint(am,pos.x,pos.y,pos.z,obj);
+		// Now we want to set all others to be empty mass until mouseUp!
+		if (am.FORCE_REGIME != "ALLOW") {
+		    for(var i = 0; i < am.robot.robot_joints.length; i++) {
+			var joint = am.robot.robot_joints[i];
+			if (joint != obj) {
+			    if (am.lockedGroups.handlocked.indexOf(joint) >= -1) {
+				var zero = new Ammo.btVector3(0, 0, 0 );
+				joint.setMassProps(0.0,zero);
+				console.log("joint:");
+				console.log(joint);
+				am.lockedGroups.temporary.push(joint);
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+    }
+}
+
+function onMouseUp(e) {
+    // DEBUG Hack
+
+    var mouse3D = new THREE.Vector3( ( event.clientX / am.renderer.getSize().width ) * 2 - 1,   //x
+				     -( event.clientY / (am.renderer.getSize().height) ) * 2 + 1,  //y
+				     0.5 );                                            //z
+    
+  //  mouse3D.unproject( am.camera );
+     mouse3D.unproject( am.camera );
+    mouse3D.sub(am.camera.position);
+    mouse3D.project( am.camera );
+
+
+    var pos = projectOntoPlane(am,e.clientX,e.clientY,am.gplane,am.camera);
+    
+    if(pos){
+        setClickMarker(am,pos.x,pos.y,pos.z,am.scene);
+        moveJointToPoint(am,pos.x,pos.y,pos.z);
+    }
+    // remove the marker
+    removeClickMarker(am);
+
+      var entity = findNearestIntersectingObject(am,e.clientX,e.clientY,am.camera,am.meshes);
+    var pos = entity.point;
+    // This is fragile, we need to be able to change this geometry....
+    
+    if (!(pos &&
+	(
+	    (entity.object.structureKind == "obstacle")
+		|| 
+		(entity.object.structureKind == "joint")
+		|| 
+		(entity.object.structureKind == "member")
+	)
+	 )) {
+	return;
+    }
+
+    if (!e.shiftKey) {
+	if (am.manipulatedObject) {
+	    am.manipulatedObject.setGravity(am.FULL_GRAVITY);
+	    var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+//	    if (index > -1) {
+		am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // } else {
+	    // 	am.manipulatedObject.mesh.material.color.setHex(am.manipulatedObject.original_color);
+	    // }
+	}
+    }
+
+  
+
+    // Send the remove mouse joint to server
+    removeJointConstraint(am);
+
+    // Restore joint masses....
+    // Actually, this is really wrong, we need to keep track of the nodes that are truly locked
+    // in place as compared to those that we have locked for convenience.
+
+
+
+    for(var i = 0; i < am.lockedGroups.temporary.length; i++) {
+    	var joint = am.lockedGroups.temporary[i];
+    	var zero = new Ammo.btVector3(0, 0, 0 );
+	if (am.lockedGroups.handlocked.indexOf(joint) < 0)
+    	    joint.setMassProps(am.JOINT_MASS,zero);
+    }
+    am.lockedGroups.temporary = [];
+
+    if (!e.shiftKey) {
+	var index = am.lockedGroups.handlocked.indexOf(am.manipulatedObject);
+	if (index > -1) {
+	    am.lockedGroups.handlocked.splice(index, 1);
+	    if (am.manipulatedObject.structureKind == "joint") {
+		var zero = new Ammo.btVector3(0, 0, 0 );
+		am.manipulatedObject.setMassProps(am.JOINT_MASS,zero);	
+	    }
+	}
+
+
+    }
+
+    // if (e.shiftKey) {
+
+    // 	for(var i = 0; i < am.lockedGroups.handlocked.length; i++) {
+    // 	    var joint = am.lockedGroups.handlocked[i];
+    // 	    if (joint.name != am.manipulatedObject) {
+    // 		var zero = new Ammo.btVector3(0, 0, 0 );
+    // 		joint.setMassProps(0.0,zero);
+    // 	    }
+    // 	}
+    // }
+
+    	if (am.gplane.visible == true) {
+	    am.gplane.visible = false;
+	    // We need to re-establish the controls because I don't have
+	    // any good way of exiting the active state...
+	    am.controls.dispose();
+	    establish_controls(am);
+	}
+    
+    if (am.movedButNotSent) {
+	send_to_robot_url();
+	am.movedButNotSent = false;
+    }
+    am.manipulateObject = null;
+    console.log("handlocked",am.lockedGroups.handlocked.length);
+}
+
+
+function initHandlers() {
+    am.container = document.getElementById( 'container' );
+    am.container.addEventListener("mousemove", onMouseMove, true );
+    am.container.addEventListener("mousedown", onMouseDown, true );
+    am.container.addEventListener("mouseup", onMouseUp, true );
+}
+
+
+function initGraphics() {
+
+    am.container = document.getElementById( 'container' );
+
+    var PERSPECTIVE_NEAR = 0.1;
+    am.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / (window.innerHeight * am.window_height_factor), PERSPECTIVE_NEAR, 2000 );
+
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.window_height_factor);
+
+    var origin = new THREE.Vector3(0,0,0);
+    am.camera.lookAt(origin);
+    
+    //    am.camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), (Math.PI/2));
+
+
+    
+    am.scene = new THREE.Scene();
+    am.scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+
+    am.camera.position.x = 0;
+    am.camera.position.y = 0.5;
+    am.camera.position.z =  2;
+
+    am.controls = new THREE.OrbitControls( am.camera, am.container );
+    am.controls.target.set(0,0,0);
+
+    am.renderer = new THREE.WebGLRenderer( { antialias: true } );
+    am.renderer.setClearColor( am.scene.fog.color );
+    
+    am.renderer.setPixelRatio( window.devicePixelRatio );
+    am.renderer.setSize( window.innerWidth, window.innerHeight*am.window_height_factor );
+    am.SCREEN_WIDTH = am.renderer.getSize().width;
+    am.SCREEN_HEIGHT = am.renderer.getSize().height;
+    am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
+
+
+    am.cameraOrtho = new THREE.OrthographicCamera( 0, am.SCREEN_WIDTH, am.SCREEN_HEIGHT, 0, - 10, 10 );
+    
+    am.renderer.shadowMap.enabled = true;
+
+    am.renderer.gammaInput = true;
+    am.renderer.gammaOutput = true;
+
+    am.textureLoader = new THREE.TextureLoader();
+
+    var ambientLight = new THREE.AmbientLight( 0x404040 );
+    am.scene.add( ambientLight );
+
+    // lights
+    var light, materials;
+    am.scene.add( new THREE.AmbientLight( 0x666666 ) );
+    am.scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+
+    addShadowedLight(am.scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.scene, 0.5, 1, -1, 0xffaa00, 1 );
+
+
+    am.grid_scene = new THREE.Scene();
+    am.grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );    
+    
+    am.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );
+    
+    light = new THREE.DirectionalLight( 0xffffff, 1.75 );
+    var d = 20;
+
+    light.position.set( -d, d, -d );
+
+    light.castShadow = true;
+    //light.shadow.CameraVisible = true;
+
+    light.shadow.MapWidth = 1024;
+    light.shadow.MapHeight = 1024;
+
+    light.shadow.CameraLeft = -d;
+    light.shadow.CameraRight = d;
+    light.shadow.CameraTop = d;
+    light.shadow.CameraBottom = -d;
+
+    light.shadow.CameraFar = 3*d;
+    light.shadow.CameraNear = d;
+    light.shadow.Darkness = 0.5;
+    
+    am.grid_scene.add(light);
+    am.scene.add(light);    
+    //    grid_scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
+    am.grid_scene.add( new THREE.AmbientLight( 0x666666 ) );    
+
+    addShadowedLight(am.grid_scene, 1, 1, 1, 0xffffff, 1.35 );
+    addShadowedLight(am.grid_scene, 0.5, 1, -1, 0xffaa00, 1 );
+    
+    // HACK:  These diemensions are probably not right here!
+    gridInit(am.grid_scene,am.playgroundDimensions);
+    
+    am.container.innerHTML = "";
+
+    am.container.appendChild( am.renderer.domElement );
+
+    //    stats = new Stats();
+    //    stats.domElement.style.position = 'absolute';
+    //    stats.domElement.style.top = '0px';
+    //    container.appendChild( stats.domElement );
+
+    am.sceneOrtho = new THREE.Scene();
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+}
+
+function initPhysics() {
+
+    // Physics configuration
+
+    am.collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    am.dispatcher = new Ammo.btCollisionDispatcher( am.collisionConfiguration );
+    am.broadphase = new Ammo.btDbvtBroadphase();
+    am.solver = new Ammo.btSequentialImpulseConstraintSolver();
+
+
+    am.softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    am.physicsWorld = new Ammo.btSoftRigidDynamicsWorld( am.dispatcher, am.broadphase, am.solver, am.collisionConfiguration, am.softBodySolver);
+    am.physicsWorld.setGravity( new Ammo.btVector3( 0,
+						       am.gravity_on ? am.gravityConstant : 0,
+						       0 ) );
+    am.physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, am.gravityConstant, 0 ) );
+
+    var material = new THREE.MeshPhongMaterial( { color: 0xFF0000 } );
+    
+    var pos = new Ammo.btVector3( 0, 0, 0 );
+    var quat = new Ammo.btQuaternion( 0, 0, 0, 1 );
+
+    // So we jort of want the jointbody to be non-kinematic, if that works with constraints.
+    var mesh =  createParalellepiped( am.MARKER_RADIUS*2,
+					 am.MARKER_RADIUS*2,
+					 am.MARKER_RADIUS*2,
+					 am.MARKER_MASS,
+					 pos,
+					 quat,
+					 material );
+    
+    am.jointBody = mesh["ammo_obj"];
+    am.jointBody.collisionFilterGroup = 0;
+    am.jointBody.collisionFilterMask = 0;
+    // This is a guess...
+    // 
+    // var DISABLE_SIMULATION = 4; 
+    //am.jointBody.forceActivationState(DISABLE_SIMULATION)
+}
+
+function createObstacles() {
+
+    var num = am.NUMBER_OF_OBSTACLES;
+    var OB_DIS = 1.25;
+
+    var positions = [{x:0,y:am.INITIAL_HEIGHT,z:OB_DIS},
+    		     {x:OB_DIS,y:am.INITIAL_HEIGHT,z:0},
+    		     {x:0,y:am.INITIAL_HEIGHT,z:-OB_DIS},
+    		     {x:-OB_DIS,y:am.INITIAL_HEIGHT,z:0}];
+
+    for(var i = 0; i < num; i++) {
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+	var p = positions[i];
+	pos.set( p.x, p.y, p.z);
+        quat.set( 0, 0, 0, 1 );
+	quat.setFromAxisAngle(new THREE.Vector3( 0, 1, 0 ), i * 90  * Math.PI / 180 )
+	var material = new THREE.MeshPhongMaterial( { color: 0x33AAFF } );
+	
+	var mesh =  createParalellepiped( am.obstacleSize,
+					     am.obstacleSize/am.OBSTACLE_FRACTION,
+					     am.obstacleSize/am.OBSTACLE_FRACTION,
+					     am.OBSTACLE_MASS,
+					     pos,
+					     quat,
+					     material );
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	mesh.name = "obstacle-"+i;
+	mesh.structureKind = "obstacle";
+
+	mesh["ammo_obj"].name = "obstacle-"+i;
+	mesh["ammo_obj"].structureKind = "obstacle";
+    }
+
+}
+
+function createGround(am) {
+    // Ground
+    // TODO: make these local!
+    //    am.pos.set( 0, -GROUND_WIDTH/2, 0 );
+    am.pos.set( 0, -am.GROUND_WIDTH/2, 0 );
+    am.quat.set( 0, 0, 0, 1 );
+
+    am.floorTexture.wrapS = am.floorTexture.wrapT = THREE.RepeatWrapping; 
+    am.floorTexture.repeat.set( 10, 10 );
+    
+    //    var floorMaterial = new THREE.MeshBasicMaterial( { map: am.floorTexture, side: THREE.DoubleSide } );
+    var floorMaterial = new THREE.MeshLambertMaterial( { color: 0x110000 } );
+
+    floorMaterial.transparent = true;
+    floorMaterial.opacity = 0.7;
+
+    var ground = createParalellepiped( am.playgroundDimensions.w, am.GROUND_WIDTH, 
+					  am.playgroundDimensions.d,
+					  0, am.pos, am.quat, floorMaterial );
+    
+    ground["ammo_obj"].setFriction( 0.99 );
+    
+    ground.castShadow = true;
+    ground.receiveShadow = true;
+}
+
+function processGeometry( bufGeometry ) {
+
+    // Obtain a Geometry
+    var geometry = new THREE.Geometry().fromBufferGeometry( bufGeometry );
+
+    // Merge the vertices so the triangle soup is converted to indexed triangles
+    var vertsDiff = geometry.mergeVertices();
+
+    // Convert again to BufferGeometry, indexed
+    var indexedBufferGeom = createIndexedBufferGeometryFromGeometry( geometry );
+
+    // Create index arrays mapping the indexed vertices to bufGeometry vertices
+    mapIndices( bufGeometry, indexedBufferGeom );
+
+}
+
+function createIndexedBufferGeometryFromGeometry( geometry ) {
+
+    var numVertices = geometry.vertices.length;
+    var numFaces = geometry.faces.length;
+
+    var bufferGeom = new THREE.BufferGeometry();
+    var vertices = new Float32Array( numVertices * 3 );
+    var indices = new ( numFaces * 3 > 65535 ? Uint32Array : Uint16Array )( numFaces * 3 );
+
+    for ( var i = 0; i < numVertices; i++ ) {
+
+	var p = geometry.vertices[ i ];
+
+	var i3 = i * 3;
+
+	vertices[ i3 ] = p.x;
+	vertices[ i3 + 1 ] = p.y;
+	vertices[ i3 + 2 ] = p.z;
+
+    }
+
+    for ( var i = 0; i < numFaces; i++ ) {
+
+	var f = geometry.faces[ i ];
+
+	var i3 = i * 3;
+
+	indices[ i3 ] = f.a;
+	indices[ i3 + 1 ] = f.b;
+	indices[ i3 + 2 ] = f.c;
+
+    }
+
+    bufferGeom.setIndex( new THREE.BufferAttribute( indices, 1 ) );
+    bufferGeom.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+
+    return bufferGeom;
+}
+
+function isEqual( x1, y1, z1, x2, y2, z2 ) {
+
+    var delta = 0.000001;
+    return Math.abs( x2 - x1 ) < delta &&
+	Math.abs( y2 - y1 ) < delta &&
+	Math.abs( z2 - z1 ) < delta;
+
+}
+
+function mapIndices( bufGeometry, indexedBufferGeom ) {
+
+    // Creates ammoVertices, ammoIndices and ammoIndexAssociation in bufGeometry
+
+    var vertices = bufGeometry.attributes.position.array;
+    var idxVertices = indexedBufferGeom.attributes.position.array;
+    var indices = indexedBufferGeom.index.array;
+
+    var numIdxVertices = idxVertices.length / 3;
+    var numVertices = vertices.length / 3;
+
+    bufGeometry.ammoVertices = idxVertices;
+    bufGeometry.ammoIndices = indices;
+    bufGeometry.ammoIndexAssociation = [];
+
+    for ( var i = 0; i < numIdxVertices; i++ ) {
+
+	var association = [];
+	bufGeometry.ammoIndexAssociation.push( association );
+
+	var i3 = i * 3;
+
+	for ( var j = 0; j < numVertices; j++ ) {
+
+	    var j3 = j * 3;
+	    if ( isEqual( idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
+			     vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ] ) ) {
+		association.push( j3 );
+	    }
+
+	}
+
+    }
+
+}
+
+function createParalellepiped( sx, sy, sz, mass, pos, quat, material ) {
+
+    var threeObject = new THREE.Mesh( new THREE.BoxGeometry( sx, sy, sz, 1, 1, 1 ), material );
+    var shape = new Ammo.btBoxShape( new Ammo.btVector3( sx * 0.5, sy * 0.5, sz * 0.5 ) );
+    shape.setMargin( am.margin );
+
+    var body = createRigidBody( threeObject, shape, mass, pos, quat,true );
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,threeObject);
+    
+
+    body.setDamping(0.9,0.9);
+
+    threeObject["ammo_obj"] = body;
+    return threeObject;
+
+}
+
+// Not sure how to use the quaternion here,
+function createSphere(m,r,pos,quat,material) {
+    var c = (pos) ? pos : new Ammo.btVector3(2, 10, 0);
+
+    var colShape        = new Ammo.btSphereShape(r),
+        startTransform  = new Ammo.btTransform();
+
+    // Don't know if this is needed!
+    colShape.setMargin( am.margin );
+    startTransform.setIdentity();
+
+    var mass          = m,
+        isDynamic     = (mass !== 0),
+        localInertia  = new Ammo.btVector3(0, 0, 0);
+    
+    if (isDynamic)
+	colShape.calculateLocalInertia(mass,localInertia);
+
+    startTransform.setOrigin(pos);
+    
+    var myMotionState = new Ammo.btDefaultMotionState(startTransform),
+        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia);
+
+    // Possibly it would make more sense to call this createRigidobdy herere...
+    var body          = new Ammo.btRigidBody(rbInfo);
+
+    
+    var ball = new THREE.Mesh( new THREE.SphereGeometry( r, 18, 16 ), material );
+    ball.castShadow = true;
+    ball.receiveShadow = true;
+
+    // HACK: Why am I redefining this variable?
+    var body = createRigidBody(ball,colShape,mass,c,quat,true);
+    am.physicsWorld.addRigidBody( body );
+    am.push_body_mesh_pair(body,ball);
+    
+
+
+    body.setFriction( 0.99 );
+    
+    ball["ammo_obj"] = body;
+
+    // am.physicsWorld.addRigidBody(body);
+    // am.scene.add( ball );
+    // am.meshes.push( ball );
+
+    return ball;
+}
+
+function createRigidBody( threeObject, physicsShape, mass, pos, quat,add ) {
+
+    threeObject.position.copy( pos );
+    threeObject.quaternion.copy( quat );
+
+    var transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+    transform.setRotation( new Ammo.btQuaternion( quat.x, quat.y, quat.z, quat.w ) );
+    var motionState = new Ammo.btDefaultMotionState( transform );
+
+    var localInertia = new Ammo.btVector3( 0, 0, 0 );
+    physicsShape.calculateLocalInertia( mass, localInertia );
+
+    var rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, physicsShape, localInertia );
+    var body = new Ammo.btRigidBody( rbInfo );
+    
+    body.setDamping(0.9,0.9);
+
+    threeObject.userData.physicsBody = body;
+
+    if (add) {
+    am.scene.add( threeObject );
+    if ( mass > 0 ) {
+	am.rigidBodies.push( threeObject );
+
+	}
+    }
+    // We need this even if we are not actually adding this object...
+    // Disable deactivation
+    body.setActivationState( 4 );
+
+    return body;
+}
+
+
+function processClick() {
+    if (!am.MOUSE_FIRES)
+	return;
+
+    if ( am.clickRequest ) {
+
+	am.raycaster.setFromCamera( am.mouseCoords, am.camera );
+
+	// Creates a ball
+	var ballMass = 3;
+	var ballRadius = 0.4;
+
+	var ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 18, 16 ), am.ballMaterial );
+	ball.castShadow = true;
+	ball.receiveShadow = true;
+	var ballShape = new Ammo.btSphereShape( ballRadius );
+	ballShape.setMargin( am.margin );
+	am.pos.copy( am.raycaster.ray.direction );
+	am.pos.add( am.raycaster.ray.origin );
+	am.quat.set( 0, 0, 0, 1 );
+	var ballBody = createRigidBody( ball, ballShape, ballMass, am.pos, am.quat,true );
+	ballBody.setFriction( 0.5 );
+
+	ballBody.setDamping(0.9,0.9);
+
+	am.pos.copy( am.raycaster.ray.direction );
+	am.pos.multiplyScalar( 14 );
+	ballBody.setLinearVelocity( new Ammo.btVector3( am.pos.x, am.pos.y, am.pos.z ) );
+
+	am.clickRequest = false;
+
+    }
+
+}
+
+function onWindowResize() {
+    am.camera.aspect = window.innerWidth / (window.innerHeight * am.window_height_factor);
+    am.renderer.setSize( window.innerWidth, window.innerHeight * am.window_height_factor );
+    
+    am.camera.updateProjectionMatrix();
+    am.SCREEN_WIDTH = am.renderer.getSize().width;
+    am.SCREEN_HEIGHT = am.renderer.getSize().height;
+    am.camera.radius = ( am.SCREEN_WIDTH + am.SCREEN_HEIGHT ) / this.CAMERA_RADIUS_FACTOR;
+
+    am.cameraOrtho = new THREE.OrthographicCamera( 0, am.SCREEN_WIDTH, am.SCREEN_HEIGHT, 0, - 10, 10 );    
+}
+
+function animate() {
+    // Seems this is likely to be a problem...
+    requestAnimationFrame( animate );
+    render();
+}
+
+function update_member_colors() {
+    am.robot.robot_members.forEach( mem => {
+	var d = member_length(mem.a,mem.b);
+	var idx = am.bodies.indexOf(mem.body);
+	var mesh = am.meshes[idx];
+	var color = get_member_color(am,d);
+	mesh.material.color = color;
+	mesh.material.needsUpdate = true;
+    }
+    );
+}
+function render() {
+    var deltaTime = am.clock.getDelta();
+    updatePhysics( deltaTime );
+    // Let's update the colors to make sure they are correct due to changes in physics...
+    // This is mainly needed because we "snap" to new constraints...
+    update_member_colors();
+    
+    processClick();
+    am.controls.update( deltaTime );
+
+    // note this....
+    am.renderer.render( am.scene, am.camera );
+    am.renderer.autoClear = false;        
+    am.renderer.render( am.grid_scene, am.camera);
+    am.renderer.render(am.sceneOrtho, am.cameraOrtho);
+}
+
+function updatePhysics( deltaTime ) {
+
+    // Step world
+    am.physicsWorld.stepSimulation( deltaTime, 10 );
+
+    sprite_controls.clear();    
+
+    // Update soft volumes
+    for ( var i = 0, il = am.softBodies.length; i < il; i++ ) {
+	var volume = am.softBodies[ i ];
+	var geometry = volume.geometry;
+	var softBody = volume.userData.physicsBody;
+	var volumePositions = geometry.attributes.position.array;
+	var volumeNormals = geometry.attributes.normal.array;
+	var association = geometry.ammoIndexAssociation;
+	var numVerts = association.length;
+	var nodes = softBody.get_m_nodes();
+	for ( var j = 0; j < numVerts; j ++ ) {
+
+	    var node = nodes.at( j );
+	    var nodePos = node.get_m_x();
+	    var x = nodePos.x();
+	    var y = nodePos.y();
+	    var z = nodePos.z();
+	    var nodeNormal = node.get_m_n();
+	    var nx = nodeNormal.x();
+	    var ny = nodeNormal.y();
+	    var nz = nodeNormal.z();
+
+	    var assocVertex = association[ j ];
+
+	    for ( var k = 0, kl = assocVertex.length; k < kl; k++ ) {
+		var indexVertex = assocVertex[ k ];
+		volumePositions[ indexVertex ] = x;
+		volumeNormals[ indexVertex ] = nx;
+		indexVertex++;
+		volumePositions[ indexVertex ] = y;
+		volumeNormals[ indexVertex ] = ny;
+		indexVertex++;
+		volumePositions[ indexVertex ] = z;
+		volumeNormals[ indexVertex ] = nz;
+	    }
+	}
+
+	geometry.attributes.position.needsUpdate = true;
+	geometry.attributes.normal.needsUpdate = true;
+
+    }
+
+    // Update rigid bodies
+    for ( var i = 0, il = am.rigidBodies.length; i < il; i++ ) {
+	var objThree = am.rigidBodies[ i ];
+	var objPhys = objThree.userData.physicsBody;
+	var ms = objPhys.getMotionState();
+	if ( ms ) {
+
+	    ms.getWorldTransform( am.transformAux1 );
+	    var p = am.transformAux1.getOrigin();
+	    var q = am.transformAux1.getRotation();
+	    objThree.position.set( p.x(), p.y(), p.z() );
+	    objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
+
+	}
+	var p3 = new THREE.Vector3(p.x(),p.y(),p.z());
+	var p3 = p3.project(am.camera);
+	var x = (p3.x*am.renderer.getSize().width/2.0)+am.renderer.getSize().width/2;
+	var y = (p3.y*am.renderer.getSize().height/2.0)+am.renderer.getSize().height/2;
+	// WARNING: This was removed only to get a good screen shot.
+	if (objPhys.name) {
+	    if (objPhys.structureKind == "member") {
+		var a = objPhys.endpoints[0];
+		var b = objPhys.endpoints[1];
+		var d = member_length(a,b);
+
+//		var act = find_actuator(a.name,b.name);
+//		console.log(act);
+		for(var j = am.robot.robot_members.length -1; j >= 0; j--) {
+		    if (am.robot.robot_members[j].body.name == objPhys.name) {
+		    }
+		}
+
+		
+		var l = actuator_to_length.invert(d) / 10.23;
+		var di = parseInt(l.toFixed(0));
+
+//		var color = get_member_color(am,d);
+		var color = ((di < 0) || (di > 100)) ? "yellow" : "white";
+		color = "yellow";
+		if ((di < 0) || (di > 100)) {
+//		    console.log(di);
+		}
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,
+								 ""+objPhys.aname+" | " + objPhys.name + ": "+di ,color,1.0);
+	    } else {
+		objPhys.sprite = sprite_controls.draw_and_create(objPhys.sprite,x,y,""+objPhys.name);		
+	    }
+
+	}
+    }
+
+}
+
+function memo_color_mat(tcolor) {
+    var string = tcolor.getHexString();
+    if (!(string in am.color_material_palette)) {
+	var cmat = new THREE.MeshPhongMaterial( { color: tcolor } );
+	am.color_material_palette[string] = cmat;
+    }
+    return am.color_material_palette[string]
+}
+function create_actuator(d,pos,quat,b_a,b_z) {
+    var len = d+ -am.JOINT_RADIUS*2;
+
+    var color = get_member_color(am,d);
+    
+    var tcolor = new THREE.Color(color.r,color.g,color.b);
+    var cmat = memo_color_mat(tcolor);
+    var mesh =  createParalellepiped(
+	len,
+	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEAN_EDGE_LENGTH/(am.MEMBER_FRACTION),
+	am.MEMBER_MASS,
+	pos,
+	quat,
+	cmat );
+    
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    am.scene.add(mesh);
+    var memBody = mesh["ammo_obj"];
+    memBody.setDamping(0.9,0.9);
+    memBody.setFriction( 0.99 );
+
+    memBody.structureKind = "member";
+    mesh.structureKind = "member";
+    memBody.link_a = b_a;
+    memBody.link_z = b_z;
+    if (b_a.name > b_z.name) {
+	var t = b_a;
+	b_a = b_z;
+	b_z = t;
+    }
+    memBody.name = b_a.name + " " + b_z.name;
+    memBody.aname = find_actuator(b_a.name,b_z.name);
+    memBody.endpoints = [];
+    memBody.endpoints[0] = b_a;
+    memBody.endpoints[1] = b_z;
+    mesh.name = memBody.name;
+    am.push_body_mesh_pair(memBody,mesh);
+    return mesh;
+}
+
+
+function load_NTetGlussBot_Ammo(am,tets,pvec) {
+
+    // Okay, so here we need to create the geometry of the tetrahelix.
+    // This could be done in a variety of ways.
+    // Probably the most mathematical is to first define a vector
+    // representing the center axis, and then use a formula the nth vertex.
+    // Looks like some math as been worked out by R. W. Gray:
+    // http://www.rwgrayprojects.com/rbfnotes/helix/helix01.html
+    // I guess I will use a CounterClockWise (ccw) tetrahelix:
+    // Vn = (r cos(n*theta), r sin(n*theta), n*h)
+
+    var n = tets+3;    
+    var mass = am.BASIC_BODY_MASS;
+
+    var colors = [ "red", "yellow", "blue" ];
+
+    for(var i = 0; i < n; i++) {
+	var v = cw_tetrahelix_vertex(i,am.MEAN_EDGE_LENGTH);
+	v = v.add(pvec);
+
+	var material = new THREE.MeshPhongMaterial( { color: colors[i % 3] } );    
+
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+	pos.set( v.x, v.y, v.z);
+        quat.set( 0, 0, 0, 1 );
+
+	var mesh = createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
+
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	am.scene.add(mesh);
+
+	var body = mesh["ammo_obj"];
+	body.setDamping(0.9,0.9);
+	// NOTE: Possibly friction must be set before adding to world?
+	body.setFriction( 0.99 );
+	body.name = alphabetic_name(i);
+	body.structureKind = "joint";
+	mesh.structureKind = "joint";	
+	am.robot.robot_joints.push(body);
+	am.push_body_mesh_pair(body,mesh);
+	
+	for(var k = 0; k < Math.min(3,i) && k < i; k++) {
+	    var h = i-(k+1);
+
+	    // Sadly, increasing the mass of the members seems to be
+	    // necessary to keep the edges from passing through the obstacles.
+	    // This is a very unfortunate tuning...I suspect it is a weakness
+	    // in the solver of physics engine.
+	    var pos = new THREE.Vector3();
+	    var quat = new THREE.Quaternion();
+
+	    var b_z = am.robot.robot_joints[i];
+	    var b_a = am.robot.robot_joints[h];
+	    var o_a = b_a.getWorldTransform().getOrigin();
+	    var o_z = b_z.getWorldTransform().getOrigin();	    
+	    var v_z = new THREE.Vector3(o_a.x(),o_a.y(),o_a.z());
+	    var v_a = new THREE.Vector3(o_z.x(),o_z.y(),o_z.z());
+	    
+	    var v_avg = v_z.add(v_a);
+	    v_avg.multiplyScalar(0.5);
+	    
+	    pos.set( v_avg.x, v_avg.y, v_avg.z);
+            quat.set( 0, 0, 0, 1 );
+
+	    var mesh = create_actuator(am.MEAN_EDGE_LENGTH,pos,quat,b_a,b_z);
+	    var memBody = mesh["ammo_obj"];
+	    
+	    if (b_a.name > b_z.name) {
+		var t = b_a;
+		b_a = b_z;
+		b_z = t;
+	    }
+	    
+	    for(var x = am.robot.robot_members.length -1; x >= 0; x--) {
+		if (am.robot.robot_members[x].body.name == memBody) {
+		    am.robot.robot_member.splice(x,1);
+		}
+	    }
+	    var link = { a: b_a, b: b_z, body: memBody};	    
+	    am.robot.robot_members.push(link);
+
+	    var constraints = [];
+	    var fudge = 1.01;
+	    var s = am.MEAN_EDGE_LENGTH/2;
+	    s = s * fudge;
+	    // This is guessed from the enumeration in Bullet's btTypeConstraint.h
+	    {
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( s, 0, 0 );
+		var con = new Ammo.btPoint2PointConstraint(b_a,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+		
+		am.physicsWorld.addConstraint(con, true);
+		constraints.push(con);
+	    }
+	    {
+		var pivotInA = new Ammo.btVector3( 0, 0, 0 );
+		var pivotInB = new Ammo.btVector3( -s, 0, 0 );
+		var con = new Ammo.btPoint2PointConstraint(b_z,
+							   memBody,
+							   pivotInA,
+							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+		am.physicsWorld.addConstraint(con, true);
+		constraints.push(con);		
+	    }
+	    
+	    var endpoints = [];
+	    endpoints.push(b_a);
+	    endpoints.push(b_z);
+	    memBody["endpoints"] = endpoints;
+	    memBody["constraints"] = constraints;
+
+	    // Now we will add an additional constraint to keep things
+	    // from rolling...only the first for each should be needed...
+	    // This code is working, but needs to be improved...
+	    // I had trouble tying this to the actuator members themselves,
+	    // which would be more elegant.
+	    var blocking_mass = 1.0;
+
+	    function create_non_roll_body(b,s) {
+		pos.set( v.x, v.y, v.z);
+		quat.set( 0, 0, 0, 1 );
+		
+		var mesh =  createParalellepiped(
+		    s,
+		    s,
+		    s,
+		    blocking_mass,
+		    pos,
+		    quat,
+		    this.jointMaterial );
+
+		var bump = mesh["ammo_obj"];
+		bump.setDamping(0.9,0.9);
+		bump.setFriction( 0.99 );
+
+		var pivotInA = new Ammo.btVector3( am.JOINT_RADIUS, 0, 0 );
+		var pivotInB = new Ammo.btVector3(0, 0, 0 );
+		var con = new Ammo.btPoint2PointConstraint(b,
+							   bump,
+							   pivotInA,
+							   pivotInB);
+		con.setParam(am.BT_CONSTRAINT_STOP_CFM, am.myCFMvalue, -1)
+		con.setParam(am.BT_CONSTRAINT_STOP_ERP, am.myERPvalue, -1)
+		am.physicsWorld.addConstraint(con, true);
+		b["non-rolling-constraint"] = con;
+		}
+	    var s = 0.02;
+	    if (!b_a["non-rolling-constraint"]) {
+		create_non_roll_body(b_a,s);
+	    }
+	    if (!b_z["non-rolling-constraint"]) {
+		create_non_roll_body(b_z,s);
+	    }
+	}
+
+    }
+}
+var actuator_to_length = d3.scale.linear().domain([0,1023]).range([am.MIN_EDGE_LENGTH,am.MAX_EDGE_LENGTH]);
+
+initiation_stuff();
+
+init();
+animate();
+
+function rectify(id) {
+    var pmodel = extract_physical_node_model(am.robot);
+    
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+
+    for (var key in actmodel) {
+	if (actmodel.hasOwnProperty(key)) {
+	    actmodel[key] = Math.min(Math.max(actmodel[key],0),1023);
+	}
+    }
+    set_constraints(actmodel);
+}
+
+/* Here begins my attempt to compute the correct motion for an isolated node
+based on a vector.
+
+In all probability this will require me to define the "direction" of the 
+robot as a vector that more or less goes from the centroid of the rear 
+triangle to the centroid of the front triangle.
+
+My basic strategy is to find all connected nodes and use the dot product
+to find the change in length. 
+
+*/
+
+function dotp(a,b) {
+	var n = 0, lim = Math.min(a.length,b.length);
+	for (var i = 0; i < lim; i++) n += a[i] * b[i];
+	return n;
+ }
+
+
+/* return the partial pose of nodes connected to nd that accomplishes
+the isolated movement defined by v.
+*/
+
+function find_connected_members(robot,nd) {
+    var members = [];
+    robot.robot_members.forEach(function (c) {
+	if ((c.a.name == nd.name) ||
+	    (c.b.name == nd.name)) {
+	    members.push(c);
+	}
+    });
+    return members;
+}
+
+
+
+
+// WARNING: I'm pretty sure this algorithm is fundamentally flawed even
+// it what it is trying to do.
+function compute_partial_pose(robot,nd,v) {
+    // First, find all connected nodes...this is brute force, later
+    // we can improve efficiency...
+    var mems = find_connected_members(robot,nd);
+
+    // For each connected node, compute the dot product with v and
+    // use that to determine the appropriate length.
+    var ndp = nd.getWorldTransform().getOrigin();	    
+    var current = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());
+    var hypothetical = new THREE.Vector3(ndp.x(),ndp.y(),ndp.z());    
+    hypothetical.addVectors(hypothetical,v);
+    var pp = {};
+    for(var i = 0; i < mems.length; i++) {
+	var mem = mems[i];
+	var nm = mem.body.name;
+	var other = (nd.name == mem.a.name) ? mem.b : mem.a;
+	var otherv = other.getWorldTransform().getOrigin();
+	var other3 = new THREE.Vector3(otherv.x(),otherv.y(),otherv.z());
+	// this needs to be a vector subtraction.
+	var hd = other3.distanceTo(hypothetical);
+	var cd = other3.distanceTo(current);
+	var h_act = parseInt(actuator_to_length.invert(hd).toFixed(0));
+	var c_act = parseInt(actuator_to_length.invert(cd).toFixed(0));		
+	var delta = h_act - c_act;
+	pp[nm] = delta;
+    }
+    return pp;
+}
+
+var circle_starting_config = null;
+function circle_head() {
+    var v = new Ammo.btVector3(1,1,1).op_add(new Ammo.btVector3(2,2,2));
+
+    var nda = am.robot.robot_members[0].a;
+    var ndb = am.robot.robot_members[1].b;
+    var ndav = nda.getWorldTransform().getOrigin();
+    var ndbv = ndb.getWorldTransform().getOrigin();
+    var va = new THREE.Vector3(ndav.x(),ndav.y(),ndav.z());
+    var vb = new THREE.Vector3(ndbv.x(),ndbv.y(),ndbv.z());
+    va.subVectors(va,vb);
+    va.multiplyScalar(0.2);
+    var va_down = new THREE.Vector3(0,-1/6,0);
+    var va_up = new THREE.Vector3(0,1/6,0);
+    var va_east = new THREE.Vector3(-1/6,0,0);
+    var va_west = new THREE.Vector3(1/6,0,0);
+
+    var pp_a_down = compute_partial_pose(am.robot,nda,va_down);
+    var pp_a_up = compute_partial_pose(am.robot,nda,va_up);
+    var pp_a_east = compute_partial_pose(am.robot,nda,va_east);
+    var pp_a_west = compute_partial_pose(am.robot,nda,va_west);
+
+    if (!circle_starting_config) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+	circle_starting_config = actmodel;
+    }
+    var m_down = apply_delta_pose_x(pp_a_down,circle_starting_config);
+    var m_up = apply_delta_pose_x(pp_a_up,circle_starting_config);
+    var m_east = apply_delta_pose_x(pp_a_east,circle_starting_config);
+    var m_west = apply_delta_pose_x(pp_a_west,circle_starting_config);
+    var glog = [m_down,m_up,m_east,m_east,m_west,m_west];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);    
+}
+
+// Attempt to compute a vector point from the tail to the head by using the centroids
+// of the first and last triangle.  More sophisticated approaches are possible,
+// but this probably half-way work.
+function compute_centroid(a,b,c) {
+    var av = a.getWorldTransform().getOrigin();
+    var bv = b.getWorldTransform().getOrigin();
+    var cv = c.getWorldTransform().getOrigin();
+    var x = (av.x() + bv.x() + cv.x())/3;
+    var y = (av.y() + bv.y() + cv.y())/3;
+    var z = (av.z() + bv.z() + cv.z())/3;    
+    return new THREE.Vector3(x,y,z);
+}
+
+function compute_axis_vector() {
+    var ch = compute_centroid(am.robot.robot_joints[0],am.robot.robot_joints[1],am.robot.robot_joints[2]);
+    var n = am.robot.robot_joints.length;
+    var ct = compute_centroid(am.robot.robot_joints[n-3],am.robot.robot_joints[n-2],am.robot.robot_joints[n-1]);
+    
+    var vh = new THREE.Vector3(ch.x,ch.y,ch.z);
+    var vt = new THREE.Vector3(ct.x,ct.y,ct.z);    
+    vh.subVectors(vh,vt);
+    
+    return vh;
+}
+
+var circle_foot_initial = null;
+function circle_foot(ft) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    // This is a "radius" -- and a joke.
+    var factor = 1/3;
+    var r = m*factor;
+    
+    v.normalize();
+    v.multiplyScalar(r);
+    // Now length should be r...
+    var va_dn = new THREE.Vector3(0,-r,0);
+    var va_up = new THREE.Vector3(0,r,0);
+    var va_fd = new THREE.Vector3(v.x,v.y,0);
+    var va_bk = new THREE.Vector3(-v.x,v.y,0,0);
+    var pp_a_dn = compute_partial_pose(am.robot,ft,va_dn);
+    var pp_a_up = compute_partial_pose(am.robot,ft,va_up);
+    var pp_a_fd = compute_partial_pose(am.robot,ft,va_fd);
+    var pp_a_bk = compute_partial_pose(am.robot,ft,va_bk);
+
+    if (!circle_foot_initial) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+	circle_foot_initial = actmodel;
+    }
+    
+    var m_dn = apply_delta_pose_x(pp_a_dn,circle_foot_initial);
+    var m_up = apply_delta_pose_x(pp_a_up,circle_foot_initial);
+    var m_fd = apply_delta_pose_x(pp_a_fd,circle_foot_initial);
+    var m_bk = apply_delta_pose_x(pp_a_bk,circle_foot_initial);
+    var glog = [m_dn,m_fd,m_up,m_bk];
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,1000);    
+    
+}
+
+// var circle_foot_initial = null;
+
+
+function move_foot_forward(ft) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+
+    var factor = 1/4;
+    var r = m*factor;
+    var hr = r*2;
+    
+    v.normalize();
+    v.multiplyScalar(hr);
+    // Now length should be r...
+    var v_dn = new THREE.Vector3(0,-r,0);
+    var v_up = new THREE.Vector3(0,r,0);
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    var v_bk = new THREE.Vector3(-v.x,0,-v.z);
+
+     var NUM_PHASE = 3;
+    var phase = [];
+    for(var i = 0; i < NUM_PHASE; i++) {
+	phase.push(apply_delta_pose_x([],actmodel));
+    }
+    var pp_a_dn = compute_partial_pose(am.robot,ft,v_dn);
+    var pp_a_up = compute_partial_pose(am.robot,ft,v_up);
+    var pp_a_fd = compute_partial_pose(am.robot,ft,v_fd);
+    
+//    phase[0] = apply_delta_pose_x(pp_a_up,phase[0]);    
+//    phase[1] = apply_delta_pose_x(pp_a_dn,phase[1]);
+    phase[0] = apply_delta_pose_x(pp_a_fd,phase[0]);
+
+    return phase;
+}
+
+var callcc = null;
+
+function one_foot_walking() {
+    var eq_g = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,eq_g,10,2000,
+	    () => {
+		var lf_g = lean_forward_glog();
+		var ft0 = move_foot_forward(am.robot.robot_joints[blue(2)]);
+		var lf_g2 = lean_forward_glog();
+		var stance = [lf_g,ft0,lf_g2];
+		execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stance,10,2000,
+			() => {
+			    console.log("assigning to callcc");
+			    callcc = () => {
+				var ft0 = move_foot_forward(am.robot.robot_joints[blue(0)]);
+				var ft1 = move_foot_forward(am.robot.robot_joints[yellow(2)]);
+				var ft2 = move_foot_forward(am.robot.robot_joints[red(3)]);
+				var stance = [ft0,ft1,ft2];
+				execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stance,10,2000,
+					() => {
+					    console.log("all done");
+					});
+			    }});
+	    });
+}
+
+
+function circle_tripod_steps(tpa,tpb) {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    // This is a "radius" -- and a joke.
+//    if (!circle_foot_initial) {
+	var pmodel = extract_physical_node_model(am.robot);
+	var actmodel = model_to_actuator_space(pmodel,am.robot);
+//	circle_foot_initial = actmodel;
+    //    }
+    
+    var factor = 1/4;
+    var r = m*factor;
+    var hr = r*2;
+
+    var v_dn = new THREE.Vector3(0,-r,0);
+    var v_up = new THREE.Vector3(0,r,0);
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    var v_bk = new THREE.Vector3(-v.x,0,-v.z);
+    
+    var NUM_PHASE = 4;
+    var phase0 = [];
+    var phase1 = [];    
+    for(var i = 0; i < NUM_PHASE; i++) {
+	phase0.push(apply_delta_pose_x([],actmodel));
+	phase1.push(apply_delta_pose_x([],actmodel));	
+    }
+    for(var i = 0; i < tpa.length; i++) {
+	var foota = tpa[i];
+//	var footb = tpb[i];	
+	var pp_a_dn = compute_partial_pose(am.robot,foota,v_dn);
+	var pp_a_up = compute_partial_pose(am.robot,foota,v_up);
+	var pp_a_fd = compute_partial_pose(am.robot,foota,v_fd);
+	var pp_a_bk = compute_partial_pose(am.robot,foota,v_bk);
+
+	phase0[0] = apply_delta_pose_x(pp_a_dn,phase0[0]);
+	phase0[1] = apply_delta_pose_x(pp_a_bk,phase0[1]);
+	phase0[2] = apply_delta_pose_x(pp_a_up,phase0[2]);
+	phase0[3] = apply_delta_pose_x(pp_a_fd,phase0[3]);
+	
+    }
+    for(var i = 0; i < tpb.length; i++) {
+//	var foota = tpa[i];
+	var footb = tpb[i];	
+
+	var pp_b_up = compute_partial_pose(am.robot,footb,v_up);
+	var pp_b_dn = compute_partial_pose(am.robot,footb,v_dn);
+	var pp_b_bk = compute_partial_pose(am.robot,footb,v_bk);
+	var pp_b_fd = compute_partial_pose(am.robot,footb,v_fd);
+	
+	phase1[0] = apply_delta_pose_x(pp_b_up,phase1[0]);
+	phase1[1] = apply_delta_pose_x(pp_b_fd,phase1[1]);
+	phase1[2] = apply_delta_pose_x(pp_b_dn,phase1[2]);
+	phase1[3] = apply_delta_pose_x(pp_b_bk,phase1[3]);
+    }
+    return [phase0,phase1];
+}
+
+function lean_forward_glog() {
+    var v = compute_axis_vector();
+    var m = am.MEAN_EDGE_LENGTH;
+    var glog = [];
+    var v_fd = new THREE.Vector3(v.x,0,v.z);
+    v_fd.normalize();
+    var m = am.MEAN_EDGE_LENGTH;
+    v_fd.multiplyScalar(m/10);    
+    // To be completely general, this should check length...
+    // but this is what we do for now.
+    var top_rail = [am.robot.robot_joints[red(0)],
+		    am.robot.robot_joints[red(1)],
+		    am.robot.robot_joints[red(2)],
+		    am.robot.robot_joints[red(3)]		    
+		   ];
+    var pmodel = extract_physical_node_model(am.robot);
+    var actmodel = model_to_actuator_space(pmodel,am.robot);
+    var phase = apply_delta_pose_x([],actmodel);
+    for(var i = 0; i < top_rail.length; i++) {
+	var nd = top_rail[i];
+	var pp_fd = compute_partial_pose(am.robot,nd,v_fd);
+	phase = apply_delta_pose_x(pp_fd,phase);	
+    }
+    glog.push(phase);
+    return glog;
+}
+
+function lean_forward() {
+    var glog = lean_forward_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,5000);
+}
+
+
+var first_tripod = [am.robot.robot_joints[yellow(0)],
+		    am.robot.robot_joints[blue(1)],
+		    am.robot.robot_joints[yellow(2)]];
+var second_tripod = [am.robot.robot_joints[blue(0)],
+		     am.robot.robot_joints[yellow(1)],
+		     am.robot.robot_joints[blue(2)]];
+
+function circle_b() {
+    var nd = am.robot.robot_joints[1];
+    circle_foot(nd);
+}
+
+function circle_tripod() {
+    var glog = circle_tripod_steps(first_tripod,second_tripod);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,glog,10,5000);   
+}
+
+function walk_forward() {
+    var eq_g = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,eq_g,10,1000,
+	    () => {
+		    var lf_g = lean_forward_glog();		    
+		    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,lf_g,10,2000,
+			() => {
+//			    callcc = () => {
+		    var ci_g = circle_tripod_steps(first_tripod,second_tripod);
+			    //		    var stance = [ci_g[1][0]];
+			    var motion = [ci_g[0][0],ci_g[1][0],ci_g[0][1],ci_g[1][1],lf_g,ci_g[0][2],ci_g[1][2],ci_g[0][3],ci_g[1][3]];
+			    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,motion,10,2000,
+				    () => {
+					    console.log("ALL DONE");
+				    });
+//			    }
+			});
+	    });
+	   
+}
+
+function member_length(a,b) {
+    var ao = get_wt_origin(a);
+    var bo = get_wt_origin(b);
+    var d = ao.distanceTo(bo);
+    return d;
+}
+
+function print_distances() {
+    am.robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	var d = member_length(a,b);
+	var x = actuator_to_length.invert(d)/10.23;
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di);
+    });
+}
+
+function constraint_violations(debug,nd,robot) {
+    var violation = 0;
+    console.log("cv start",get_wt_origin(nd));
+    robot.robot_members.forEach(function (m) {
+	var a = m.a;
+	var b = m.b;
+	// We are only looking for local violations touching nd!
+	if ((a.name == nd.name) || (b.name == nd.name)) {
+	    var d = member_length(a,b);
+	    var x = actuator_to_length.invert(d)/10.23;
+	    var di = parseInt(x.toFixed(0));
+	    if (debug) {
+		console.log(d,di);
+	    }
+            if (di < 0) {
+		violation += Math.abs(di);
+            }
+	    if (di > 100) {
+		violation += di;
+	    }
+	}
+    });
+    if (debug) {
+	console.log("violation:",violation);
+    }
+    return violation;
+}
+
+function print_masses() {
+    am.robot.robot_joints.forEach(function (j) {
+	var x = actuator_to_length.invert(d)/10.23
+	var di = parseInt(x.toFixed(0));
+	console.log(a.name,b.name,d,di)
+    });
+}
+
+// An experimental function to "ooch" one node in a
+// specific direction until a constraint is hit, such as
+// "moving the rearmost foot forward until a constraint is hit".
+// vector is the direction to move relative to the robot direction vector,
+// not space, where the head is considered to be in the positive x direction.
+// There is a lot of quick and dirty programming in this function that should be
+// rewritten.
+// Currently I'm attempting to stop when we go from
+// no violations to a violation.  This is a global condition
+// which is probably not what we want.
+function ooch(robot,act,nd,v,step,max) {
+    var axis = new THREE.Vector3(1,0,0);
+    var heading = robot_heading(robot);
+    axis.normalize();
+    heading.normalize();
+    var q = new THREE.Quaternion();
+    q.setFromUnitVectors ( axis, heading );
+    console.log("before rotate",v);
+    v.applyQuaternion(q);
+    console.log("after rotate",v);
+    var initpos = get_wt_origin(nd);
+    var startTransform = new Ammo.btTransform();
+    startTransform.setIdentity();
+
+    var ox = initpos.x;
+    var oy = initpos.y;
+    var oz = initpos.z;
+    var steps = 0;
+    // This should really be parametrized by the nd we are moving,
+    // and we probably don't really need to rely on the physics engine here,
+    // it is just distances---in fact, we could probably produce a constant-time
+    // algorithm for it!!! (but another day...)
+    var n = constraint_violations(true,nd,robot);
+    var cv = n;
+    while(cv <= n && (steps < max)) {
+	var d = ((steps+1)*step);
+	nx = ox + v.x*d;
+	ny = oy + v.y*d;
+	nz = oz + v.z*d;
+	var vn = new THREE.Vector3(nx,ny,nz);
+        var prevpos = get_wt_origin(nd);
+	
+	set_wt_origin(nd,vn);
+	
+        var curpos = get_wt_origin(nd);
+	console.log("Pos s:",prevpos.x,curpos.x);
+	cv = constraint_violations(true,nd,robot);
+	if (cv <= n) {
+	    steps++;
+	} else {
+	    // we're putting it back!
+	    var d = ((steps)*step);
+	    nx = ox + v.x*d;
+	    ny = oy + v.y*d;
+	    nz = oz + v.z*d;
+	    var vn = new THREE.Vector3(nx,ny,nz);	    
+	    set_wt_origin(nd,vn)
+	}
+    }
+    var act_settings =
+	actuator_space_model_func(robot,
+				  nd,
+				  nd,
+				  // This is a serious weakness, I need to investigate this.
+				  act);
+    // set_interp_constraints(act_settings,act_settings,1.0);
+    console.log("steps:",steps);
+    console.log("act_settings:",act_settings);
+  
+    return [steps,act_settings];
+}
+// 
+// I need to Figure out if I should do a line-fit of the robot
+// or if there is some simpler way to do it.
+// This is the best explanation for how to use svd:
+// https://www.ltu.se/cms_fs/1.51590!/svd-fitting.pdf
+// We can probably use this:
+// https://www.npmjs.com/package/node-svd
+//
+function robot_heading(robot) {
+    // WARNING: this is a quick-and-dirty hack.
+    // The proper way is probably a line-fitting using least squares on node points.
+    var h = get_wt_origin(robot.robot_joints[0]);
+    var t = get_wt_origin(robot.robot_joints.slice(-1)[0]);
+    return new THREE.Vector3(h.x-t.x,h.y-t.y,h.z-t.z);
+}
+
+
+
+function bump(robot,nd_names,x,y,z) {
+    var forward = new THREE.Vector3(x,y,z);
+    var step = 0.01;
+
+    var nds = nd_names.map(n => get_body_by_name(robot,n));
+    console.log("nodes",nds);
+    var stages = nds.map(nd =>
+			 {
+			     var forward = new THREE.Vector3(x,y,z);
+			     var act = build_act_model_from_robot(robot)
+			     return  ooch(robot,act,nd,forward,step,60)[1];
+			 });
+    return stages;
+}
+
+// Idea: Now that I have separated this, why not make it completely abstract?
+// We will coopy the robot, keeping its geometry and structure, and
+// keep it embedded in the Z-positive semi-volume, but we will
+// not attach it to the Bullet Physics world, which is needed for
+// obstacle, friction, and gravity simulation, but is not needed for
+// this kind of robot planning.
+// In order to do this, I have to:
+// 1) Copy the robot
+// 2) make sure all functions are properly parametrized so that they
+// operate on the correct robot.
+// This is an attempt to development a truly working gait.
+function funky_gait1() {
+
+    var robot = am.get_abstract_robot(am.robot);
+//    robot = am.robot;
+    // We will try moving two feet at a time, making
+    // Three fundamental moves. The basic idea here is
+    // to lift yellow(n) and the same time you are lifting blue(n+phase).
+    var ybphase = 1;
+    // We're goint to try this in two stages:
+    // First we move each up up and forward until it bumps.
+    // Then we will move it down and forward.
+    // Then we will lean forward as much as possible and repeat.
+
+    // These are the red ones..
+    var lean_forward = bump(robot,[alphabetic_name(red(0)),
+    			     alphabetic_name(red(1)),
+    			     alphabetic_name(red(2)),
+    			     alphabetic_name(red(3))],
+    			    1,
+    			    0,
+			   0);
+    var x = 1.0;
+    var y = 0.0;
+    var stages = [];
+    var cnt = 0;
+    var eqg = equitetrabeam_glog();
+    stages[cnt++] = eqg;
+   stages[cnt++] = lean_forward;    
+    // This is the number of feet on the ground. In theory
+    // it could be computed from the number of nodes.
+    var nf = 3;
+    for(var s = 0; s < 3; s++) {    
+	var yel = s % nf;
+	var blu = (s+ybphase) % nf;
+	var yn = alphabetic_name(yellow(yel));
+	var bn = alphabetic_name(blue(blu));
+	stages[cnt++] = bump(robot,[yn,bn],0,1,0);
+	stages[cnt++] = bump(robot,[yn,bn],2,0,0);
+	stages[cnt++] = bump(robot,[yn,bn],0,-1,0);
+	stages[cnt++] = lean_forward;
+    }
+   stages[cnt++] = eqg;    
+    console.log("stages",stages);
+    return stages;
+}
+
+function fgex() {
+    var fg = funky_gait1();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,fg,10,1000);
+}
+
+function test_leanforward() {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(red(0)),
+			     alphabetic_name(red(1)),
+			     alphabetic_name(red(2)),
+			     alphabetic_name(red(3))],
+			    1,
+			0,
+		       0);
+    console.log("stages",reach_up);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,reach_up,10,1000);
+}
+
+function test_footforward(nd_num) {
+    var robot = am.get_abstract_robot(am.robot);
+    var reach_up = bump(robot,[alphabetic_name(nd_num)],
+			    0,
+			0.2,0);
+    var reach_fd = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			0,0);
+    var reach_dn = bump(robot,[alphabetic_name(nd_num)],
+			    0,
+			-0.2,0);
+    console.log("stages",[reach_up,reach_fd]);
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,[reach_up,reach_fd,reach_dn],10,1000);
+}
+function one_foot_forward(robot,nd_num) {
+    var reach_up = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			0.2,0);
+    var reach_dn = bump(robot,[alphabetic_name(nd_num)],
+			    0.2,
+			-0.3,0);
+    return [reach_up,reach_dn];
+    
+}
+function off0() {
+    var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
+    var cnt = 0;
+
+    stages[cnt++] = equitetrabeam_glog();
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(1)),
+    				alphabetic_name(yellow(2)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+
+    stages[cnt++] = one_foot_forward(robot,yellow(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
+				alphabetic_name(yellow(1)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0.0);
+
+    stages[cnt++] = bump(robot,[alphabetic_name(yellow(0)),
+				alphabetic_name(yellow(2)),				
+				alphabetic_name(blue(0)),
+				alphabetic_name(blue(1))
+    			       ],
+    			 0.0,-0.2,0.0);
+    stages[cnt++] = one_foot_forward(robot,yellow(1));
+    stages[cnt++] = one_foot_forward(robot,blue(1));
+    
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			 0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(2));
+    stages[cnt++] = one_foot_forward(robot,blue(2));
+  
+    stages[cnt++] = equitetrabeam_glog();
+
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+}
+
+
+function test_one_foot_walking()
+{
+    var robot = am.get_abstract_robot(am.robot);
+    var stages = [];
+    var cnt = 0;
+    stages[cnt++] = one_foot_forward(robot,blue(0));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			   0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(2));
+    
+     stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			  0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(2));
+
+        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			  0.2,0.2,0);
+    stages[cnt++] = one_foot_forward(robot,yellow(1));
+
+        stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,blue(1));
+
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = one_foot_forward(robot,yellow(0));
+    
+    stages[cnt++] = bump(robot,[alphabetic_name(red(0)),
+    				alphabetic_name(red(1)),
+    				alphabetic_name(red(2)),
+    				alphabetic_name(red(3))				
+    			       ],
+    			     0.2,0.2,0);
+    
+    stages[cnt++] = equitetrabeam_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+ }
+
+function test_abstract_robot() {
+    var robot0 = am.get_abstract_robot(am.robot);
+    var robot1 = am.get_abstract_robot(robot0);
+    var cv = constraint_violations(true,robot0.robot_joints[0],robot0);    
+    var cv1 = constraint_violations(true,robot1.robot_joints[0],robot1);
+    console.assert(cv == cv1,cv,cv1);
+}
+
+function build_act_model_from_robot(r) {
+    var ma = {};
+    r.robot_members.forEach(m => {
+	var d = member_length(m.a,m.b);
+	var x = actuator_to_length.invert(d);
+	var di = parseInt(x.toFixed(0));
+	var act = find_actuator(m.a.name,m.b.name);
+	ma[act] = di;
+    });
+    return ma;
+}
+
+function flatten(glog) {
+    if (glog_is_atom(glog)) {
+	return glog;
+    } else {
+	var ret = [];
+	glog.forEach(g => {
+ 	    ret = ret.concat(flatten(g));
+	});
+	return ret;
+    }
+}
+// This is an initial attempt to write a function that
+// can be directly used by emacs-ctl.el
+function convert_glog_to_sexpr0(glog) {
+    if (glog_is_atom(glog)) {
+	if (glog_is_executable(glog)) {
+	    var str = "( ";
+	    for(var key in glog) {
+		str += "(" + key + " " + parseInt(glog[key].toFixed(0)) + ") ";
+	    }
+	    str += ")\n";
+	    return str;
+	}
+    } else {
+	var str = "(";
+	var fglog = flatten(glog);
+	fglog.forEach(g => {
+	    str += convert_glog_to_sexpr0(g);
+	});
+	str += ")";
+	return str;
+    }
+}
+function add_edge_value(pose,color,nds,value) {
+    var e = all_edges(color,nds).map(nd =>
+				      {
+					  return actuator_name_from_number(nd);
+				      });
+    e.forEach(function (r) {
+	pose[r] = value;
+    });
+}
+
+// This is perhaps a little weak.
+// The goal is in part to produce a "total" pose.
+// Therefore I will run over all actuators, and take the average.
+// If neither present, I will use 500. if one present, I use only the one.
+function union_poses(a,b) {
+    var p = {};
+    var n = Object.keys(am.robot.robot_members).length
+    for(var i = 0; i < n; i++) {
+	var name = actuator_name_from_number(i);
+	if (name in a && name in b) {
+	    p[name] = a[name] + b[name];
+	} else if (name in a) {
+	    p[name] = a[name];
+	} else if (name in b) {
+	    p[name] = b[name];
+	} else {
+	    p[name] = 500;
+	}
+    }
+    return p;
+}
+
+function arc_up() {
+    var stages = [];
+    var robot = am.get_abstract_robot(am.robot);
+    var cnt = 0;
+    var nds = 10;
+ 
+    stages[cnt++] = equitetrabeam_glog();
+    var pose = am.most_recent_constraints;    
+    add_edge_value(pose,RED,nds,1000);
+    add_edge_value(pose,BLU,nds,0);
+    add_edge_value(pose,YEL,nds,0);        
+
+//    add_edge_value(pose,ORA,nds,1000);
+//    add_edge_value(pose,GRN,nds,0);
+//    add_edge_value(pose,PRP,nds,1000);
+    var p = union_poses(pose,{});
+
+    stages[cnt++] = p;
+//   stages[cnt++] = equitetrabeam_glog();
+    execute(am.standard_ctx,am.most_recent_constraints,execute_atom,stages,10,1000);		     
+    return stages;
+}
+
+</script>
+</html>
