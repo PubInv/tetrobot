@@ -2240,18 +2240,39 @@ function init() {
 
 
 }
+
+// NOTE: The 2D truss uses a different numbering scheme than the Tetrahelix
 // build a 2D Warren Truss given the coordinates (emedding in three-space);
 function build_truss(coords) {
+    var mass = am.BASIC_BODY_MASS;
+    var colors = [ "red", "yellow", "blue" ];
+
+    const TRUSS_SCALE_FACTOR = 1/10;
+    
+    for(var i = 0; i < coords.length; i++) {
+	var v = new THREE.Vector3(coords[i].x * TRUSS_SCALE_FACTOR,
+				  am.INITIAL_HEIGHT,
+				  coords[i].y * TRUSS_SCALE_FACTOR);
+	var material = new THREE.MeshPhongMaterial( { color: colors[i % 3] } );    
+
+	var pos = new THREE.Vector3();
+	var quat = new THREE.Quaternion();
+	pos.set( v.x, v.y, v.z);
+        quat.set( 0, 0, 0, 1 );
+
+	//	var mesh = createSphere(am.JOINT_MASS,am.JOINT_RADIUS,pos,quat,material);
+	var mesh = createSphere(0,am.JOINT_RADIUS,pos,quat,material);	
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	am.scene.add(mesh);
+    }
+    // now we deisrie to create objects connecting these objects.
+    // The most elegant way to do this with numbering and a subroutine that
+    // connects them.  The best way to make such a subroutine is to lambda-lift it from
+    // the load_NTetGlussBot_Ammo code which already exists.
 }
 
-function add_robot(am) {
-    var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
-
-    // Instead of generating here, we will make an AJAX call to our virtual space,
-    // receive the resulting robot, and construct that way.
-    // load_NTetGlussBot_Ammo(am,
-    // 			   am.NUMBER_OF_TETRAHEDRA,
-    // 			   pvec);
+function load_truss(am) {
     var virtual_world_url = "http://localhost" + "/goal"
     // Really the first read should not be a goal call, I will fix that later.
     var goal = {x: 10,y: 10};
@@ -2263,13 +2284,24 @@ function add_robot(am) {
 		// here is where I will read the result and build the truss/manipulator
 		console.log("success!");
 		console.log(result);
+		var coords = JSON.parse(result);
+		build_truss(coords);
 		},
 		error: function (request, status, error) {
 		    console.log(error);
 		}
 	       });
-    
-    // 
+}
+
+function add_robot(am) {
+    var pvec = new THREE.Vector3(0,am.INITIAL_HEIGHT,0);
+
+    // Instead of generating here, we will make an AJAX call to our virtual space,
+    // receive the resulting robot, and construct that way.
+    load_NTetGlussBot_Ammo(am,
+     			   am.NUMBER_OF_TETRAHEDRA,
+     			   pvec);
+    load_truss(am);
     
 }
 
@@ -2717,7 +2749,7 @@ function createGround(am) {
     am.floorTexture.repeat.set( 10, 10 );
     
     //    var floorMaterial = new THREE.MeshBasicMaterial( { map: am.floorTexture, side: THREE.DoubleSide } );
-    var floorMaterial = new THREE.MeshLambertMaterial( { color: 0x110000 } );
+    var floorMaterial = new THREE.MeshLambertMaterial( { color: 0xaaaaaa } );
 
     floorMaterial.transparent = true;
     floorMaterial.opacity = 0.7;
