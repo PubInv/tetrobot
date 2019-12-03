@@ -5,7 +5,7 @@
 (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS))
 (require 'web-server)
 (require 'url-queue)
-      
+
 (setq TETA "/dev/cu.2TETBOT-RNI-SPP")
 (setq TETB "/dev/cu.3TETBOTB-RNI-SPP")
 (setq TETC "/dev/cu.RNBT-DCCE-RNI-SPP")
@@ -55,7 +55,7 @@
 (defun actuator-name-from-num (n)
   (car (nth n ACTUATOR-MAP))
   )
-			       
+
 
 
 ;; sym is an optional identifying symbol to uniquely identify the call...
@@ -77,7 +77,7 @@
 	(process-send-string process command-str))
 	)
       ))
-		     
+
 (defun try-building (k port)
   (let ((n 0)
 	(process nil)
@@ -271,7 +271,7 @@
 
 (setq lean-right-ppose-orig
       `(
-      	   (A0 ,(+ mid -100)) (A2 ,hi) (A1 ,lo) (A3 ,mid) 
+      	   (A0 ,(+ mid -100)) (A2 ,hi) (A1 ,lo) (A3 ,mid)
 	   (B2 ,hi) (B1 ,lo) (B3 ,mid)))
 
 (setq lean-right-ppose
@@ -292,7 +292,7 @@
 
 (setq raise-right-ppose
       `(
-      	   (A1 ,lo) 
+      	   (A1 ,lo)
 	   (B1 ,lo)))
 
 (setq raise-left-ppose
@@ -300,7 +300,7 @@
 
 (setq right-f-ppose
       `(
-      	   (A1 ,(+ mid 100)) (A4 ,lo) 
+      	   (A1 ,(+ mid 100)) (A4 ,lo)
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-f-ppose
@@ -308,17 +308,17 @@
 
 (setq left-f-x-ppose
       `(
-      	   (A2 ,lo) (A5 ,mid) 
+      	   (A2 ,lo) (A5 ,mid)
 	   (B2 ,hi) (B5 ,hi)))
 
 (setq left-f-x-ppose
       `(
-      	   (A2 ,lo) (A5 ,mid) 
+      	   (A2 ,lo) (A5 ,mid)
 	   (B1 ,mid) (B2 ,mid) (B3 ,mid) (B5 ,hi)))
 
 (setq right-down-f-ppose
       `(
-      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,mid) 
+      	   (A0 ,lo) (A1 ,(+ mid 300)) (A2 ,mid) (A4 ,mid)
 	   (B1 ,hi) (B4 ,hi)))
 
 (setq left-down-f-ppose
@@ -470,14 +470,14 @@
        left-f-ppose
        left-down-f-ppose
        )
-       
+
       (list
        lean-left-ppose
        right-f-ppose
        right-down-f-ppose
        )
-      
-      (list 
+
+      (list
        lean-forward-pose
        back-up-ppose
        back-in-ppose
@@ -485,7 +485,7 @@
        front-out-ppose
        lean-forward-pose
        )
-      
+
       (list
        flat-pose)
       ))
@@ -527,7 +527,7 @@
 ;; reverse stepping forward, and mathematically invert turning to the left.
 ;; it is not a simple reversal of steps --- must be reverse with invert.
 ;; Or maybe simply invert!! (Not really a reversal, but a symmetry.
-      
+
 (defun move-forward (&optional sym)
   (fdance move-forward-steps
   ))
@@ -572,7 +572,7 @@
 	       (front-left-down)
 	       (lean-right)
 	       (left-up-back)
-	       (left-dn-back)	       
+	       (left-dn-back)
 	       (lean-left)
 	       (right-f)
 	       (right-down-f)
@@ -594,7 +594,7 @@
        front-up-short-ppose
        front-left-down-ppose
 
-       
+
        lean-forward-pose
        back-up-short-ppose
        (mirror-left-right (mirror-back-front front-left-down-ppose))
@@ -965,7 +965,7 @@ Return the results of all forms as a list."
       ;; we want All the B's here
       (B  (3 200) (5 500))
       (A (4 400))
-      ;; 
+      ;;
       )
     (p-assignments '((B5 500) (A4 400 ) (B3 200)))
     )
@@ -1014,7 +1014,7 @@ Return the results of all forms as a list."
 (defun valid-pose (pose)
 ;;  (print "pose")
 ;;  (print pose)
-  (let ((result 
+  (let ((result
 	 (cl-reduce #'(lambda (x y) (and x y))
 	  (mapcar #'(lambda (ass)
 	      (let ((r (cadr ass)))
@@ -1031,7 +1031,7 @@ Return the results of all forms as a list."
   )
 
 (defun p-style (cmd args &optional sym)
-  (assert (valid-pose args))    
+  (assert (valid-pose args))
   (let ((a (p-assignments args))
 	(msym (get-symbol-for-com-use sym)))
     (protected-mapcar
@@ -1092,13 +1092,13 @@ Return the results of all forms as a list."
 
 
 
-  
+
 
 
 
 ;; Okay now I am playing around with the promise concept, trying to understand it.
 ;; Our fundamental need is to wait on mulitple asynchronous processes.
-;; If we had promise objects 
+;; If we had promise objects
 
 ;; This is weird that I am not using limit or then.
 (defun create-latch (procs then sym)
@@ -1175,7 +1175,7 @@ Return the results of all forms as a list."
 	   (sym (get-symbol-for-com-use))
 		  )
       (progn
-	(put sym 'then-function 
+	(put sym 'then-function
 	     `(lambda ()
 		(fdance (quote ,(cdr steps)))))
 	;; I need to make sure I can put a closure here.
@@ -1199,7 +1199,7 @@ Return the results of all forms as a list."
 	   (sym (get-symbol-for-com-use))
 		  )
       (progn
-	(put sym 'then-function 
+	(put sym 'then-function
 	     `(lambda ()
 		(dance (quote ,(cdr steps)))))
 	(let ((n (number-controllers-affected (car steps))))
@@ -1220,6 +1220,12 @@ Return the results of all forms as a list."
 	(s2 '((A0 400) (B0 0) (B1 0)))
 	(s3 '((B0 400) (B1 600))))
     (dance (list s1 s2 s3 s1))))
+
+(defun test-dance1 ()
+  (let ((s1 '((A0 0)))
+	(s2 '((A0 1000)))
+	(s3 '((A0 400))))
+    (dance (list s1 s2 s1 s3))))
 
 
 
@@ -1250,7 +1256,7 @@ Return the results of all forms as a list."
 
 ;; Okay now I am playing around with the promise concept, trying to understand it.
 ;; Our fundamental need is to wait on mulitple asynchronous processes.
-;; If we had promise objects 
+;; If we had promise objects
 
 (defun test-create-latch ()
   (let* ((sym-name (gensym))
@@ -1276,7 +1282,7 @@ Return the results of all forms as a list."
 
 ;; This is piggybacking on the "p" syntax, which allows you to potentially
 ;; address every actuator -- probably unneeded but good for consistentcy sake.
-(defun test-set-actuator-unresponsive () 
+(defun test-set-actuator-unresponsive ()
   (let* ((actuator '((A2 0)))
 	 (sym (get-symbol-for-com-use))
 	 (then (lambda () (print "QQQQQ")
@@ -1364,11 +1370,11 @@ Return the results of all forms as a list."
 
 ;; Demo sketch (in scratch)
 ;; XXX (load "~/PubInv/emacs-web-server/web-server.el")
-;; Or should we use this: 
+;; Or should we use this:
 ;; (setq ws-http-common-methods '(GET HEAD POST PUT DELETE TRACE OPTIONS)
 ;; (require 'web-server)
 
-;; (load "~/PubInv/gluss/emacs-ctl.el")>
+;; (load "~/PubInv/tetrobot/emacs-ctl.el")>
 
 ;; (init)
 ;; (turn-left)
@@ -1430,7 +1436,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 595) (A4 800) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 437) (C1 573) (C2 769) (C3 669) (C4 636) (C5 242)	
+	(C0 437) (C1 573) (C2 769) (C3 669) (C4 636) (C5 242)
 	))
 
 (defun flat5 (&optional sym)
@@ -1491,7 +1497,7 @@ Return the results of all forms as a list."
       `(
 	(A0 806) (A1 1023) (A2 21) (A3 441) (A4 355) (A5 807)
 	(B0 319) (B1 633) (B2 883) (B3 1023) (B4 645) (B5 84)
-	(C0 97) (C1 924) (C2 51) (C3 961) (C4 226) (C5 17)	
+	(C0 97) (C1 924) (C2 51) (C3 961) (C4 226) (C5 17)
 	))
 
 (defun rup5 (&optional sym)
@@ -1502,7 +1508,7 @@ Return the results of all forms as a list."
 
 
 ;; Triangle test for calibration with playground.html
-;; 
+;;
 
 (setq tet5-calibrate
       `((A1 0) (A2 1023) (A5 0))
@@ -1560,7 +1566,7 @@ Return the results of all forms as a list."
       `(
 	(A0 747) (A1 764) (A2 542) (A3 747) (A4 359) (A5 964)
 	(B0 295) (B1 922) (B2 47) (B3 581) (B4 998) (B5 788)
-	(C0 355) (C1 60) (C2 51) (C3 967) (C4 715) (C5 201)	
+	(C0 355) (C1 60) (C2 51) (C3 967) (C4 715) (C5 201)
 	))
 
 (defun midup5 (&optional sym)
@@ -1680,7 +1686,7 @@ Return the results of all forms as a list."
 
 ;; Possibly the range-limit should be a separate issue
 (defun json-parse (string)
-  (let ((new 
+  (let ((new
 	 (range-limit (convert-from-pairs-to-list (json-read-from-string string)))))
 ;;    (print new)
     new
@@ -1721,11 +1727,12 @@ Return the results of all forms as a list."
 			(json-parse j)))
 	   (sym (get-symbol-for-com-use))
 		  )
-    (put sym 'then-function 
+    (put sym 'then-function
 	 `(lambda ()
 	    (setq wtime2 (current-time))))
     (setq wtime1 (current-time))
-;;    (print pose)
+    (print "PPPPPPPPP");
+    (print pose)
     (p pose  sym)
     )
   )
@@ -1736,7 +1743,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 595) (A4 400) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 200) (C1 573) (C2 769) (C3 669) (C4 400) (C5 0)	
+	(C0 200) (C1 573) (C2 769) (C3 669) (C4 400) (C5 0)
 	))
 
 (defun Q15 (&optional sym)
@@ -1749,7 +1756,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 400) (A5 472)
 	(B0 1000) (B1 991) (B2 800) (B3 301) (B4 900) (B5 516)
-	(C0 200) (C1 573) (C2 769) (C3 969) (C4 0) (C5 0)	
+	(C0 200) (C1 573) (C2 769) (C3 969) (C4 0) (C5 0)
 	))
 
 (defun Q25 (&optional sym)
@@ -1761,7 +1768,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 436) (A3 0) (A4 1000) (A5 272)
 	(B0 1000) (B1 991) (B2 800) (B3 301) (B4 1000) (B5 516)
-	(C0 500) (C1 573) (C2 1000) (C3 969) (C4 0) (C5 800)	
+	(C0 500) (C1 573) (C2 1000) (C3 969) (C4 0) (C5 800)
 	))
 
 (defun Q35 (&optional sym)
@@ -1773,7 +1780,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 436) (A3 0) (A4 1000) (A5 272)
 	(B0 1000) (B1 991) (B2 500) (B3 301) (B4 1000) (B5 516)
-	(C0 500) (C1 273) (C2 1000) (C3 969) (C4 0) (C5 800)	
+	(C0 500) (C1 273) (C2 1000) (C3 969) (C4 0) (C5 800)
 	))
 
 (defun Q45 (&optional sym)
@@ -1785,7 +1792,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 236) (A3 0) (A4 1000) (A5 0)
 	(B0 1000) (B1 991) (B2 250) (B3 301) (B4 600) (B5 516)
-	(C0 300) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 300) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)
 	))
 
 (defun Q55 (&optional sym)
@@ -1797,7 +1804,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 636) (A2 236) (A3 0) (A4 1000) (A5 0)
 	(B0 500) (B1 0) (B2 250) (B3 301) (B4 600) (B5 0)
-	(C0 900) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 900) (C1 0) (C2 400) (C3 969) (C4 0) (C5 200)
 	))
 
 (defun Q65 (&optional sym)
@@ -1809,7 +1816,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 1000) (A2 236) (A3 0) (A4 1000) (A5 300)
 	(B0 500) (B1 0) (B2 450) (B3 301) (B4 1000) (B5 0)
-	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)
 	))
 
 (defun Q75 (&optional sym)
@@ -1821,7 +1828,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 0)
 	(B0 500) (B1 500) (B2 450) (B3 301) (B4 1000) (B5 0)
-	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)
 	))
 
 (defun Q85 (&optional sym)
@@ -1833,7 +1840,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 500)
 	(B0 500) (B1 500) (B2 450) (B3 301) (B4 1000) (B5 0)
-	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)	
+	(C0 300) (C1 200) (C2 400) (C3 969) (C4 0) (C5 200)
 	))
 
 (defun Q95 (&optional sym)
@@ -1845,7 +1852,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 500) (A4 1000) (A5 500)
 	(B0 500) (B1 500) (B2 450) (B3 0) (B4 600) (B5 500)
-	(C0 300) (C1 200) (C2 200) (C3 969) (C4 500) (C5 200)	
+	(C0 300) (C1 200) (C2 200) (C3 969) (C4 500) (C5 200)
 	))
 
 (defun QA5 (&optional sym)
@@ -1857,7 +1864,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 0)
 	(B0 500) (B1 500) (B2 1000) (B3 0) (B4 600) (B5 1000)
-	(C0 200) (C1 1000) (C2 500) (C3 969) (C4 500) (C5 200)	
+	(C0 200) (C1 1000) (C2 500) (C3 969) (C4 500) (C5 200)
 	))
 
 (defun QB5 (&optional sym)
@@ -1886,7 +1893,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 0)
 	(B0 0) (B1 500) (B2 1000) (B3 0) (B4 600) (B5 1000)
-	(C0 0) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)	
+	(C0 0) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun L15 (&optional sym)
@@ -1899,7 +1906,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 300)
 	(B0 0) (B1 500) (B2 500) (B3 0) (B4 1000) (B5 1000)
-	(C0 800) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)	
+	(C0 800) (C1 1000) (C2 500) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun L25 (&optional sym)
@@ -1911,7 +1918,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 1000) (A4 1000) (A5 0)
 	(B0 0) (B1 500) (B2 500) (B3 0) (B4 1000) (B5 1000)
-	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun L35 (&optional sym)
@@ -1924,7 +1931,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 0)
 	(B0 0) (B1 500) (B2 500) (B3 1000) (B4 1000) (B5 1000)
-	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun L45 (&optional sym)
@@ -1936,7 +1943,7 @@ Return the results of all forms as a list."
       `(
 	(A0 800) (A1 400) (A2 236) (A3 0) (A4 1000) (A5 200)
 	(B0 0) (B1 500) (B2 800) (B3 0) (B4 600) (B5 1000)
-	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)	
+	(C0 800) (C1 500) (C2 1000) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun L55 (&optional sym)
@@ -1968,7 +1975,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 0)
 	(B0 1000) (B1 200) (B2 0) (B3 1000) (B4 900) (B5 516)
-	(C0 437) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 0)	
+	(C0 437) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 0)
 	))
 
 (defun long5 (&optional sym)
@@ -1981,7 +1988,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 1000) (A3 0) (A4 1000) (A5 0)
 	(B0 1000) (B1 200) (B2 0) (B3 0) (B4 0) (B5 516)
-	(C0 1000) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 1000)	
+	(C0 1000) (C1 573) (C2 0) (C3 1000) (C4 636) (C5 1000)
 	))
 
 (defun reachdown5 (&optional sym)
@@ -1996,7 +2003,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 1000) (A3 0) (A4 1000) (A5 0)
 	(B0 1000) (B1 200) (B2 0) (B3 0) (B4 0) (B5 516)
-	(C0 1000) (C1 573) (C2 0) (C3 400) (C4 0) (C5 1000)	
+	(C0 1000) (C1 573) (C2 0) (C3 400) (C4 0) (C5 1000)
 	))
 
 (defun scoot15 (&optional sym)
@@ -2010,7 +2017,7 @@ Return the results of all forms as a list."
       `(
 	(A0 500) (A1 500) (A2 500) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)	
+	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)
 	))
 
 (defun skinA (&optional sym)
@@ -2023,7 +2030,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 237) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)	
+	(C0 237) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)
 	))
 
 (defun skinB (&optional sym)
@@ -2036,7 +2043,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 500) (B5 516)
-	(C0 800) (C1 573) (C2 700) (C3 0) (C4 0) (C5 0)	
+	(C0 800) (C1 573) (C2 700) (C3 0) (C4 0) (C5 0)
 	))
 
 (defun skinC (&optional sym)
@@ -2049,7 +2056,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 595) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 0) (B5 516)
-	(C0 800) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
+	(C0 800) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)
 	))
 
 (defun skinD (&optional sym)
@@ -2062,7 +2069,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 795) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 1000) (B3 0) (B4 1000) (B5 0)
-	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 500)	
+	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 500)
 	))
 
 (defun skinE (&optional sym)
@@ -2075,7 +2082,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 895) (A4 900) (A5 700)
 	(B0 302) (B1 991) (B2 0) (B3 0) (B4 1000) (B5 0)
-	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 800)	
+	(C0 500) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 800)
 	))
 
 (defun skinF (&optional sym)
@@ -2088,7 +2095,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 100) (A4 600) (A5 0)
 	(B0 0) (B1 0) (B2 0) (B3 0) (B4 1000) (B5 0)
-	(C0 0) (C1 573) (C2 700) (C3 400) (C4 1000) (C5 900)	
+	(C0 0) (C1 573) (C2 700) (C3 400) (C4 1000) (C5 900)
 	))
 
 (defun skinG (&optional sym)
@@ -2101,7 +2108,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 100) (A4 600) (A5 0)
 	(B0 0) (B1 0) (B2 0) (B3 0) (B4 1000) (B5 0)
-	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)	
+	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)
 	))
 
 (defun skinH (&optional sym)
@@ -2114,7 +2121,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 0) (A3 595) (A4 600) (A5 0)
 	(B0 0) (B1 450) (B2 0) (B3 700) (B4 1000) (B5 0)
-	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)	
+	(C0 0) (C1 0) (C2 0) (C3 0) (C4 1000) (C5 500)
 	))
 
 (defun skinHA (&optional sym)
@@ -2127,7 +2134,7 @@ Return the results of all forms as a list."
       `(
 	(A0 1000) (A1 00) (A2 1000) (A3 595) (A4 0) (A5 500)
 	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 0) (B5 0)
-	(C0 400) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)	
+	(C0 400) (C1 573) (C2 1000) (C3 0) (C4 1000) (C5 0)
 	))
 
 (defun skinI (&optional sym)
@@ -2140,7 +2147,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 1000) (A2 1000) (A3 595) (A4 0) (A5 200)
 	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 500) (B5 0)
-	(C0 400) (C1 0) (C2 0) (C3 0) (C4 500) (C5 500)	
+	(C0 400) (C1 0) (C2 0) (C3 0) (C4 500) (C5 500)
 	))
 
 (defun skinJ (&optional sym)
@@ -2153,7 +2160,7 @@ Return the results of all forms as a list."
       `(
 	(A0 300) (A1 0) (A2 1000) (A3 200) (A4 0) (A5 200)
 	(B0 1000) (B1 300) (B2 0) (B3 500) (B4 500) (B5 0)
-	(C0 400) (C1 0) (C2 500) (C3 500) (C4 500) (C5 600)	
+	(C0 400) (C1 0) (C2 500) (C3 500) (C4 500) (C5 600)
 	))
 
 (defun skinK (&optional sym)
@@ -2166,7 +2173,7 @@ Return the results of all forms as a list."
       `(
 	(A0 300) (A1 500) (A2 1000) (A3 200) (A4 0) (A5 200)
 	(B0 500) (B1 700) (B2 0) (B3 500) (B4 500) (B5 0)
-	(C0 400) (C1 0) (C2 1000) (C3 500) (C4 500) (C5 600)	
+	(C0 400) (C1 0) (C2 1000) (C3 500) (C4 500) (C5 600)
 	))
 
 (defun skinL (&optional sym)
@@ -2193,7 +2200,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 595) (A4 0) (A5 472)
 	(B0 302) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)	
+	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)
 	))
 
 (defun cwA (&optional sym)
@@ -2206,7 +2213,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 0) (A5 472)
 	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 0)	
+	(C0 0) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 0)
 	))
 
 (defun cwB (&optional sym)
@@ -2219,7 +2226,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
 	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 1000) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 1000)	
+	(C0 1000) (C1 573) (C2 769) (C3 0) (C4 1000) (C5 1000)
 	))
 
 (defun cwC (&optional sym)
@@ -2232,7 +2239,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
 	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 1000) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 1000)	
+	(C0 1000) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 1000)
 	))
 
 (defun cwD (&optional sym)
@@ -2245,7 +2252,7 @@ Return the results of all forms as a list."
       `(
 	(A0 500) (A1 500) (A2 0) (A3 0) (A4 0) (A5 300)
 	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 0)	
+	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 300) (C5 0)
 	))
 
 (defun cwE (&optional sym)
@@ -2281,7 +2288,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 595) (A4 0) (A5 472)
 	(B0 302) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)	
+	(C0 0) (C1 573) (C2 769) (C3 669) (C4 636) (C5 0)
 	))
 
 (defun ccwA (&optional sym)
@@ -2294,7 +2301,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 1000) (A4 0) (A5 472)
 	(B0 0) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 0) (C5 0)	
+	(C0 0) (C1 573) (C2 769) (C3 1000) (C4 0) (C5 0)
 	))
 
 (defun ccwB (&optional sym)
@@ -2307,7 +2314,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 1000) (A4 1000) (A5 472)
 	(B0 0) (B1 0) (B2 0) (B3 0) (B4 900) (B5 0)
-	(C0 1000) (C1 0) (C2 769) (C3 1000) (C4 0) (C5 1000)	
+	(C0 1000) (C1 0) (C2 769) (C3 1000) (C4 0) (C5 1000)
 	))
 
 
@@ -2321,7 +2328,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 636) (A3 0) (A4 1000) (A5 472)
 	(B0 1000) (B1 0) (B2 0) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 0) (C2 769) (C3 0) (C4 1000) (C5 0)	
+	(C0 0) (C1 0) (C2 769) (C3 0) (C4 1000) (C5 0)
 	))
 
 (defun ccwD (&optional sym)
@@ -2334,7 +2341,7 @@ Return the results of all forms as a list."
       `(
 	(A0 973) (A1 936) (A2 0) (A3 0) (A4 1000) (A5 472)
 	(B0 1000) (B1 0) (B2 500) (B3 0) (B4 900) (B5 0)
-	(C0 0) (C1 500) (C2 500) (C3 0) (C4 0) (C5 0)	
+	(C0 0) (C1 500) (C2 500) (C3 0) (C4 0) (C5 0)
 	))
 
 (defun ccwE (&optional sym)
@@ -2377,7 +2384,7 @@ Return the results of all forms as a list."
       `(
 	(A0 500) (A1 500) (A2 500) (A3 595) (A4 900) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)	
+	(C0 437) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 242)
 	))
 
 (defun thinA (&optional sym)
@@ -2390,7 +2397,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 595) (A4 0) (A5 472)
 	(B0 302) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 0) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 0)	
+	(C0 0) (C1 573) (C2 1000) (C3 669) (C4 636) (C5 0)
 	))
 
 (defun thinB (&optional sym)
@@ -2403,7 +2410,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 900) (A4 0) (A5 472)
 	(B0 900) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 0) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)	
+	(C0 0) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 0)
 	))
 
 (defun thinC (&optional sym)
@@ -2416,7 +2423,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
 	(B0 900) (B1 991) (B2 500) (B3 301) (B4 900) (B5 516)
-	(C0 1000) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 1000)	
+	(C0 1000) (C1 573) (C2 1000) (C3 0) (C4 0) (C5 1000)
 	))
 
 (defun thinD (&optional sym)
@@ -2429,7 +2436,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
 	(B0 500) (B1 991) (B2 500) (B3 0) (B4 900) (B5 516)
-	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)	
+	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)
 	))
 
 (defun thinE (&optional sym)
@@ -2442,7 +2449,7 @@ Return the results of all forms as a list."
       `(
 	(A0 0) (A1 0) (A2 500) (A3 900) (A4 1000) (A5 472)
 	(B0 500) (B1 991) (B2 500) (B3 0) (B4 900) (B5 516)
-	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)	
+	(C0 1000) (C1 573) (C2 1000) (C3 500) (C4 500) (C5 1000)
 	))
 
 (defun thinF (&optional sym)
@@ -2465,7 +2472,7 @@ Return the results of all forms as a list."
 (defun pose-as-json (name geometry p)
   (format "%s %s %s"
 	  (format "{\"type\": \"pose\", \"name\" :  \"%s\",\n \"geometry\": \"%s\",\n" name geometry)
-	  (format "\"pose\": %s\n" 
+	  (format "\"pose\": %s\n"
 		  (json-encode (convert-from-list-to-pairs p)))
 	  (format "}\n")
 	  )
@@ -2474,7 +2481,7 @@ Return the results of all forms as a list."
 (defun gait-as-json (name geometry g)
   (format "%s %s %s"
 	  (format "{\"type\": \"gait\", \"name\" :  \"%s\",\n \"geometry\": \"%s\",\n" name geometry)
-	  (format "\"gait\": %s\n" 
+	  (format "\"gait\": %s\n"
 		  (json-encode (mapcar #'(lambda (p)
 					   (if (stringp p)
 					       p
@@ -2550,7 +2557,7 @@ Connection: close\n
 \n
 <!DOCTYPE HTML>\n
 <html>\
-{ 
+{
 A0: 383,
 A1: 387,
 A2: 376,
@@ -2563,7 +2570,7 @@ A5: 377,
   (assert
    (equal
     converted
-    "{ 
+    "{
 A0: 383,
 A1: 387,
 A2: 376,
@@ -2575,7 +2582,7 @@ A5: 377,
     )
    )
   ))
-  
+
 ;; It seems likelty that there is a serious limit to how quickly this can work.
 ;; I may have to do something far more sophisticated.  Possibly we should even
 ;; switch to "push" model on the Arduino.
@@ -2587,13 +2594,13 @@ A5: 377,
 ;; 0.25 seconds seems to work best with my current Arduino code.
 (defun establish-timer-for-glusscon-probe (period-seconds)
   (setq numprobes 0)
-  (setq numanswered 0)  
+  (setq numanswered 0)
   (let* ((thunk #'(lambda ()
 		    (let ((d (- numprobes numanswered)))
 ;;		      (print (format "%d unanswered probes" d))
 ;;		      (if (<= d 0)
 ;;			  (progn
-;;			    (setq numprobes (+ 1 numprobes))			    
+;;			    (setq numprobes (+ 1 numprobes))
 			    (glusscon-query glusscon-url)
 ;;			    )
 ;;			(print "sitttng this one wout until we get answered!")
@@ -2673,13 +2680,16 @@ A5: 377,
 			  )
 		      (progn
 			(setq numanswered (+ 1 numanswered))
-			(let* ((str 
+			(let* ((str
 				(with-current-buffer (current-buffer)
 				  (buffer-string)))
 			       (json (convert-to-json str))
 			       (changed (compare_current_json json)))
-;;			  (print json)
-;;			  (print changed)
+			  (print str)
+                          (print "XXXXXXXX");
+			  (print json)
+
+			  (print changed)
 			  (if changed
 			      (progn
 				(setq wtime0 (current-time))
@@ -2703,8 +2713,8 @@ A5: 377,
 ;; gray: gnd
 
 ;;
-;; (load "~/PubInv/gluss/emacs-ctl.el")
-;; (load "~/PubInv/gluss/tetrahelix.el")
+;; (load "~/PubInv/tetrobot/emacs-ctl.el")
+;; (load "~/PubInv/tetrobot/tetrahelix.el")
 ;; (init)
 ;; (big)
 ;; (small)
@@ -2714,6 +2724,8 @@ A5: 377,
 ;; (setq glusscon-url "http://172.16.18.202")
 ;; After establishing bluetooth network by doing "group network" on the raspberry pi:
 ;; (setq glusscon-url "http://192.168.2.2")
+(setq glusscon-url "http://127.0.0.1")
+
 
 (defvar demo-timer nil)
 (defun establish-timer-for-demos (period-seconds)
@@ -2723,10 +2735,10 @@ A5: 377,
 
 	 (timer (run-at-time t period-seconds
 			     thunk)))
-	 (print "QQQQQQQQQQQQQQQQ")    
+	 (print "QQQQQQQQQQQQQQQQ")
     (setq demo-timer timer)))
 
-    
+
 (defun cancel-demo-timer ()
   (cancel-timer demo-timer)
   )
